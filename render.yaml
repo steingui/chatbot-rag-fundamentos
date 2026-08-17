@@ -1,0 +1,17 @@
+services:
+  - type: web
+    name: chatbot-rag-api
+    env: docker
+    plan: free
+    region: ohio
+    branch: main
+    dockerCommand: "uvicorn backend.api.main:app --host 0.0.0.0 --port 10000"
+    envVars:
+      - key: PORT
+        value: 10000
+      - key: PINECONE_INDEX_NAME
+        value: "rag-fundamentos"
+      - key: PINECONE_API_KEY
+        sync: false
+      - key: OPENROUTER_API_KEY
+        sync: false
