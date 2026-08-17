@@ -1,9 +1,11 @@
 langchain
 langchain-community
-langchain-chroma
+langchain-pinecone
+pinecone-client
 langchain-openai
 langchain-huggingface
-chromadb
 pypdf
 python-dotenv
 requests
+fastapi
+uvicorn

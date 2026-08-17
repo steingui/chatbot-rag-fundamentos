@@ -1,9 +1,8 @@
 import os
 import logging
-from pathlib import Path
 from dotenv import load_dotenv
 
-from langchain_chroma import Chroma
+from langchain_pinecone import PineconeVectorStore
 from langchain_huggingface import HuggingFaceEmbeddings
 from langchain_openai import ChatOpenAI
 from langchain.chains import create_retrieval_chain
@@ -11,25 +10,22 @@ from langchain.chains.combine_documents import create_stuff_documents_chain
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.runnables import Runnable
 
-# Configuração Básica
 logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
 load_dotenv()
 
-# Constantes
-DB_DIR = Path("data/chroma_db")
 EMBEDDING_MODEL = "all-MiniLM-L6-v2"
 LLM_MODEL = "meta-llama/llama-3-8b-instruct:free"
 OPENROUTER_BASE = "https://openrouter.ai/api/v1"
+INDEX_NAME = os.environ.get("PINECONE_INDEX_NAME", "rag-fundamentos")
 
 def build_rag_chain() -> Runnable:
-    """Constrói e retorna a chain do RAG configurada."""
-    if not DB_DIR.exists():
-        raise FileNotFoundError(f"Vector DB '{DB_DIR}' não encontrado. Execute o script de ingestão primeiro.")
+    if not os.environ.get("PINECONE_API_KEY"):
+        raise ValueError("PINECONE_API_KEY não configurada no .env!")
 
-    logging.info("Carregando Vector DB e conectando ao LLM...")
+    logging.info(f"Conectando ao Pinecone (Index: {INDEX_NAME}) e ao LLM...")
     
     embeddings = HuggingFaceEmbeddings(model_name=EMBEDDING_MODEL)
-    vectorstore = Chroma(persist_directory=str(DB_DIR), embedding_function=embeddings)
+    vectorstore = PineconeVectorStore(index_name=INDEX_NAME, embedding=embeddings)
     retriever = vectorstore.as_retriever(search_kwargs={"k": 3})
 
     llm = ChatOpenAI(
@@ -53,9 +49,7 @@ def build_rag_chain() -> Runnable:
     return create_retrieval_chain(retriever, question_answer_chain)
 
 def iniciar_chat(rag_chain: Runnable) -> None:
-    """Loop principal de interação do terminal."""
-    print("\nChatbot RAG inicializado. Digite 'sair' para encerrar.")
-    
+    print("\nChatbot RAG conectado ao Pinecone. Digite 'sair' para encerrar.")
     while True:
         try:
             user_input = input("\nVocê: ").strip()
@@ -70,7 +64,7 @@ def iniciar_chat(rag_chain: Runnable) -> None:
         except KeyboardInterrupt:
             break
         except Exception as e:
-            logging.error(f"Erro durante a geração da resposta: {e}")
+            logging.error(f"Erro: {e}")
 
 def main() -> None:
     try:
