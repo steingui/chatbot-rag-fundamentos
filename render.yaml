@@ -1,11 +1,12 @@
 services:
   - type: web
     name: chatbot-rag-api
-    env: docker
+    env: python
     plan: free
     region: ohio
     branch: main
-    dockerCommand: "uvicorn backend.api.main:app --host 0.0.0.0 --port 10000"
+    buildCommand: "pip install uv && uv pip install --system -r requirements-api.txt"
+    startCommand: "uvicorn backend.api.main:app --host 0.0.0.0 --port 10000"
     envVars:
       - key: PORT
         value: 10000
@@ -14,4 +15,6 @@ services:
       - key: PINECONE_API_KEY
         sync: false
       - key: OPENROUTER_API_KEY
+        sync: false
+      - key: HF_TOKEN
         sync: false

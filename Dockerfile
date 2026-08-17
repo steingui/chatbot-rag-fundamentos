@@ -6,14 +6,12 @@ ENV PYTHONUNBUFFERED=1
 
 WORKDIR /app
 
-# Instala dependências do sistema
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    build-essential \
-    && rm -rf /var/lib/apt/lists/*
+# Instala o 'uv' para instalações Python ultrarrápidas
+RUN pip install --no-cache-dir uv
 
-# Instala as dependências Python
-COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+# Copia e instala as dependências da API
+COPY requirements-api.txt .
+RUN uv pip install --system -r requirements-api.txt
 
 # Copia o código para o container
 COPY . .
