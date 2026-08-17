@@ -13,8 +13,11 @@ DEFAULT_ITEMS = 50
 def fetch_data(endpoint: str, params: Optional[Dict[str, Any]] = None) -> List[Dict[str, Any]]:
     """Faz a requisição para a API da Câmara e retorna a lista de dados."""
     url = f"{BASE_URL}/{endpoint}"
+    headers = {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
+    }
     try:
-        response = requests.get(url, params=params, timeout=10)
+        response = requests.get(url, headers=headers, params=params, timeout=60)
         response.raise_for_status()
         return response.json().get("dados", [])
     except requests.RequestException as e:
