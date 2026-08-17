@@ -22,4 +22,22 @@ Objetivo: Buscar as informações certas e gerar uma resposta inteligente.
 
 ---
 **Resumo do Fluxo:**
-`Documento -> Chunks -> Vetores -> ChromaDB <- (Busca Semântica) <- Pergunta -> LLM + Contexto -> Resposta`
+
+```mermaid
+flowchart TD
+    subgraph Ingestão [1. Etapa de Ingestão]
+        A[Documentos PDF/MD] --> B(Text Splitter)
+        B -->|Chunks| C(Embeddings)
+        C -->|Vetores| D[(ChromaDB)]
+    end
+
+    subgraph Consulta [2. Etapa de Consulta]
+        E[Pergunta do Usuário] --> F(Embeddings)
+        F -->|Vetor da Pergunta| D
+        D -->|Busca Semântica| G[Top Chunks Recuperados]
+        E --> H(Prompt)
+        G --> H
+        H -->|Contexto + Pergunta| I[LLM / OpenRouter]
+        I --> J[Resposta]
+    end
+```
