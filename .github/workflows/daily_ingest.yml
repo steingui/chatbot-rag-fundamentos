@@ -2,7 +2,8 @@ name: Pipeline de Ingestão de Dados (Scraping + RAG)
 
 on:
   schedule:
-    - cron: '*/3 * * * *'
+    # Roda todo dia às 03:00 e 15:00 UTC (Equivale a 00:00 e 12:00 no Horário de Brasília)
+    - cron: '0 3,15 * * *'
   workflow_dispatch:
 
 jobs:
