@@ -4,7 +4,7 @@
 - [ ] **Planos de Governo (TSE - DivulgaCand)**
   - Extrair PDFs/textos das propostas oficiais de presidenciáveis/governadores.
   - Refinar o texto (limpeza) via LLM antes de salvar em Markdown.
-- [ ] **Histórico de Votações (Câmara/Senado)**
+- [x] **Histórico de Votações (Câmara/Senado)**
   - Consumir API de Dados Abertos.
   - Mapear votos em pautas polêmicas (reformas, meio ambiente, economia) dos candidatos à reeleição.
 - [ ] **Fact-Checking (Lupa, Aos Fatos)**
@@ -14,8 +14,8 @@
   - Capturar evolução patrimonial e lista de principais doadores das campanhas.
 
 ## Evolução da Arquitetura
-- [ ] Criar script `scraper.py` (BeautifulSoup/requests).
+- [x] Criar script `scraper.py` (BeautifulSoup/requests).
 - [ ] Criar etapa de "Refinamento" (usar LLM para formatar os dados crus em Markdown padronizado).
-- [ ] Acionar o `ingest.py` automaticamente após o scrapping.
-- [ ] Construir Backend (ex: FastAPI ou Flask) para expor a lógica do `chat.py` via REST API.
+- [x] Acionar o `ingest.py` automaticamente após o scrapping (Via Actions em breve).
+- [x] Construir Backend (ex: FastAPI ou Flask) para expor a lógica do `chat.py` via REST API.
 - [ ] Construir Frontend para consumir a API (interface de chat interativa na web).
