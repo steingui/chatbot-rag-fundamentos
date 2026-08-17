@@ -1,36 +1,31 @@
-# Chatbot RAG (Fundamentos)
+# 🏛️ Chatbot RAG - Câmara dos Deputados
 
-Projeto básico de Chatbot utilizando a técnica RAG (Retrieval-Augmented Generation).
+Este projeto utiliza inteligência artificial para responder perguntas sobre o histórico de votações da Câmara dos Deputados Brasileiros, baseando-se em dados reais.
 
-## Arquitetura e Tecnologias
-- **Vector DB**: ChromaDB (armazenamento local)
-- **Framework**: LangChain
-- **Embeddings**: HuggingFace (`all-MiniLM-L6-v2`)
-- **LLM**: Integração via OpenRouter (ex: `meta-llama/llama-3-8b-instruct:free`)
+## 🚀 Como Testar a API em Produção
 
-## Como Executar
+O backend está ativo no Render e atualizado automaticamente com as últimas votações.
 
-1. Crie um ambiente virtual e instale as dependências:
-   ```bash
-   python -m venv venv
-   source venv/bin/activate
-   pip install -r requirements.txt
-   ```
+Você pode enviar perguntas para a IA através do terminal usando `curl`:
 
-2. Configure a API Key:
-   Copie `.env.example` para `.env` e insira sua chave do OpenRouter:
-   ```bash
-   cp .env.example .env
-   ```
+```bash
+curl -X POST "https://chatbot-rag-api-q2k5.onrender.com/chat" \
+     -H "Content-Type: application/json" \
+     -d '{"query": "Sua pergunta aqui"}'
+```
 
-3. Ingestão de Documentos:
-   Adicione arquivos PDF ou Markdown na pasta `docs/` e execute:
-   ```bash
-   python ingest.py
-   ```
+## 💬 Sugestões de Prompts
 
-4. Chat:
-   Execute o script de chat para realizar perguntas sobre os documentos:
-   ```bash
-   python chat.py
-   ```
+Aqui estão algumas ideias do que você pode perguntar para a IA:
+
+1. **Visão Geral:**
+   > `"Quais foram as últimas votações registradas na Câmara?"`
+2. **Posicionamento Específico:**
+   > `"Como o deputado Alberto Fraga (PL-DF) votou na última sessão?"`
+3. **Resumo por Partido:**
+   > `"Qual foi o padrão de votos do partido PT nas votações mais recentes?"`
+4. **Análise de Abstenções:**
+   > `"Quais deputados se abstiveram de votar nas proposições analisadas?"`
+
+---
+*Para ver como a arquitetura funciona por trás dos panos, confira `docs_projeto/how-this-works.md`.*

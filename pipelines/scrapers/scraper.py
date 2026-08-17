@@ -52,7 +52,7 @@ def format_votacao_md(votacao: Dict[str, Any], votos: List[Dict[str, Any]]) -> s
         uf = voto.get("deputado_", {}).get("siglaUf", "S/UF")
         tipo_voto = voto.get("tipoVoto", "Abstenção")
         
-        md_lines.append(f"- O deputado **{deputado}** ({partido}-{uf}) votou **{tipo_voto}**.")
+        md_lines.append(f"- Sobre '{sigla}', o deputado **{deputado}** ({partido}-{uf}) votou **{tipo_voto}**.")
         
     return "\n".join(md_lines)
 
