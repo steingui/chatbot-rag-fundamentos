@@ -3,7 +3,7 @@ import logging
 from pathlib import Path
 from dotenv import load_dotenv
 
-from langchain_community.document_loaders import PyPDFDirectoryLoader, DirectoryLoader
+from langchain_community.document_loaders import PyPDFDirectoryLoader, DirectoryLoader, TextLoader
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_pinecone import PineconeVectorStore
 from langchain_huggingface import HuggingFaceEndpointEmbeddings
@@ -26,7 +26,7 @@ def carregar_documentos(docs_path: Path) -> list:
         return []
 
     pdf_loader = PyPDFDirectoryLoader(str(docs_path))
-    md_loader = DirectoryLoader(str(docs_path), glob="**/*.md")
+    md_loader = DirectoryLoader(str(docs_path), glob="**/*.md", loader_cls=TextLoader)
     
     return pdf_loader.load() + md_loader.load()
 
