@@ -5,7 +5,6 @@ langchain-pinecone
 pinecone-client
 langchain-openai
 langchain-huggingface
-sentence-transformers
 pypdf
 python-dotenv
 requests

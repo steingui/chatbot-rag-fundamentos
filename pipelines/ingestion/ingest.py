@@ -6,7 +6,7 @@ from dotenv import load_dotenv
 from langchain_community.document_loaders import PyPDFDirectoryLoader, DirectoryLoader
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_pinecone import PineconeVectorStore
-from langchain_huggingface import HuggingFaceEmbeddings
+from langchain_huggingface import HuggingFaceEndpointEmbeddings
 
 # Configuração Básica
 logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
@@ -14,7 +14,7 @@ load_dotenv()
 
 # Constantes
 DOCS_DIR = Path("data/docs")
-EMBEDDING_MODEL = "all-MiniLM-L6-v2"
+EMBEDDING_MODEL = "sentence-transformers/all-MiniLM-L6-v2"
 INDEX_NAME = os.environ.get("PINECONE_INDEX_NAME", "rag-fundamentos")
 CHUNK_SIZE = 1000
 CHUNK_OVERLAP = 200
@@ -46,8 +46,11 @@ def processar_ingestao() -> None:
     text_splitter = RecursiveCharacterTextSplitter(chunk_size=CHUNK_SIZE, chunk_overlap=CHUNK_OVERLAP)
     splits = text_splitter.split_documents(docs)
 
-    logging.info(f"Gerando embeddings e enviando para o Pinecone (Index: {INDEX_NAME})...")
-    embeddings = HuggingFaceEmbeddings(model_name=EMBEDDING_MODEL)
+    logging.info(f"Gerando embeddings (API HF) e enviando para o Pinecone (Index: {INDEX_NAME})...")
+    embeddings = HuggingFaceEndpointEmbeddings(
+        model=EMBEDDING_MODEL,
+        huggingfacehub_api_token=os.environ.get("HF_TOKEN")
+    )
     
     PineconeVectorStore.from_documents(
         documents=splits, 
