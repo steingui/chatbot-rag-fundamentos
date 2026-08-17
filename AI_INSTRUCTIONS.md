@@ -24,3 +24,4 @@ A estrutura deve seguir:
 - Escrever código legível antes de código "inteligente".
 - Alterar/Sugerir apenas o estritamente necessário (sem reescrever arquivos grandes inteiros).
 - Respeitar a separação de responsabilidades descrita no tópico 1.
+- **ATUALIZAÇÃO DE DOCS**: Sempre que fizer commits que alterem a arquitetura ou o fluxo de dados, você **DEVE OBRIGATORIAMENTE** atualizar o arquivo `docs_projeto/how-this-works.md` para refletir as mudanças antes de finalizar a task.
