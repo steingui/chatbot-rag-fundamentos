@@ -2,6 +2,14 @@
 
 A arquitetura base de Backend e Ingestão está **100% funcional, automatizada e em produção**. O foco de amanhã será expandir a experiência do usuário e a inteligência dos dados.
 
+## Fase 0: Arquitetura Base (Concluído ✅)
+- [x] Criar script `scraper.py` para extrair dados da Câmara dos Deputados.
+- [x] Refatorar scraper para injetar metadados diretamente no chunk (contexto robusto).
+- [x] Construir Pipeline de Ingestão (`ingest.py`) utilizando Pinecone e Embeddings HuggingFace.
+- [x] Automatizar a Ingestão via GitHub Actions (Cron Job 2x ao dia).
+- [x] Construir Backend em FastAPI para expor o LangChain e a lógica do RAG.
+- [x] Deploy da API no Render (Serverless) conectado ao OpenRouter (Llama 3 / Modelos Free).
+
 ## Fase 1: Interface de Usuário (Frontend)
 - [ ] Criar interface gráfica (UI) para o Chatbot.
 - [ ] **Opções de Stack:** 
