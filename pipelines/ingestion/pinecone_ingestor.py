@@ -13,13 +13,13 @@ logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
 load_dotenv()
 
 # Constantes
-DOCS_DIR = Path("data/docs")
 EMBEDDING_MODEL = "sentence-transformers/all-MiniLM-L6-v2"
 INDEX_NAME = os.environ.get("PINECONE_INDEX_NAME", "rag-fundamentos")
 CHUNK_SIZE = 1000
 CHUNK_OVERLAP = 200
 
-def carregar_documentos(docs_path: Path) -> list:
+def carregar_documentos_diretorio(docs_path: Path) -> list:
+    """Carrega PDFs e Markdown de um diretório."""
     if not docs_path.exists():
         docs_path.mkdir(parents=True, exist_ok=True)
         logging.warning(f"Diretório '{docs_path}' criado. Adicione documentos antes de ingerir.")
@@ -30,19 +30,17 @@ def carregar_documentos(docs_path: Path) -> list:
     
     return pdf_loader.load() + md_loader.load()
 
-def processar_ingestao() -> None:
+def ingest_documents(docs: list) -> None:
+    """Recebe uma lista de documentos LangChain, gera embeddings e envia ao Pinecone."""
     if not os.environ.get("PINECONE_API_KEY"):
         logging.error("PINECONE_API_KEY não configurada no .env!")
         return
 
-    logging.info("Iniciando carregamento de documentos...")
-    docs = carregar_documentos(DOCS_DIR)
-    
     if not docs:
-        logging.warning("Nenhum documento encontrado.")
+        logging.warning("Nenhum documento para ingerir.")
         return
 
-    logging.info(f"{len(docs)} documentos carregados. Fatiando...")
+    logging.info(f"{len(docs)} documentos recebidos. Fatiando...")
     text_splitter = RecursiveCharacterTextSplitter(chunk_size=CHUNK_SIZE, chunk_overlap=CHUNK_OVERLAP)
     splits = text_splitter.split_documents(docs)
 
@@ -59,8 +57,13 @@ def processar_ingestao() -> None:
     )
     logging.info("Ingestão concluída com sucesso no Pinecone!")
 
-def main() -> None:
-    processar_ingestao()
+def ingest_from_directory(docs_path: Path) -> None:
+    """Fluxo completo: lê do diretório e ingere no Pinecone."""
+    logging.info(f"Iniciando carregamento de documentos do diretório {docs_path}...")
+    docs = carregar_documentos_diretorio(docs_path)
+    ingest_documents(docs)
 
 if __name__ == "__main__":
-    main()
+    # Compatibilidade: roda direto no diretório padrao se executado como script
+    DOCS_DIR = Path("data/docs")
+    ingest_from_directory(DOCS_DIR)
