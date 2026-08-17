@@ -19,5 +19,11 @@ A arquitetura base de Backend e Ingestão está **100% funcional, automatizada e
 - [ ] Testes de validação da saúde do banco de vetores Pinecone.
 - [ ] (Opcional) Guardar logs das perguntas mais frequentes para análise de interesse.
 
+## Fase 4: Melhorias Futuras (Visão a Longo Prazo)
+- [ ] **Hybrid Search no Pinecone:** Misturar busca semântica (vetorial) com busca léxica (palavras-chave via BM25) para aumentar a precisão de buscas por nomes exatos de deputados ou siglas muito específicas.
+- [ ] **Agentes (Tool Calling):** Evoluir o LangChain de uma "Chain" simples para um "Agent". O bot poderia ter ferramentas para, por exemplo, buscar notícias em tempo real na web ou consultar gráficos.
+- [ ] **Banco de Dados Relacional:** Adicionar um PostgreSQL para salvar o perfil de cada deputado, permitindo respostas analíticas precisas (ex: "Quantas vezes o deputado X votou Sim neste ano?") sem depender de matemática via LLM (que costuma falhar).
+- [ ] **Autenticação:** Sistema de login para que usuários possam salvar seus históricos de chat e criar alertas de votações.
+
 ---
 *Status Atual: Backend Operacional | Cron Job: 2x/dia | Vector DB: Pinecone*
