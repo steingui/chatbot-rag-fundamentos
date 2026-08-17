@@ -1,0 +1,31 @@
+name: Pipeline de Ingestão de Dados (Scraping + RAG)
+
+on:
+  schedule:
+    - cron: '*/3 * * * *'
+  workflow_dispatch:
+
+jobs:
+  run-pipeline:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repo
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Install Dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run Scraper (Câmara)
+        run: python pipelines/scrapers/scraper.py
+
+      - name: Run Ingest (Pinecone)
+        env:
+          PINECONE_API_KEY: ${{ secrets.PINECONE_API_KEY }}
+          PINECONE_INDEX_NAME: ${{ secrets.PINECONE_INDEX_NAME }}
+        run: python pipelines/ingestion/ingest.py
