@@ -5,10 +5,8 @@ from dotenv import load_dotenv
 from langchain_pinecone import PineconeVectorStore
 from langchain_huggingface import HuggingFaceEndpointEmbeddings
 from langchain_openai import ChatOpenAI
-from langchain_classic.chains import create_retrieval_chain
-from langchain_classic.chains.combine_documents import create_stuff_documents_chain
-from langchain_core.prompts import ChatPromptTemplate
-from langchain_core.runnables import Runnable
+from langchain_classic.chains import ConversationalRetrievalChain
+from langchain_classic.memory import ConversationBufferMemory
 
 logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
 load_dotenv()
@@ -18,7 +16,7 @@ LLM_MODEL = "openrouter/free"
 OPENROUTER_BASE = "https://openrouter.ai/api/v1"
 INDEX_NAME = os.environ.get("PINECONE_INDEX_NAME", "rag-fundamentos")
 
-def build_rag_chain() -> Runnable:
+def build_rag_chain():
     if not os.environ.get("PINECONE_API_KEY"):
         raise ValueError("PINECONE_API_KEY não configurada no .env!")
 
@@ -37,21 +35,22 @@ def build_rag_chain() -> Runnable:
         openai_api_base=OPENROUTER_BASE
     )
 
-    system_prompt = (
-        "Você é um assistente útil. Use o contexto fornecido para responder à pergunta. "
-        "Se não souber a resposta com base no contexto, diga que não sabe.\n\n"
-        "Contexto:\n{context}"
+    memory = ConversationBufferMemory(
+        memory_key="chat_history",
+        return_messages=True,
+        output_key="answer"
+    )
+
+    qa_chain = ConversationalRetrievalChain.from_llm(
+        llm=llm,
+        retriever=retriever,
+        memory=memory,
+        return_source_documents=False
     )
     
-    prompt = ChatPromptTemplate.from_messages([
-        ("system", system_prompt),
-        ("human", "{input}"),
-    ])
+    return qa_chain
 
-    question_answer_chain = create_stuff_documents_chain(llm, prompt)
-    return create_retrieval_chain(retriever, question_answer_chain)
-
-def iniciar_chat(rag_chain: Runnable) -> None:
+def iniciar_chat(rag_chain) -> None:
     print("\nChatbot RAG conectado ao Pinecone. Digite 'sair' para encerrar.")
     while True:
         try:
@@ -61,7 +60,7 @@ def iniciar_chat(rag_chain: Runnable) -> None:
             if user_input.lower() in ["sair", "exit", "quit"]:
                 break
 
-            response = rag_chain.invoke({"input": user_input})
+            response = rag_chain.invoke({"question": user_input})
             print(f"\nBot: {response['answer']}")
             
         except KeyboardInterrupt:

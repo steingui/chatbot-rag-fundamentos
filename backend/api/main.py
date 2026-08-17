@@ -30,7 +30,7 @@ def chat(request: ChatRequest):
         raise HTTPException(status_code=500, detail="RAG Chain não está disponível. Verifique as chaves de API.")
     
     try:
-        response = rag_chain.invoke({"input": request.query})
+        response = rag_chain.invoke({"question": request.query})
         return ChatResponse(answer=response["answer"])
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
