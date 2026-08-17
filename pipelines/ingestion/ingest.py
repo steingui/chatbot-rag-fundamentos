@@ -1,39 +1,63 @@
-import os
+import logging
+from pathlib import Path
 from dotenv import load_dotenv
+
 from langchain_community.document_loaders import PyPDFDirectoryLoader, DirectoryLoader
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_chroma import Chroma
 from langchain_huggingface import HuggingFaceEmbeddings
 
+# Configuração Básica
+logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
 load_dotenv()
 
-DOCS_DIR = "docs"
-DB_DIR = "chroma_db"
+# Constantes de Diretório atualizadas para a estrutura monorepo
+DOCS_DIR = Path("data/docs")
+DB_DIR = Path("data/chroma_db")
+EMBEDDING_MODEL = "all-MiniLM-L6-v2"
+CHUNK_SIZE = 1000
+CHUNK_OVERLAP = 200
 
-def main():
-    if not os.path.exists(DOCS_DIR):
-        os.makedirs(DOCS_DIR)
-        print(f"Diretório '{DOCS_DIR}' criado. Adicione seus PDFs ou MDs nele.")
-        return
+def carregar_documentos(docs_path: Path) -> list:
+    """Carrega PDFs e MDs do diretório informado."""
+    if not docs_path.exists():
+        docs_path.mkdir(parents=True, exist_ok=True)
+        logging.warning(f"Diretório '{docs_path}' criado. Adicione documentos antes de ingerir.")
+        return []
 
-    print("Carregando documentos...")
-    pdf_loader = PyPDFDirectoryLoader(DOCS_DIR)
-    md_loader = DirectoryLoader(DOCS_DIR, glob="**/*.md")
+    pdf_loader = PyPDFDirectoryLoader(str(docs_path))
+    md_loader = DirectoryLoader(str(docs_path), glob="**/*.md")
     
-    docs = pdf_loader.load() + md_loader.load()
+    return pdf_loader.load() + md_loader.load()
+
+def processar_ingestao() -> None:
+    """Executa o pipeline completo de ingestão de documentos."""
+    logging.info("Iniciando carregamento de documentos...")
+    docs = carregar_documentos(DOCS_DIR)
+    
     if not docs:
-        print("Nenhum documento encontrado.")
+        logging.warning("Nenhum documento encontrado para ingestão.")
         return
 
-    print(f"{len(docs)} documentos carregados. Dividindo em chunks...")
-    text_splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=200)
+    logging.info(f"{len(docs)} documentos carregados. Dividindo em chunks...")
+    text_splitter = RecursiveCharacterTextSplitter(
+        chunk_size=CHUNK_SIZE, 
+        chunk_overlap=CHUNK_OVERLAP
+    )
     splits = text_splitter.split_documents(docs)
 
-    print(f"Gerando embeddings e salvando no ChromaDB em '{DB_DIR}'...")
-    embeddings = HuggingFaceEmbeddings(model_name="all-MiniLM-L6-v2")
+    logging.info(f"Gerando embeddings e persistindo no ChromaDB em '{DB_DIR}'...")
+    embeddings = HuggingFaceEmbeddings(model_name=EMBEDDING_MODEL)
     
-    Chroma.from_documents(documents=splits, embedding=embeddings, persist_directory=DB_DIR)
-    print("Ingestão concluída com sucesso!")
+    Chroma.from_documents(
+        documents=splits, 
+        embedding=embeddings, 
+        persist_directory=str(DB_DIR)
+    )
+    logging.info("Ingestão concluída com sucesso!")
+
+def main() -> None:
+    processar_ingestao()
 
 if __name__ == "__main__":
     main()
