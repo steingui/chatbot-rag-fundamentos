@@ -28,4 +28,5 @@ jobs:
         env:
           PINECONE_API_KEY: ${{ secrets.PINECONE_API_KEY }}
           PINECONE_INDEX_NAME: ${{ secrets.PINECONE_INDEX_NAME }}
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
         run: python pipelines/ingestion/ingest.py
