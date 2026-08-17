@@ -28,24 +28,26 @@ Objetivo: Expor a IA em uma API REST.
 **Resumo do Fluxo:**
 
 ```mermaid
-flowchart TD
-    subgraph Dados [Extratores]
-        S(Scraper da Câmara) -->|Arquivos .md| A
+graph TD
+    %% Estilos Simplificados
+    classDef github fill:#171515,color:#fff,stroke:#fff
+    classDef pinecone fill:#f0f0f0,color:#000,stroke:#333
+    classDef render fill:#000,color:#fff,stroke:#333
+    classDef openrouter fill:#6236ff,color:#fff,stroke:#333
+    classDef hf fill:#ffcc00,color:#000,stroke:#333
+
+    subgraph "1. Pipeline de Ingestão (GitHub Actions)"
+        A[Cron Job Diario]:::github -->|Baixa dados da Câmara| B(Scraper Python)
+        B -->|Extrai Textos| C[Hugging Face API<br>all-MiniLM-L6-v2]:::hf
+        C -->|Gera Embeddings| D[(Pinecone Vector DB)]:::pinecone
     end
 
-    subgraph Ingestão [Etapa de Ingestão]
-        A[Pasta data/docs] --> B(Text Splitter)
-        B -->|Chunks| C(Embeddings)
-        C -->|Vetores| D[(Pinecone Vector DB)]
-    end
-
-    subgraph Consulta [Etapa de Consulta / API]
-        E[User Request API] --> F(Embeddings)
-        F -->|Vetor da Pergunta| D
-        D -->|Busca Semântica| G[Top Chunks Recuperados]
-        E --> H(Prompt)
-        G --> H
-        H -->|Contexto + Pergunta| I[LLM / OpenRouter]
-        I --> J[JSON Response]
+    subgraph "2. Produção (Render)"
+        U((Usuário)) -->|POST /chat| F[FastAPI Backend]:::render
+        F -.->|1. Busca Contexto| D
+        D -.->|2. Retorna Vetores Relevantes| F
+        F -.->|3. Envia Prompt + Contexto| G[OpenRouter API<br>Llama-3 8B]:::openrouter
+        G -.->|4. Resposta Final| F
+        F -->|5. Retorna Mensagem| U
     end
 ```
