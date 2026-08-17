@@ -8,7 +8,7 @@ logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
 
 BASE_URL = "https://dadosabertos.camara.leg.br/api/v2"
 DOCS_DIR = Path("data/docs")
-DEFAULT_ITEMS = 5
+DEFAULT_ITEMS = 50
 
 def fetch_data(endpoint: str, params: Optional[Dict[str, Any]] = None) -> List[Dict[str, Any]]:
     """Faz a requisição para a API da Câmara e retorna a lista de dados."""
