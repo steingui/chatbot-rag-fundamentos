@@ -41,8 +41,33 @@ def generate_deterministic_id(doc, idx: int) -> str:
     return hashlib.md5(raw_key.encode("utf-8")).hexdigest()
 
 
+def limpar_vetores_antigos_por_fonte(sources: set) -> None:
+    """Remove vetores antigos do Pinecone associados às fontes fornecidas antes da nova ingestão."""
+    api_key = os.environ.get("PINECONE_API_KEY")
+    if not api_key or not sources:
+        return
+
+    try:
+        from pinecone import Pinecone
+        pc = Pinecone(api_key=api_key)
+        index = pc.Index(INDEX_NAME)
+        
+        count = 0
+        for src in sources:
+            try:
+                index.delete(filter={"source": {"$eq": src}})
+                count += 1
+            except Exception as e:
+                logging.debug(f"Não foi possível apagar vetores antigos da fonte {src}: {e}")
+        
+        if count > 0:
+            logging.info(f"Limpeza preventiva executada para {count} fontes de documentos.")
+    except Exception as err:
+        logging.warning(f"Aviso na pré-limpeza de vetores por fonte: {err}")
+
+
 def ingest_documents(docs: list) -> None:
-    """Recebe uma lista de documentos LangChain, gera embeddings e realiza upsert idempotente no Pinecone."""
+    """Recebe uma lista de documentos LangChain, limpa vetores antigos e realiza upsert no Pinecone."""
     if not os.environ.get("PINECONE_API_KEY"):
         logging.error("PINECONE_API_KEY não configurada no .env!")
         return
@@ -50,6 +75,10 @@ def ingest_documents(docs: list) -> None:
     if not docs:
         logging.warning("Nenhum documento para ingerir.")
         return
+
+    # Extrai fontes únicas para apagar versões anteriores e evitar chunks órfãos
+    unique_sources = set(doc.metadata.get("source") for doc in docs if doc.metadata.get("source"))
+    limpar_vetores_antigos_por_fonte(unique_sources)
 
     logging.info(f"{len(docs)} documentos recebidos. Fatiando...")
     text_splitter = RecursiveCharacterTextSplitter(chunk_size=CHUNK_SIZE, chunk_overlap=CHUNK_OVERLAP)
@@ -61,7 +90,7 @@ def ingest_documents(docs: list) -> None:
         huggingfacehub_api_token=os.environ.get("HF_TOKEN")
     )
     
-    # Gerar IDs determinísticos para garantir idempotência (upsert sem duplicação)
+    # Gerar IDs determinísticos para garantir idempotência
     ids = [generate_deterministic_id(doc, i) for i, doc in enumerate(splits)]
 
     vectorstore = PineconeVectorStore(
@@ -69,7 +98,7 @@ def ingest_documents(docs: list) -> None:
         embedding=embeddings
     )
     vectorstore.add_documents(documents=splits, ids=ids)
-    logging.info(f"Ingestão idempotente concluída com sucesso! {len(splits)} chunks processados/atualizados.")
+    logging.info(f"Ingestão e atualização de consistência concluídas! {len(splits)} chunks processados.")
 
 
 def ingest_from_directory(docs_path: Path) -> None:
