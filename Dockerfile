@@ -16,11 +16,11 @@ RUN uv pip install --system -r requirements-api.txt
 # Copia o código para o container
 COPY . .
 
-# Expor a porta 7860 exigida pelo Hugging Face Spaces
-EXPOSE 7860
+# Expor a porta usada pelo Render
+EXPOSE 10000
 
 # Configura o PYTHONPATH para rodar módulos a partir do diretório raiz
 ENV PYTHONPATH=/app
 
-# Comando de inicialização
-CMD ["uvicorn", "backend.api.main:app", "--host", "0.0.0.0", "--port", "7860"]
+# Comando de inicialização — usa python -m para garantir que o PATH seja resolvido corretamente
+CMD ["python", "-m", "uvicorn", "backend.api.main:app", "--host", "0.0.0.0", "--port", "10000"]
