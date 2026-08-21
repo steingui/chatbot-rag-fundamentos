@@ -38,7 +38,8 @@ def init_components():
     _llm = ChatOpenAI(
         model=LLM_MODEL,
         openai_api_key=os.environ.get("OPENROUTER_API_KEY", ""),
-        openai_api_base=OPENROUTER_BASE
+        openai_api_base=OPENROUTER_BASE,
+        max_retries=10 # Fallback automático (Exponential Backoff) para bypassar o erro 429
     )
 
 def get_rag_chain(session_id: str = "default"):
