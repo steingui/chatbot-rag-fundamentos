@@ -78,19 +78,70 @@ def _buscar_noticias_web(query: str, session_id: str = "default") -> str:
         logging.error(f"Erro no DuckDuckGo: {e}")
         return "Não foi possível obter notícias recentes da web no momento."
 
-class AgentWrapper:
-    def __init__(self, agent_executor: AgentExecutor, session_id: str):
-        self.agent_executor = agent_executor
+class MultiSourceAgentChain:
+    def __init__(self, llm: ChatOpenAI, session_id: str):
+        self.llm = llm
         self.session_id = session_id
 
     def invoke(self, inputs: dict) -> dict:
         question = inputs.get("question", "")
-        _session_sources[self.session_id] = []
+        sources: list[Document] = []
         
-        result = self.agent_executor.invoke({"input": question})
-        answer = result.get("output", "")
-        
-        sources = _session_sources.get(self.session_id, [])
+        # 1. Recupera documentos da base vetorial (Pinecone)
+        pinecone_context = ""
+        try:
+            if _retriever is not None:
+                docs = _retriever.invoke(question)
+                formatted = []
+                for doc in docs:
+                    sources.append(doc)
+                    src = doc.metadata.get("source", "Desconhecido")
+                    formatted.append(f"[Fonte Base: {src}]\n{doc.page_content}")
+                pinecone_context = "\n\n".join(formatted) if formatted else "Nenhum documento encontrado na base interna."
+        except Exception as e:
+            logging.error(f"Erro ao consultar Pinecone: {e}")
+            pinecone_context = "Falha ao consultar a base interna."
+
+        # 2. Recupera fatos recentes da Web (DuckDuckGo)
+        web_context = ""
+        try:
+            search_tool = DuckDuckGoSearchResults(num_results=4)
+            web_raw = search_tool.run(question)
+            web_context = web_raw
+            
+            urls = re.findall(r'link:\s*(https?://[^\s,]+)', web_raw)
+            for url in urls:
+                sources.append(Document(page_content=url, metadata={"source": url}))
+        except Exception as e:
+            logging.error(f"Erro no DuckDuckGo: {e}")
+            web_context = "Notícias recentes da web indisponíveis no momento."
+
+        # 3. Prompt de síntese unificada (Merge de RAG + Web)
+        prompt_text = f"""Você é um assistente especialista em política brasileira e análise legislativa.
+Sua tarefa é responder à pergunta do usuário SINTETIZANDO E MESCLANDO as informações das duas fontes abaixo (Base Interna e Notícias da Web).
+
+REGRA CRÍTICA:
+- Se houver dados em ambas as fontes, funda-os em uma resposta única, coesa e estruturada.
+- Se perguntado sobre nomes, listas ou valores específicos e não houver comprovação exata nas fontes, NUNCA invente dados. Diga explicitamente o que foi encontrado.
+
+--- DADOS DA BASE INTERNA (Câmara/TSE/Checagens): ---
+{pinecone_context}
+
+--- DADOS RECENTES DA WEB (DuckDuckGo): ---
+{web_context}
+
+--- PERGUNTA DO USUÁRIO: ---
+{question}
+
+Resposta:"""
+
+        try:
+            res = self.llm.invoke(prompt_text)
+            answer = res.content if hasattr(res, 'content') else str(res)
+        except Exception as e:
+            logging.error(f"Erro no LLM: {e}")
+            answer = "Não foi possível gerar a resposta no momento."
+
         return {
             "answer": answer,
             "source_documents": sources
@@ -103,55 +154,9 @@ def get_rag_chain(session_id: str = "default"):
     if session_id in _session_agents:
         return _session_agents[session_id]
 
-    tools = [
-        Tool(
-            name="consultar_base_politica",
-            func=lambda q: _consultar_pinecone(q, session_id),
-            description="Busca documentos oficiais de votações da Câmara dos Deputados, bens do TSE e checagens de fatos da Lupa."
-        ),
-        Tool(
-            name="buscar_noticias_web",
-            func=lambda q: _buscar_noticias_web(q, session_id),
-            description="Busca notícias políticas recentes e atualizações na web via DuckDuckGo."
-        )
-    ]
-
-    template = """Você é um assistente sênior especializado em política brasileira e dados legislativos.
-Responda à pergunta do usuário consultando a base de dados interna ou buscando na web quando necessário. Se ambas trouxerem dados, faça o merge sintetizando as informações de forma coesa.
-REGRA CRÍTICA: Se perguntado sobre nomes, listas ou valores específicos e não houver comprovação exata nas ferramentas, NUNCA invente dados. Diga explicitamente o que encontrou.
-
-Você tem acesso às seguintes ferramentas:
-
-{tools}
-
-Para usar uma ferramenta, use EXATAMENTE o seguinte formato:
-
-Thought: Você deve sempre pensar sobre o que fazer
-Action: a ação a tomar, deve ser uma de [{tool_names}]
-Action Input: a entrada para a ação
-Observation: o resultado da ação
-... (este Thought/Action/Action Input/Observation pode se repetir N vezes)
-Thought: Eu agora sei a resposta final
-Final Answer: a resposta final para a pergunta do usuário
-
-Instrução de início:
-
-Question: {input}
-Thought:{agent_scratchpad}"""
-
-    prompt = PromptTemplate.from_template(template)
-    agent = create_react_agent(_llm, tools, prompt)
-    agent_executor = AgentExecutor(
-        agent=agent,
-        tools=tools,
-        verbose=True,
-        handle_parsing_errors=True,
-        max_iterations=5
-    )
-
-    wrapper = AgentWrapper(agent_executor, session_id)
-    _session_agents[session_id] = wrapper
-    return wrapper
+    chain = MultiSourceAgentChain(_llm, session_id)
+    _session_agents[session_id] = chain
+    return chain
 
 def iniciar_chat() -> None:
     print("\nAgente Politico RAG + Web conectado. Digite 'sair' para encerrar.")
