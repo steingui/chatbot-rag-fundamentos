@@ -11,11 +11,8 @@ A arquitetura base de Backend e Ingestão está **100% funcional, automatizada e
 - [x] Deploy da API no Render (Serverless) conectado ao OpenRouter (Llama 3 / Modelos Free).
 
 ## Fase 1: Interface de Usuário (Frontend)
-- [ ] Criar interface gráfica (UI) para o Chatbot.
-- [ ] **Opções de Stack:** 
-  - *Opção A:* **Streamlit** (Deploy super rápido em Python, focado em dados).
-  - *Opção B:* **Vanilla HTML/CSS/JS** ou **Next.js** (Design UI/UX premium, animações e responsividade).
-- [ ] Conectar o frontend diretamente ao endpoint `/chat` do Render.
+- [x] Criar interface gráfica (UI) para o Chatbot (Vite + React com estética terminal monospace em produção no Render).
+- [x] Conectar o frontend diretamente ao endpoint `/chat` do Render com suporte a multi-sessão e sugestões rápidas de prompt.
 
 ## Fase 2: RAG Avançado e Qualidade de Dados
 - [x] **Evolução do Scraper (Foco Eleições 2026):**
@@ -37,9 +34,16 @@ A arquitetura base de Backend e Ingestão está **100% funcional, automatizada e
 
 ## Fase 4: Melhorias Futuras (Visão a Longo Prazo)
 - [ ] **Hybrid Search no Pinecone:** Misturar busca semântica (vetorial) com busca léxica (palavras-chave via BM25) para aumentar a precisão de buscas por nomes exatos de deputados ou siglas muito específicas.
-- [ ] **Agentes (Tool Calling):** Evoluir o LangChain de uma "Chain" simples para um "Agent". O bot poderia ter ferramentas para, por exemplo, buscar notícias em tempo real na web ou consultar gráficos.
+- [x] **Agentes (Tool Calling):** Evoluir o LangChain de uma "Chain" simples para um **ReAct Agent**. O bot consulta em tempo real a base vetorial do Pinecone e a web via DuckDuckGo Search, unificando e sintetizando as fontes. *(Finalizado ✅)*
 - [ ] **Banco de Dados Relacional:** Adicionar um PostgreSQL para salvar o perfil de cada deputado, permitindo respostas analíticas precisas (ex: "Quantas vezes o deputado X votou Sim neste ano?") sem depender de matemática via LLM (que costuma falhar).
 - [ ] **Autenticação:** Sistema de login para que usuários possam salvar seus históricos de chat e criar alertas de votações.
 
+## Fase 5: Expansão de Fontes de Dados Abertos
+- [ ] **API do Senado Federal (`legis.senado.leg.br`):** Scraper e ingestor para proposições, votações, discursos dos senadores e uso da CEAPS (Cota Parlamentar).
+- [ ] **API do Portal da Transparência / CGU (`portaldatransparencia.gov.br`):** Rastreador de emendas parlamentares (individuais/PIX) e execução orçamentária por deputado/senador.
+- [ ] **Querido Diário (Open Knowledge Brasil):** Conectar à API de Diários Oficiais Municipais para monitorar atos, nomeações e licitações locais.
+- [ ] **API REST do TSE (DivulgaCandContas):** Ingestão detalhada de prestação de contas de campanha por CPF/CNPJ de doadores e fornecedores.
+- [ ] **Feeds RSS de Checagem Adicionais:** Parser de feeds RSS de agências adicionais (*Aos Fatos*, *Estadão Verifica*, *Agência Pública*).
+
 ---
-*Status Atual: Backend Operacional | Cron Job: 2x/dia | Vector DB: Pinecone*
+*Status Atual: Backend & Agente ReAct Operacionais | Frontend React Ativo | Vector DB: Pinecone*
