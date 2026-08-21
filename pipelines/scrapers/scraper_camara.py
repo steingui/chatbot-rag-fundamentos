@@ -40,6 +40,7 @@ def format_votacao_md(votacao: Dict[str, Any], votos: List[Dict[str, Any]]) -> s
     data_registro = votacao.get("dataHoraRegistro", "Data desconhecida")
     
     md_lines = [
+        f"[TEMA: {sigla}]",
         f"# Votação: {sigla}",
         f"\n**Data:** {data_registro}",
         f"\n**Descrição:** {descricao}",
