@@ -1,44 +1,64 @@
+import os
+import re
 import logging
-from typing import List
-from langchain_core.documents import Document
-import sys
+import requests
+import xml.etree.ElementTree as ET
 from pathlib import Path
 
-# Adicionar a raiz do projeto no path para importar o ingestor
-project_root = Path(__file__).parent.parent.parent
-sys.path.append(str(project_root))
-
-from pipelines.ingestion.pinecone_ingestor import ingest_documents
-
+# Configuração Básica
 logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
+DOCS_DIR = Path("data/docs")
 
-def fetch_rss_feeds() -> List[Document]:
-    """
-    TODO: Implementar coleta de Feeds RSS (ex: Agência Lupa, Aos Fatos).
-    1. Ler URLs de RSS.
-    2. Extrair título, link e descrição das checagens de fatos.
-    3. Retornar lista de objetos Document (LangChain).
-    """
-    logging.info("Buscando Feeds RSS de Fact-Checking...")
-    # Mock data
-    docs = [
-        Document(
-            page_content="FALSO: É mentira que a PEC 45/2019 aumenta impostos sobre cestas básicas.",
-            metadata={"source": "lupa_rss", "link": "https://lupa.uol.com.br/...", "data": "2023-10-01"}
-        )
-    ]
-    return docs
+RSS_FEEDS = [
+    {"nome": "G1 Fato ou Fake", "url": "https://g1.globo.com/rss/g1/fato-ou-fake/"}
+]
+
+def clean_html(raw_html: str) -> str:
+    """Remove tags HTML simples para deixar o texto mais legível."""
+    if not raw_html:
+        return ""
+    cleanr = re.compile('<.*?>')
+    return re.sub(cleanr, '', raw_html).strip()
+
+def fetch_rss_feeds() -> None:
+    """Baixa feeds RSS de agências de checagem e salva como Markdown."""
+    for feed in RSS_FEEDS:
+        logging.info(f"Buscando feed RSS: {feed['nome']} ({feed['url']})")
+        try:
+            response = requests.get(feed['url'], timeout=30)
+            response.raise_for_status()
+            
+            root = ET.fromstring(response.content)
+            
+            count = 0
+            for item in root.findall('./channel/item'):
+                title = item.findtext('title') or "Sem Título"
+                link = item.findtext('link') or "Sem link"
+                description_html = item.findtext('description') or ""
+                description = clean_html(description_html)
+                
+                # Usa um hash do link para o nome do arquivo, garantindo unicidade
+                file_id = hash(link)
+                filepath = DOCS_DIR / f"factcheck_{abs(file_id)}.md"
+                
+                md_content = f"[TEMA: FACT-CHECKING]\n# {title}\n\n**Fonte:** {feed['nome']}\n**Link:** {link}\n\n**Checagem / Resumo:**\n{description}\n"
+                
+                filepath.write_text(md_content, encoding="utf-8")
+                count += 1
+                
+                if count >= 20: # Limita a 20 notícias recentes por feed
+                    break
+                    
+            logging.info(f"Salvos {count} arquivos de fact-checking do feed {feed['nome']}.")
+            
+        except Exception as e:
+            logging.error(f"Erro ao processar RSS {feed['nome']}: {e}")
 
 def main() -> None:
+    DOCS_DIR.mkdir(parents=True, exist_ok=True)
     logging.info("Iniciando pipeline de Fact-Checking (RSS)...")
-    docs = fetch_rss_feeds()
-    
-    if docs:
-        logging.info("Enviando checagens de fatos para o Pinecone...")
-        ingest_documents(docs)
-        logging.info("Pipeline RSS concluída.")
-    else:
-        logging.warning("Nenhuma checagem encontrada.")
+    fetch_rss_feeds()
+    logging.info("Pipeline RSS concluída.")
 
 if __name__ == "__main__":
     main()

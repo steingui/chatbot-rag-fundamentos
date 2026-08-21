@@ -1,7 +1,9 @@
-name: Ingestão Manual - Documentos Estáticos (PDFs e Propostas)
+name: Ingestão Mensal - PDFs e Planos de Governo (TSE)
 
 on:
-  # Roda apenas via trigger manual (GitHub CLI ou interface web)
+  schedule:
+    # Roda no dia 1 de todo mês, à meia-noite UTC
+    - cron: '0 0 1 * *'
   workflow_dispatch:
 
 jobs:

@@ -18,10 +18,10 @@ A arquitetura base de Backend e Ingestão está **100% funcional, automatizada e
 - [ ] Conectar o frontend diretamente ao endpoint `/chat` do Render.
 
 ## Fase 2: RAG Avançado e Qualidade de Dados
-- [ ] **Evolução do Scraper (Foco Eleições 2026):**
-  - **Planos de Governo (TSE):** Extrair PDFs/textos das propostas de candidatos e aplicar uma etapa de "Refinamento" via LLM (limpeza e formatação) antes da ingestão. *(Esqueleto Criado ✅)*
-  - **Fact-Checking:** Coletar feeds RSS de agências (Lupa, Aos Fatos) para cruzar discursos com checagens estruturadas no Pinecone (reduzindo alucinações). *(Esqueleto Criado ✅)*
-  - **Financiamento e Bens:** Capturar evolução patrimonial e doadores de campanha na API do TSE. *(Esqueleto Criado ✅)*
+- [x] **Evolução do Scraper (Foco Eleições 2026):**
+  - [x] **Planos de Governo (TSE):** Extrair PDFs/textos das propostas de candidatos e aplicar uma etapa de "Refinamento" via LLM (limpeza e formatação) antes da ingestão. *(Finalizado ✅)*
+  - [x] **Fact-Checking:** Coletar feeds RSS de agências (Lupa, Aos Fatos) para cruzar discursos com checagens estruturadas no Pinecone (reduzindo alucinações). *(Finalizado ✅)*
+  - [x] **Financiamento e Bens:** Capturar evolução patrimonial e doadores de campanha na API do TSE. *(Finalizado ✅)*
 - [x] **Enriquecimento das Votações:** Buscar a "Ementa" (resumo do que trata a lei/proposição) na API da Câmara, para ir além da sigla fria (ex: "PEC 45/2019").
 - [x] **Memória de Conversação:** Adicionar `ConversationBufferMemory` no LangChain para que o bot lembre de perguntas anteriores na mesma sessão.
 - [x] **Citação de Fontes:** Modificar o RAG para retornar os metadados (links, sessões ou IDs) de onde a IA tirou a resposta.
