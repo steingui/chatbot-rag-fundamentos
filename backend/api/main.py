@@ -53,7 +53,18 @@ def read_root():
     return {"status": "ok", "message": "API RAG rodando no Render"}
 
 def parse_source_name(raw_source: str) -> SourceObject:
-    if "votacao_" in raw_source:
+    if raw_source.startswith("http://") or raw_source.startswith("https://"):
+        try:
+            domain = raw_source.split("/")[2].replace("www.", "")
+        except Exception:
+            domain = "web"
+        return SourceObject(
+            type="Notícia Web (DuckDuckGo)",
+            label=f"Web: {domain}",
+            url=raw_source,
+            raw_file=raw_source
+        )
+    elif "votacao_" in raw_source:
         # Puxa o ID da proposicao (ex: 2618177) do nome do arquivo
         match = re.search(r"votacao_(\d+)", raw_source)
         prop_id = match.group(1) if match else ""

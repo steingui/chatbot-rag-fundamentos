@@ -10,5 +10,4 @@ langchain-huggingface
 pypdf
 python-dotenv
 requests
-fastapi
-uvicorn
+duckduckgo-search
