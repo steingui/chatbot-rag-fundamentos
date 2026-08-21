@@ -1,3 +1,4 @@
+from contextlib import asynccontextmanager
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel, Field
 import logging
@@ -5,7 +6,13 @@ from typing import Optional
 
 from backend.rag.chat import init_components, get_rag_chain
 
-app = FastAPI(title="Chatbot RAG API", version="1.0.0")
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Inicialização lazy — não bloqueia o healthcheck do Render
+    logging.info("API iniciada. RAG será carregado na primeira requisição.")
+    yield
+
+app = FastAPI(title="Chatbot RAG API", version="1.0.0", lifespan=lifespan)
 
 import re
 
@@ -23,12 +30,14 @@ class ChatResponse(BaseModel):
     answer: str
     sources: list[SourceObject] = Field(default_factory=list, description="Lista estruturada de fontes")
 
-# Instancia a chain no startup
-try:
-    init_components()
-    logging.info("Componentes do RAG carregados com sucesso na API.")
-except Exception as e:
-    logging.error(f"Erro ao inicializar RAG: {e}")
+_rag_initialized = False
+
+def ensure_initialized():
+    global _rag_initialized
+    if not _rag_initialized:
+        logging.info("Inicializando componentes do RAG na primeira requisição...")
+        init_components()
+        _rag_initialized = True
 
 @app.get("/")
 def read_root():
@@ -77,6 +86,7 @@ def parse_source_name(raw_source: str) -> SourceObject:
 @app.post("/chat", response_model=ChatResponse)
 def chat(request: ChatRequest):
     try:
+        ensure_initialized()
         rag_chain = get_rag_chain(request.session_id)
         response = rag_chain.invoke({"question": request.query})
         
