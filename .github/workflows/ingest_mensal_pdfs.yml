@@ -20,7 +20,7 @@ jobs:
           cache: 'pip'
 
       - name: Install Dependencies
-        run: pip install -r requirements.txt
+        run: pip install --prefer-binary -r requirements.txt
 
       - name: Run Scraper (TSE PDFs / Limpeza)
         run: python pipelines/scrapers/scraper_tse_pdfs.py

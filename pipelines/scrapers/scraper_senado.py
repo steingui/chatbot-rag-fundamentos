@@ -3,6 +3,7 @@ import logging
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 from datetime import datetime
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
 # Configuração Básica de Logging
 logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
@@ -11,6 +12,7 @@ BASE_URL_LEGIS = "https://legis.senado.leg.br/dadosabertos"
 BASE_URL_ADM = "https://adm.senado.gov.br/adm-dadosabertos/api/v1"
 DOCS_DIR = Path("data/docs")
 DEFAULT_TIMEOUT = 30
+MAX_WORKERS = 5
 HEADERS_JSON = {"Accept": "application/json", "User-Agent": "Mozilla/5.0"}
 
 
@@ -122,9 +124,43 @@ def scrape_votacoes(limit: int = 30) -> None:
     logging.info(f"Salvas {count} votações do Senado.")
 
 
-def scrape_discursos(limit_senadores: int = 15) -> None:
-    """Extrai discursos/pronunciamentos recentes dos Senadores."""
-    logging.info("Buscando discursos recentes dos Senadores...")
+def _fetch_discurso_senador(senador: Dict[str, Any], data_inicio: str) -> Optional[tuple]:
+    """Helper para requisições paralelas de discursos por senador."""
+    p = senador.get("IdentificacaoParlamentar", {})
+    cod = p.get("CodigoParlamentar")
+    if not cod:
+        return None
+
+    nome = p.get("NomeParlamentar", "Senador")
+    partido = p.get("SiglaPartidoParlamentar", "S/P")
+    uf = p.get("UfParlamentar", "S/UF")
+
+    url_disc = f"{BASE_URL_LEGIS}/senador/{cod}/discursos?dataInicio={data_inicio}"
+    data_disc = fetch_senado_json(url_disc)
+    if not data_disc:
+        return None
+
+    pronunciamentos = (
+        data_disc.get("DiscursosParlamentar", {})
+        .get("Parlamentar", {})
+        .get("Pronunciamentos")
+    )
+    if not pronunciamentos or not isinstance(pronunciamentos, dict):
+        return None
+
+    items = pronunciamentos.get("Pronunciamento", [])
+    if isinstance(items, dict):
+        items = [items]
+
+    if not items:
+        return None
+
+    return (cod, nome, partido, uf, items)
+
+
+def scrape_discursos(limit_senadores: int = 20) -> None:
+    """Extrai discursos/pronunciamentos recentes dos Senadores de forma concorrente."""
+    logging.info("Buscando discursos recentes dos Senadores de forma paralela...")
     url_senadores = f"{BASE_URL_LEGIS}/senador/lista/atual"
     data = fetch_senado_json(url_senadores)
     if not data:
@@ -139,55 +175,36 @@ def scrape_discursos(limit_senadores: int = 15) -> None:
         senadores = [senadores]
 
     ano_atual = datetime.now().year
-    data_inicio = f"{ano_atual - 2}-01-01"
+    data_inicio = f"{ano_atual - 2}0101"
 
     count = 0
-    for sen in senadores[:limit_senadores]:
-        p = sen.get("IdentificacaoParlamentar", {})
-        cod = p.get("CodigoParlamentar")
-        nome = p.get("NomeParlamentar", "Senador")
-        partido = p.get("SiglaPartidoParlamentar", "S/P")
-        uf = p.get("UfParlamentar", "S/UF")
-
-        if not cod:
-            continue
-
-        url_disc = f"{BASE_URL_LEGIS}/senador/{cod}/discursos?dataInicio={data_inicio}"
-        data_disc = fetch_senado_json(url_disc)
-        if not data_disc:
-            continue
-
-        pronunciamentos = (
-            data_disc.get("DiscursosParlamentar", {})
-            .get("Parlamentar", {})
-            .get("Pronunciamentos")
-        )
-        if not pronunciamentos or not isinstance(pronunciamentos, dict):
-            continue
-
-        items = pronunciamentos.get("Pronunciamento", [])
-        if isinstance(items, dict):
-            items = [items]
-
-        if not items:
-            continue
-
-        md_lines = [
-            f"[SENADO_DISCURSO: {nome}]",
-            f"# Discursos do Senador {nome} ({partido}-{uf})",
-            f"\n**Código do Senador:** {cod}",
-            "\n## Pronunciamentos Recentes\n"
+    with ThreadPoolExecutor(max_workers=MAX_WORKERS) as executor:
+        futures = [
+            executor.submit(_fetch_discurso_senador, sen, data_inicio)
+            for sen in senadores[:limit_senadores]
         ]
+        for future in as_completed(futures):
+            res = future.result()
+            if not res:
+                continue
 
-        for item in items[:10]:
-            data_p = item.get("DataPronunciamento", "Data N/A")
-            resumo = item.get("TextoResumo") or item.get("Indexacao") or "Sem resumo disponível."
-            casa = item.get("SiglaCasaPronunciamento", "SF")
-            md_lines.append(f"### Data: {data_p} ({casa})\n{resumo}\n")
+            cod, nome, partido, uf, items = res
+            md_lines = [
+                f"[SENADO_DISCURSO: {nome}]",
+                f"# Discursos do Senador {nome} ({partido}-{uf})",
+                f"\n**Código do Senador:** {cod}",
+                "\n## Pronunciamentos Recentes\n"
+            ]
 
-        filepath = DOCS_DIR / f"senado_discursos_{cod}.md"
-        filepath.write_text("\n".join(md_lines), encoding="utf-8")
-        count += 1
+            for item in items[:10]:
+                data_p = item.get("DataPronunciamento", "Data N/A")
+                resumo = item.get("TextoResumo") or item.get("Indexacao") or "Sem resumo disponível."
+                casa = item.get("SiglaCasaPronunciamento", "SF")
+                md_lines.append(f"### Data: {data_p} ({casa})\n{resumo}\n")
+
+            filepath = DOCS_DIR / f"senado_discursos_{cod}.md"
+            filepath.write_text("\n".join(md_lines), encoding="utf-8")
+            count += 1
 
     logging.info(f"Salvos discursos de {count} senadores.")
 
