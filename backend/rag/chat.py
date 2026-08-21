@@ -12,7 +12,7 @@ logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
 load_dotenv()
 
 EMBEDDING_MODEL = "sentence-transformers/all-MiniLM-L6-v2"
-LLM_MODEL = "openrouter/free"
+LLM_MODEL = "meta-llama/llama-3.1-8b-instruct:free"
 OPENROUTER_BASE = "https://openrouter.ai/api/v1"
 INDEX_NAME = os.environ.get("PINECONE_INDEX_NAME", "rag-fundamentos")
 
@@ -27,7 +27,7 @@ def build_rag_chain():
         huggingfacehub_api_token=os.environ.get("HF_TOKEN")
     )
     vectorstore = PineconeVectorStore(index_name=INDEX_NAME, embedding=embeddings)
-    retriever = vectorstore.as_retriever(search_kwargs={"k": 3})
+    retriever = vectorstore.as_retriever(search_kwargs={"k": 15})
 
     llm = ChatOpenAI(
         model=LLM_MODEL,
