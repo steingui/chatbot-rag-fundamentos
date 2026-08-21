@@ -1,4 +1,5 @@
 import os
+import hashlib
 import logging
 from pathlib import Path
 from dotenv import load_dotenv
@@ -18,6 +19,7 @@ INDEX_NAME = os.environ.get("PINECONE_INDEX_NAME", "rag-fundamentos")
 CHUNK_SIZE = 1000
 CHUNK_OVERLAP = 200
 
+
 def carregar_documentos_diretorio(docs_path: Path) -> list:
     """Carrega PDFs e Markdown de um diretório."""
     if not docs_path.exists():
@@ -30,8 +32,17 @@ def carregar_documentos_diretorio(docs_path: Path) -> list:
     
     return pdf_loader.load() + md_loader.load()
 
+
+def generate_deterministic_id(doc, idx: int) -> str:
+    """Gera um hash MD5 único e determinístico baseado na fonte e no conteúdo do chunk."""
+    source = doc.metadata.get("source", "unknown_source")
+    content_hash = hashlib.md5(doc.page_content.encode("utf-8")).hexdigest()[:12]
+    raw_key = f"{source}::{idx}::{content_hash}"
+    return hashlib.md5(raw_key.encode("utf-8")).hexdigest()
+
+
 def ingest_documents(docs: list) -> None:
-    """Recebe uma lista de documentos LangChain, gera embeddings e envia ao Pinecone."""
+    """Recebe uma lista de documentos LangChain, gera embeddings e realiza upsert idempotente no Pinecone."""
     if not os.environ.get("PINECONE_API_KEY"):
         logging.error("PINECONE_API_KEY não configurada no .env!")
         return
@@ -50,12 +61,16 @@ def ingest_documents(docs: list) -> None:
         huggingfacehub_api_token=os.environ.get("HF_TOKEN")
     )
     
-    PineconeVectorStore.from_documents(
-        documents=splits, 
-        embedding=embeddings, 
-        index_name=INDEX_NAME
+    # Gerar IDs determinísticos para garantir idempotência (upsert sem duplicação)
+    ids = [generate_deterministic_id(doc, i) for i, doc in enumerate(splits)]
+
+    vectorstore = PineconeVectorStore(
+        index_name=INDEX_NAME,
+        embedding=embeddings
     )
-    logging.info("Ingestão concluída com sucesso no Pinecone!")
+    vectorstore.add_documents(documents=splits, ids=ids)
+    logging.info(f"Ingestão idempotente concluída com sucesso! {len(splits)} chunks processados/atualizados.")
+
 
 def ingest_from_directory(docs_path: Path) -> None:
     """Fluxo completo: lê do diretório e ingere no Pinecone."""
@@ -63,7 +78,7 @@ def ingest_from_directory(docs_path: Path) -> None:
     docs = carregar_documentos_diretorio(docs_path)
     ingest_documents(docs)
 
+
 if __name__ == "__main__":
-    # Compatibilidade: roda direto no diretório padrao se executado como script
     DOCS_DIR = Path("data/docs")
     ingest_from_directory(DOCS_DIR)
