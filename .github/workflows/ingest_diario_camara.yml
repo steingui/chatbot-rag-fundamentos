@@ -2,8 +2,8 @@ name: Ingestão Diária - Câmara dos Deputados
 
 on:
   schedule:
-    # Roda todo dia às 03:00 e 15:00 UTC
-    - cron: '0 3,15 * * *'
+    # Roda a cada 2 horas
+    - cron: '0 */2 * * *'
   workflow_dispatch:
 
 jobs:
