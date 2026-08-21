@@ -1,13 +1,13 @@
-name: Pipeline de Ingestão de Dados (Scraping + RAG)
+name: Ingestão Semanal - TSE (Bens e Financiamentos)
 
 on:
   schedule:
-    # Roda todo dia às 03:00 e 15:00 UTC (Equivale a 00:00 e 12:00 no Horário de Brasília)
-    - cron: '0 3,15 * * *'
+    # Roda toda segunda-feira às 02:00 UTC
+    - cron: '0 2 * * 1'
   workflow_dispatch:
 
 jobs:
-  run-pipeline:
+  ingest-tse:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Repo
@@ -21,9 +21,6 @@ jobs:
 
       - name: Install Dependencies
         run: pip install -r requirements.txt
-
-      - name: Run Scraper (Câmara)
-        run: python pipelines/scrapers/scraper_camara.py
 
       - name: Run Scraper (TSE Bens)
         run: python pipelines/scrapers/scraper_tse_bens.py

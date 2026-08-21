@@ -1,0 +1,33 @@
+name: Ingestão Diária - Câmara dos Deputados
+
+on:
+  schedule:
+    # Roda todo dia às 03:00 e 15:00 UTC
+    - cron: '0 3,15 * * *'
+  workflow_dispatch:
+
+jobs:
+  ingest-camara:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repo
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Install Dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run Scraper (Câmara)
+        run: python pipelines/scrapers/scraper_camara.py
+
+      - name: Run Ingest (Pinecone)
+        env:
+          PINECONE_API_KEY: ${{ secrets.PINECONE_API_KEY }}
+          PINECONE_INDEX_NAME: ${{ secrets.PINECONE_INDEX_NAME }}
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+        run: python pipelines/ingestion/pinecone_ingestor.py
