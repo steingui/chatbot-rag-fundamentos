@@ -13,6 +13,7 @@ class ChatRequest(BaseModel):
 
 class ChatResponse(BaseModel):
     answer: str
+    sources: list[str] = Field(default_factory=list, description="Lista de fontes (arquivos) consultadas")
 
 # Instancia a chain no startup
 try:
@@ -30,7 +31,15 @@ def chat(request: ChatRequest):
     try:
         rag_chain = get_rag_chain(request.session_id)
         response = rag_chain.invoke({"question": request.query})
-        return ChatResponse(answer=response["answer"])
+        
+        sources = []
+        if "source_documents" in response:
+            for doc in response["source_documents"]:
+                src = doc.metadata.get("source", "Desconhecido")
+                if src not in sources:
+                    sources.append(src)
+
+        return ChatResponse(answer=response["answer"], sources=sources)
     except Exception as e:
         logging.error(f"Erro no chat: {e}")
         raise HTTPException(status_code=500, detail=str(e))

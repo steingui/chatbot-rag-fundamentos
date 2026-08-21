@@ -24,7 +24,7 @@ A arquitetura base de Backend e Ingestão está **100% funcional, automatizada e
   - **Financiamento e Bens:** Capturar evolução patrimonial e doadores de campanha na API do TSE.
 - [x] **Enriquecimento das Votações:** Buscar a "Ementa" (resumo do que trata a lei/proposição) na API da Câmara, para ir além da sigla fria (ex: "PEC 45/2019").
 - [x] **Memória de Conversação:** Adicionar `ConversationBufferMemory` no LangChain para que o bot lembre de perguntas anteriores na mesma sessão.
-- [ ] **Citação de Fontes:** Modificar o RAG para retornar os metadados (links, sessões ou IDs) de onde a IA tirou a resposta.
+- [x] **Citação de Fontes:** Modificar o RAG para retornar os metadados (links, sessões ou IDs) de onde a IA tirou a resposta.
 
 ## Fase 3: Monitoramento e CI/CD Final
 - [ ] Deploy automático do Frontend.

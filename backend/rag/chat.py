@@ -71,7 +71,7 @@ def get_rag_chain(session_id: str = "default"):
         llm=_llm,
         retriever=_retriever,
         memory=memory,
-        return_source_documents=False,
+        return_source_documents=True,
         combine_docs_chain_kwargs={"prompt": prompt}
     )
     
