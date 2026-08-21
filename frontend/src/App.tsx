@@ -2,7 +2,7 @@ import { useState, useRef, useEffect, useCallback } from 'react';
 import { Send, Trash2, FileText, ExternalLink, Terminal, Loader2, Plus, MessageSquare } from 'lucide-react';
 import './App.css';
 
-const API_URL = 'https://chatbot-rag-api-q2k5.onrender.com/chat';
+const API_URL = import.meta.env.VITE_API_URL || 'https://chatbot-rag-api-q2k5.onrender.com/chat';
 const MAX_SESSIONS = 5;
 
 type Source = {
