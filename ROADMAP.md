@@ -3,9 +3,9 @@
 A arquitetura base de Backend e Ingestão está **100% funcional, automatizada e em produção**. O foco de amanhã será expandir a experiência do usuário e a inteligência dos dados.
 
 ## Fase 0: Arquitetura Base (Concluído ✅)
-- [x] Criar script `scraper.py` para extrair dados da Câmara dos Deputados.
+- [x] Criar scripts de scraping modulares (`scraper_camara.py`, etc) para extrair dados.
 - [x] Refatorar scraper para injetar metadados diretamente no chunk (contexto robusto).
-- [x] Construir Pipeline de Ingestão (`ingest.py`) utilizando Pinecone e Embeddings HuggingFace.
+- [x] Construir módulo centralizado de Ingestão (`pinecone_ingestor.py`) utilizando Pinecone e Embeddings HuggingFace.
 - [x] Automatizar a Ingestão via GitHub Actions (Cron Job 2x ao dia).
 - [x] Construir Backend em FastAPI para expor o LangChain e a lógica do RAG.
 - [x] Deploy da API no Render (Serverless) conectado ao OpenRouter (Llama 3 / Modelos Free).
@@ -19,11 +19,11 @@ A arquitetura base de Backend e Ingestão está **100% funcional, automatizada e
 
 ## Fase 2: RAG Avançado e Qualidade de Dados
 - [ ] **Evolução do Scraper (Foco Eleições 2026):**
-  - **Planos de Governo (TSE):** Extrair PDFs/textos das propostas de candidatos e aplicar uma etapa de "Refinamento" via LLM (limpeza e formatação) antes da ingestão.
-  - **Fact-Checking:** Coletar feeds RSS de agências (Lupa, Aos Fatos) para cruzar discursos com checagens estruturadas no Pinecone (reduzindo alucinações).
+  - **Planos de Governo (TSE):** Extrair PDFs/textos das propostas de candidatos e aplicar uma etapa de "Refinamento" via LLM (limpeza e formatação) antes da ingestão. *(Esqueleto Criado ✅)*
+  - **Fact-Checking:** Coletar feeds RSS de agências (Lupa, Aos Fatos) para cruzar discursos com checagens estruturadas no Pinecone (reduzindo alucinações). *(Esqueleto Criado ✅)*
   - **Financiamento e Bens:** Capturar evolução patrimonial e doadores de campanha na API do TSE.
 - [ ] **Enriquecimento das Votações:** Buscar a "Ementa" (resumo do que trata a lei/proposição) na API da Câmara, para ir além da sigla fria (ex: "PEC 45/2019").
-- [ ] **Memória de Conversação:** Adicionar `ConversationBufferMemory` no LangChain para que o bot lembre de perguntas anteriores na mesma sessão.
+- [x] **Memória de Conversação:** Adicionar `ConversationBufferMemory` no LangChain para que o bot lembre de perguntas anteriores na mesma sessão.
 - [ ] **Citação de Fontes:** Modificar o RAG para retornar os metadados (links, sessões ou IDs) de onde a IA tirou a resposta.
 
 ## Fase 3: Monitoramento e CI/CD Final
