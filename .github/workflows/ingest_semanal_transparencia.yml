@@ -1,0 +1,35 @@
+name: Ingestão Semanal - Portal da Transparência / CGU
+
+on:
+  schedule:
+    # Roda todas as terças-feiras às 03:00 UTC
+    - cron: '0 3 * * 2'
+  workflow_dispatch:
+
+jobs:
+  ingest-transparencia:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repo
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Install Dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run Scraper (Portal da Transparência CGU)
+        env:
+          TRANSPARENCIA_API_KEY: ${{ secrets.TRANSPARENCIA_API_KEY }}
+        run: python pipelines/scrapers/scraper_transparencia.py
+
+      - name: Run Ingest (Pinecone)
+        env:
+          PINECONE_API_KEY: ${{ secrets.PINECONE_API_KEY }}
+          PINECONE_INDEX_NAME: ${{ secrets.PINECONE_INDEX_NAME }}
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+        run: python pipelines/ingestion/pinecone_ingestor.py

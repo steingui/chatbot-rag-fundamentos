@@ -1,0 +1,33 @@
+name: Ingestão Diária - Senado Federal
+
+on:
+  schedule:
+    # Roda diariamente às 01:00 UTC
+    - cron: '0 1 * * *'
+  workflow_dispatch:
+
+jobs:
+  ingest-senado:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repo
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Install Dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run Scraper (Senado)
+        run: python pipelines/scrapers/scraper_senado.py
+
+      - name: Run Ingest (Pinecone)
+        env:
+          PINECONE_API_KEY: ${{ secrets.PINECONE_API_KEY }}
+          PINECONE_INDEX_NAME: ${{ secrets.PINECONE_INDEX_NAME }}
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+        run: python pipelines/ingestion/pinecone_ingestor.py

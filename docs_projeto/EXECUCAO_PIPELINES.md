@@ -30,6 +30,18 @@ Coleta o feed de checagem de fatos para desmentir fake news.
 venv/bin/python pipelines/scrapers/scraper_rss.py
 ```
 
+**Senado Federal (Proposições, Votações, Discursos e CEAPS)**
+Extrai proposições em tramitação, votos dos senadores, discursos e despesas da cota parlamentar (CEAPS).
+```bash
+venv/bin/python pipelines/scrapers/scraper_senado.py
+```
+
+**Portal da Transparência / CGU (Emendas PIX e Execução Orçamentária)**
+Rastreia emendas parlamentares individuais/PIX e execução orçamentária por deputado e senador.
+```bash
+venv/bin/python pipelines/scrapers/scraper_transparencia.py
+```
+
 ---
 
 ## 2. Ingestão Centralizada (Pinecone)
@@ -46,8 +58,10 @@ venv/bin/python pipelines/ingestion/pinecone_ingestor.py
 
 As execuções de Produção estão configuradas no **GitHub Actions** na pasta `.github/workflows/`. Foram separadas em três pipelines por frequência de atualização:
 
-- `ingest_diario_camara.yml` (Diário às 00h e 12h)
-- `ingest_semanal_tse.yml` (Semanal - Segundas às 02h)
+- `ingest_diario_camara.yml` (Diário - a cada 2h)
+- `ingest_diario_senado.yml` (Diário - às 01h UTC)
+- `ingest_semanal_transparencia.yml` (Semanal - Terças às 03h UTC)
+- `ingest_semanal_tse.yml` (Semanal - Segundas às 02h UTC)
 - `ingest_mensal_pdfs.yml` (Mensal - Dia 1º de cada mês)
 
 **Para disparar as actions manualmente pelo terminal:**
