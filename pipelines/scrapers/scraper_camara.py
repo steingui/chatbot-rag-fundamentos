@@ -24,6 +24,18 @@ def fetch_data(endpoint: str, params: Optional[Dict[str, Any]] = None) -> List[D
         logging.error(f"Erro ao acessar {url}: {e}")
         return []
 
+def fetch_proposicao_ementa(uri_proposicao: str) -> str:
+    """Busca a ementa de uma proposição através de sua URI na API da Câmara."""
+    try:
+        headers = {"User-Agent": "Mozilla/5.0"}
+        response = requests.get(uri_proposicao, headers=headers, timeout=60)
+        response.raise_for_status()
+        dados = response.json().get("dados", {})
+        return dados.get("ementa") or "Ementa indisponível."
+    except requests.RequestException as e:
+        logging.warning(f"Aviso: Falha ao buscar a proposição na URI {uri_proposicao}: {e}")
+        return "Ementa indisponível (Erro na API)."
+
 def get_recent_votacoes(limit: int = DEFAULT_ITEMS) -> List[Dict[str, Any]]:
     """Busca as votações mais recentes."""
     return fetch_data("votacoes", params={
@@ -37,13 +49,15 @@ def format_votacao_md(votacao: Dict[str, Any], votos: List[Dict[str, Any]]) -> s
     votacao_id = votacao["id"]
     sigla = votacao.get("proposicaoObjeto") or f"Votação {votacao_id}"
     descricao = votacao.get("descricao", "Sem descrição disponível.")
+    ementa = votacao.get("ementa", "Ementa não vinculada (Votação sem proposição base).")
     data_registro = votacao.get("dataHoraRegistro", "Data desconhecida")
     
     md_lines = [
         f"[TEMA: {sigla}]",
         f"# Votação: {sigla}",
         f"\n**Data:** {data_registro}",
-        f"\n**Descrição:** {descricao}",
+        f"\n**Ementa (O que é a lei):** {ementa}",
+        f"\n**Objeto da Votação:** {descricao}",
         "\n## Votos dos Deputados\n"
     ]
     
@@ -71,6 +85,10 @@ def main() -> None:
         if not votos:
             logging.warning(f"Sem votos para a votação {votacao_id}. Pulando.")
             continue
+            
+        uri_proposicao = votacao.get("uriProposicaoObjeto")
+        if uri_proposicao:
+            votacao["ementa"] = fetch_proposicao_ementa(uri_proposicao)
             
         md_content = format_votacao_md(votacao, votos)
         
