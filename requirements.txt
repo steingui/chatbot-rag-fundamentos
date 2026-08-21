@@ -11,3 +11,4 @@ pypdf
 python-dotenv
 requests
 duckduckgo-search
+ddgs
