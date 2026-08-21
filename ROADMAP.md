@@ -26,7 +26,11 @@ A arquitetura base de Backend e Ingestão está **100% funcional, automatizada e
 - [x] **Memória de Conversação:** Adicionar `ConversationBufferMemory` no LangChain para que o bot lembre de perguntas anteriores na mesma sessão.
 - [x] **Citação de Fontes:** Modificar o RAG para retornar os metadados (links, sessões ou IDs) de onde a IA tirou a resposta.
 
-## Fase 3: Monitoramento e CI/CD Final
+## Fase 3: Monitoramento, Infraestrutura e CI/CD Final
+- [ ] **Otimização de Latência e Limites (PaaS):**
+  - Configurar **UptimeRobot** no endpoint do Render (evita *Cold Starts* de 50s no plano Free).
+  - Configurar *Keep-Alive* contínuo para o endpoint de Embeddings da Hugging Face.
+  - Habilitar **Provider Routing (Fallbacks)** ou configurar **BYOK (Bring Your Own Key)** do Google AI Studio no OpenRouter para mitigar gargalos (Rate Limit 429).
 - [ ] Deploy automático do Frontend.
 - [ ] Testes de validação da saúde do banco de vetores Pinecone.
 - [ ] (Opcional) Guardar logs das perguntas mais frequentes para análise de interesse.
