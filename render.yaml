@@ -18,3 +18,13 @@ services:
         sync: false
       - key: HF_TOKEN
         sync: false
+
+  - type: web
+    name: chatbot-rag-front
+    env: static
+    plan: free
+    region: ohio
+    branch: main
+    rootDir: frontend
+    buildCommand: "npm install && npm run build"
+    staticPublishPath: "./dist"

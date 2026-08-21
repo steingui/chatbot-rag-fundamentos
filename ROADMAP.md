@@ -31,7 +31,7 @@ A arquitetura base de Backend e Ingestão está **100% funcional, automatizada e
   - Configurar **UptimeRobot** no endpoint do Render (evita *Cold Starts* de 50s no plano Free).
   - Configurar *Keep-Alive* contínuo para o endpoint de Embeddings da Hugging Face.
   - Habilitar **Provider Routing (Fallbacks)** ou configurar **BYOK (Bring Your Own Key)** do Google AI Studio no OpenRouter para mitigar gargalos (Rate Limit 429).
-- [ ] Deploy automático do Frontend.
+- [x] Deploy automático do Frontend (Vite/React) via Blueprint do Render.
 - [ ] Testes de validação da saúde do banco de vetores Pinecone.
 - [ ] (Opcional) Guardar logs das perguntas mais frequentes para análise de interesse.
 
