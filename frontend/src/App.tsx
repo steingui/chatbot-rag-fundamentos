@@ -5,6 +5,13 @@ import './App.css';
 const API_URL = import.meta.env.VITE_API_URL || 'https://chatbot-rag-api-q2k5.onrender.com/chat';
 const MAX_SESSIONS = 5;
 
+const SUGGESTIONS = [
+  'Resuma a PEC 45/2019 e a reforma tributária',
+  'Como os deputados votaram sobre o arcabouço fiscal?',
+  'Quais bens foram declarados nas eleições recentes pelo TSE?',
+  'O que a agência Lupa checou sobre imposto de renda?'
+];
+
 type Source = {
   type: string;
   label: string;
@@ -88,9 +95,8 @@ export default function App() {
     return res.json() as Promise<{ answer: string; sources: Source[] }>;
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    const query = input.trim();
+  const executeQuery = async (queryText: string) => {
+    const query = queryText.trim();
     if (!query || isLoading) return;
 
     const capturedIdx = activeIdx;
@@ -139,6 +145,11 @@ export default function App() {
       setIsLoading(false);
       inputRef.current?.focus();
     }
+  };
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    executeQuery(input);
   };
 
   const handleNewSession = () => {
@@ -292,6 +303,24 @@ export default function App() {
                   </div>
                   <div className="bot-content">
                     <div className="bot-text" dangerouslySetInnerHTML={{ __html: formatMarkdown(msg.content) }} />
+                    {msg.id === 'init' && (
+                      <div className="suggestions-block">
+                        <span className="suggestions-title">// sugestões de consulta:</span>
+                        <div className="suggestions-grid">
+                          {SUGGESTIONS.map((prompt, idx) => (
+                            <button
+                              key={idx}
+                              className="suggestion-card"
+                              onClick={() => executeQuery(prompt)}
+                              disabled={isLoading}
+                            >
+                              <span className="suggestion-icon">›</span>
+                              <span>{prompt}</span>
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    )}
                     {msg.sources && msg.sources.length > 0 && (
                       <div className="sources-row">
                         <span className="sources-label">// fontes:</span>
