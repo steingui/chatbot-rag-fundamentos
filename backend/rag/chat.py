@@ -13,7 +13,7 @@ logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
 load_dotenv()
 
 EMBEDDING_MODEL = "sentence-transformers/all-MiniLM-L6-v2"
-LLM_MODEL = "meta-llama/llama-3-8b-instruct:free"
+LLM_MODEL = "google/gemma-2-9b-it:free"
 OPENROUTER_BASE = "https://openrouter.ai/api/v1"
 INDEX_NAME = os.environ.get("PINECONE_INDEX_NAME", "rag-fundamentos")
 
