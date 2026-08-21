@@ -1,12 +1,11 @@
 services:
   - type: web
     name: chatbot-rag-api
-    env: python
+    env: docker
     plan: free
     region: ohio
     branch: main
-    buildCommand: "pip install -r requirements.txt"
-    startCommand: "python -m uvicorn backend.api.main:app --host 0.0.0.0 --port 10000"
+    dockerfilePath: Dockerfile
     envVars:
       - key: PORT
         value: 10000
