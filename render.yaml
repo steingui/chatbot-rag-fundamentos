@@ -6,7 +6,7 @@ services:
     region: ohio
     branch: main
     buildCommand: "pip install uv && uv pip install --system -r requirements-api.txt"
-    startCommand: "uvicorn backend.api.main:app --host 0.0.0.0 --port 10000"
+    startCommand: "python -m uvicorn backend.api.main:app --host 0.0.0.0 --port 10000"
     envVars:
       - key: PORT
         value: 10000
@@ -22,6 +22,8 @@ services:
   - type: web
     name: chatbot-rag-front
     env: static
+    plan: free
+    region: ohio
     branch: main
     rootDir: frontend
     buildCommand: "npm install && npm run build"
