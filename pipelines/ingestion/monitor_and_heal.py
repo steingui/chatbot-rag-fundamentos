@@ -77,7 +77,7 @@ def audit_pinecone_health() -> dict:
         return {"status": "ERROR", "message": str(e)}
 
 def audit_github_workflows() -> list:
-    """Consulta o status das últimas execuções das GitHub Actions via API REST."""
+    """Consulta o status das últimas 5 execuções de CADA pipeline de ingestão via API REST do GitHub."""
     repo = os.environ.get("GITHUB_REPOSITORY", "steingui/chatbot-rag-fundamentos")
     token = os.environ.get("GITHUB_TOKEN") or os.environ.get("GH_TOKEN")
     
@@ -85,25 +85,31 @@ def audit_github_workflows() -> list:
     if token:
         headers["Authorization"] = f"token {token}"
         
-    url = f"https://api.github.com/repos/{repo}/actions/runs?per_page=10"
+    url = f"https://api.github.com/repos/{repo}/actions/runs?per_page=100"
+    grouped_runs = {}
     
     try:
         res = requests.get(url, headers=headers, timeout=10)
         if res.status_code == 200:
             runs = res.json().get("workflow_runs", [])
-            return [
-                {
-                    "name": r.get("name"),
-                    "status": r.get("status"),
-                    "conclusion": r.get("conclusion"),
-                    "created_at": r.get("created_at")
-                }
-                for r in runs
-            ]
+            for r in runs:
+                wf_name = r.get("name", "Outros Workflows")
+                if wf_name not in grouped_runs:
+                    grouped_runs[wf_name] = []
+                
+                # Mantém no máximo as 5 execuções mais recentes por pipeline
+                if len(grouped_runs[wf_name]) < 5:
+                    grouped_runs[wf_name].append({
+                        "name": wf_name,
+                        "status": r.get("status"),
+                        "conclusion": r.get("conclusion"),
+                        "created_at": r.get("created_at"),
+                        "run_id": r.get("id")
+                    })
     except Exception as e:
         logging.error(f"Erro ao consultar execuções das GitHub Actions: {e}")
         
-    return []
+    return grouped_runs
 
 def analyze_failures_with_llm(failed_runs: list) -> str:
     """Utiliza LLM (via OpenRouter) para analisar falhas detectadas nos workflows e sugerir patches de correção."""
@@ -137,16 +143,24 @@ def main():
     
     doc_stats = audit_and_heal_local_docs()
     pinecone_stats = audit_pinecone_health()
-    workflow_runs = audit_github_workflows()
+    grouped_runs = audit_github_workflows()
     
-    failed_runs = [r for r in workflow_runs if r.get("conclusion") in ["failure", "cancelled", "timed_out"]]
-    llm_diagnosis = analyze_failures_with_llm(failed_runs) if failed_runs else "Todos os workflows recentes executados com sucesso (100% integridade)."
+    # Coleta todas as falhas das últimas 5 execuções de cada pipeline para análise via LLM
+    all_failed_runs = []
+    wf_sections = []
     
-    # Gera relatório Markdown consolidado
-    wf_text = "\n".join([
-        f"- **{wf['name']}**: `{wf['conclusion'] or wf['status']}` ({wf['created_at']})"
-        for wf in workflow_runs[:5]
-    ]) or "Nenhuma execução registrada recentemente via API."
+    for wf_name, runs in grouped_runs.items():
+        run_bullets = []
+        for r in runs:
+            status_str = r.get("conclusion") or r.get("status")
+            run_bullets.append(f"  - Execução ID `{r['run_id']}` ({r['created_at']}): `{status_str}`")
+            if r.get("conclusion") in ["failure", "cancelled", "timed_out"]:
+                all_failed_runs.append(r)
+        
+        wf_sections.append(f"### {wf_name}\n" + "\n".join(run_bullets))
+        
+    wf_text = "\n\n".join(wf_sections) if wf_sections else "Nenhuma execução recente rastreada via API."
+    llm_diagnosis = analyze_failures_with_llm(all_failed_runs) if all_failed_runs else "Todos os workflows das últimas 5 execuções operaram com 100% de sucesso."
     
     report_content = (
         f"[PIPELINE_MONITOR: SAÚDE E QUALIDADE DOS DADOS]\n"
@@ -156,7 +170,7 @@ def main():
         f"- **Total de Arquivos:** {doc_stats['total_files']}\n"
         f"- **Arquivos Auto-Corrigidos:** {doc_stats['fixed_files']}\n"
         f"- **Arquivos Purgados (Inválidos/Vazios):** {doc_stats['purged_files']}\n\n"
-        f"## Status das Últimas Execuções de Workflows (GitHub Actions)\n"
+        f"## Últimas 5 Execuções por Pipeline de Ingestão (GitHub Actions)\n"
         f"{wf_text}\n\n"
         f"## Diagnóstico Autônomo de LLM (`[LLM-COMMIT-AND-HEAL]`)\n"
         f"{llm_diagnosis}\n"
