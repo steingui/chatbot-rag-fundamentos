@@ -4,17 +4,17 @@
 **Status Pinecone:** `OK` | **Total Vetores:** 1153
 
 ## Auditoria e Auto-Cura de Documentos Local (`data/docs`)
-- **Total de Arquivos:** 161
+- **Total de Arquivos:** 0
 - **Arquivos Auto-Corrigidos:** 0
 - **Arquivos Purgados (Inválidos/Vazios):** 0
 
 ## Últimas 5 Execuções por Pipeline de Ingestão (GitHub Actions)
 ### Monitoramento Autônomo e Auto-Cura de Ingestões
+  - Execução ID `32584752333` (2026-08-22T16:27:25Z): `in_progress`
   - Execução ID `32584401819` (2026-08-22T16:20:25Z): `success`
   - Execução ID `32584020789` (2026-08-22T16:12:40Z): `success`
   - Execução ID `32582702260` (2026-08-22T15:46:21Z): `failure`
   - Execução ID `32582352990` (2026-08-22T15:39:29Z): `failure`
-  - Execução ID `32581901695` (2026-08-22T15:30:26Z): `success`
 
 ### Ingestão Diária - Câmara dos Deputados
   - Execução ID `32583973239` (2026-08-22T16:11:42Z): `success`
@@ -37,4 +37,28 @@
   - Execução ID `32329032672` (2026-08-20T03:39:45Z): `success`
 
 ## Diagnóstico Autônomo de LLM (`[LLM-COMMIT-AND-HEAL]`)
-Diagnóstico suspenso: Nenhuma chave de API de LLM válida configurada no ambiente.
+**[Diagnóstico Gemini 3.6 Flash (Google Antigravity com Contexto de Codebase)]**
+### CAUSA RAIZ
+
+1. **Tentativa de Force Push Bloqueada**: O step `stefanzweifel/git-auto-commit-action@v5` falha ao tentar executar `git push --force` na branch `main` usando o `GITHUB_TOKEN` padrão (`push_options: '--force'`). As políticas de segurança e proteção de branch do GitHub impedem force pushes realizados pelo token padrão da Action.
+2. **Execução sem Mudanças (Dirty Check)**: Quando o script `monitor_and_heal.py` não gera alterações reais em `data/docs/pipeline_health_report.md`, o comando de commit tenta forçar o push de uma árvore de trabalho limpa com a flag `--force`, resultando em erro no job.
+
+---
+
+### CORREÇÃO (DIFF / SNIPPET)
+
+Ajuste no arquivo `.github/workflows/monitor_and_heal_pipelines.yml`:
+
+```diff
+      - name: Auto-Commit Data Quality & Health Fixes
+        if: steps.audit.outputs.should_commit == 'true'
+        uses: stefanzweifel/git-auto-commit-action@v5
+        with:
+          commit_message: "[LLM-AUTOCURE] fix(ingestion): auto-heal data quality & pipeline health report [skip ci]"
+          branch: main
+          file_pattern: 'data/docs/pipeline_health_report.md'
+-         add_options: '--force'
+-         push_options: '--force'
++         skip_dirty_check: false
++         skip_fetch: true
+```
