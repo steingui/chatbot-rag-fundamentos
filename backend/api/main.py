@@ -73,6 +73,16 @@ class OriginCheckMiddleware(BaseHTTPMiddleware):
 app.add_middleware(OriginCheckMiddleware)
 
 
+# SEC-009: Allowlist de modelos para prevenir cache poisoning
+ALLOWED_MODELS = {
+    "nvidia/nemotron-3-nano-30b-a3b:free",
+    "meta-llama/llama-3.3-70b-instruct:free",
+    "deepseek/deepseek-r1:free",
+    "google/gemini-2.0-flash-exp:free",
+    "qwen/qwen-2.5-72b-instruct:free",
+}
+
+
 class ChatRequest(BaseModel):
     session_id: Optional[str] = Field(default="default_session", description="ID da sessão do usuário")
     query: str
@@ -199,6 +209,8 @@ def parse_source_name(raw_source: str) -> SourceObject:
 async def chat(request: Request, body: ChatRequest, background_tasks: BackgroundTasks):
     try:
         query = validate_and_sanitize_query(body.query)
+        if body.model and body.model not in ALLOWED_MODELS:
+            raise HTTPException(status_code=400, detail="Modelo não permitido.")
         cached = global_rag_cache.get(query, body.model)
         if cached:
             background_tasks.add_task(record_query, query)
@@ -239,6 +251,8 @@ from fastapi.responses import StreamingResponse
 async def chat_stream(request: Request, body: ChatRequest, background_tasks: BackgroundTasks):
     try:
         query = validate_and_sanitize_query(body.query)
+        if body.model and body.model not in ALLOWED_MODELS:
+            raise HTTPException(status_code=400, detail="Modelo não permitido.")
         cached = global_rag_cache.get(query, body.model)
         
         if cached:
