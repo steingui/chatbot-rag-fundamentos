@@ -1,22 +1,5 @@
 @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,300;0,400;0,500;0,600;1,400&display=swap');
-
-:root {
-  --bg:         #0d0d0d;
-  --surface:    #111111;
-  --surface-2:  #1a1a1a;
-  --border:     #2a2a2a;
-  --border-hi:  #3a3a3a;
-  --text:       #e4e4e4;
-  --muted:      #666;
-  --accent:     #00ff88;
-  --accent-dim: rgba(0, 255, 136, 0.12);
-  --accent-glow: rgba(0, 255, 136, 0.08);
-  --red:        #ff5f57;
-  --yellow:     #ffbd2e;
-  --green:      #28ca41;
-  --user-bg:    #1a1a2e;
-  --user-border:#2d2d4a;
-}
+@import './theme/tokens.css';
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
 

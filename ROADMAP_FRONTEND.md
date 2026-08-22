@@ -41,4 +41,4 @@ Este documento estabelece o plano estratégico de evolução da interface do usu
 | :--- | :--- | :---: | :---: |
 | **Suíte de Testes Unitários** | Configurar `Vitest` + `React Testing Library` para validar a renderização de markdown, seleção de modelos e gerenciamento de abas/sessões. | `Alta` | ✅ Concluído |
 | **Testes E2E (Playwright)** | Adicionar pipeline de testes automatizados E2E cobrindo fluxo completo: digitação, resposta do bot, seleção de modelos e clique nas badges de sugestão. | `Média` | ⏳ Pendente |
-| **Design System Tokens** | Extrair variáveis globais de CSS (`index.css`) em um arquivo de tokens reutilizável (`theme.ts` / CSS Modules) garantindo suporte facilitado a Dark/Light modes. | `Baixa` | ⏳ Pendente |
+| **Design System Tokens** | Extrair variáveis globais de CSS (`index.css`) em um arquivo de tokens reutilizável (`theme.ts` / CSS Modules) garantindo suporte facilitado a Dark/Light modes. | `Baixa` | ✅ Concluído |
