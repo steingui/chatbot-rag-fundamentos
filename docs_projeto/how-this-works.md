@@ -1,57 +1,42 @@
 # Como este Projeto Funciona (RAG na Prática)
 
-O projeto implementa uma arquitetura **RAG (Retrieval-Augmented Generation)**, conectada a uma API REST (FastAPI) pronta para deploy no Hugging Face Spaces / Render.
+O projeto implementa uma arquitetura **RAG (Retrieval-Augmented Generation)** conectada a uma API REST (FastAPI) e um frontend em React + Vite, com monitoramento e auto-cura autônomos via CI/CD.
 
-O fluxo é dividido em três etapas principais: **Scraping**, **Ingestão** e **Consulta (API)**.
-
-## 1. Etapa de Scraping (`pipelines/scrapers/`)
-Objetivo: Coletar dados da vida real (Câmara, TSE, Portais de Notícias).
-- **scraper_camara.py**: Histórico de votações e Ementas.
-- **scraper_tse_bens.py**: Dados patrimoniais e financiadores de campanha.
-- **scraper_tse_pdfs.py**: Planos de governo passados por OCR/LLM (refinamento).
-- **scraper_rss.py**: Fact-Checking direto do G1 Fato ou Fake.
-Os scrapers salvam o resultado em Markdown (`.md`) na pasta `data/docs/`.
-
-## 2. Etapa de Ingestão (`pipelines/ingestion/pinecone_ingestor.py`)
-Objetivo: Preparar os documentos e armazená-los no Vector DB (Nuvem).
-
-1. **Carregamento**: Lê os arquivos `.md` da pasta `data/docs/`.
-2. **Fatiamento (Chunking)**: Quebra os documentos em pedaços menores (1000 caracteres) para respeitar o limite de contexto do LLM.
-3. **Vetorização**: Converte chunks em vetores usando o modelo open-source da HuggingFace (`all-MiniLM-L6-v2`).
-4. **Armazenamento**: Grava os vetores no **Pinecone** (Vector DB em nuvem).
-
-## 3. Etapa de Consulta (`backend/api/main.py` e `backend/rag/chat.py`)
-Objetivo: Expor a IA em uma API REST com memória de sessão e citação de fontes.
-
-1. **Endpoint**: O usuário envia um POST para a API com sua pergunta e `session_id`.
-2. **Recuperação (Pinecone)**: O Pinecone retorna os **15** chunks mais similares.
-3. **Prompt Augmentation**: O contexto, histórico e a pergunta são injetados no prompt.
-4. **Geração (LLM)**: O modelo **Google Gemma 4 (31B)** via OpenRouter gera a resposta precisa, e a API devolve o texto mais as fontes citadas.
+O fluxo é dividido em quatro componentes principais: **Scraping**, **Ingestão**, **Auto-Cura Autônoma (CI/CD)** e **Consulta (API & Web)**.
 
 ---
-**Resumo do Fluxo:**
 
-```mermaid
-graph TD
-    %% Estilos Simplificados
-    classDef github fill:#171515,color:#fff,stroke:#fff
-    classDef pinecone fill:#f0f0f0,color:#000,stroke:#333
-    classDef render fill:#000,color:#fff,stroke:#333
-    classDef openrouter fill:#6236ff,color:#fff,stroke:#333
-    classDef hf fill:#ffcc00,color:#000,stroke:#333
+## 1. Etapa de Scraping (`pipelines/scrapers/`)
+Objetivo: Coletar e estruturar dados políticos e públicos em arquivos Markdown (`data/docs/`).
+- **scraper_camara.py**: Histórico de votações e ementas legislativas.
+- **scraper_senado.py**: Proposições e discursos do Senado Federal.
+- **scraper_tse_bens.py**: Patrimônio de candidatos e doações de campanha (DivulgaCandContas).
+- **querido_diario_scraper.py**: Nomeações, atos e licitações municipais da Open Knowledge Brasil.
+- **rss_fact_checking_scraper.py**: Checagens de fatos (G1 Fato ou Fake, Aos Fatos, Estadão Verifica, Agência Pública).
 
-    subgraph "1. Pipelines de Ingestão (GitHub Actions)"
-        A[Cron Jobs<br>Diário/Semanal/Mensal]:::github -->|Executa| B(Scrapers Python:<br>Câmara, TSE, RSS)
-        B -->|Extrai Textos (.md)| C[Hugging Face API<br>all-MiniLM-L6-v2]:::hf
-        C -->|Gera Embeddings| D[(Pinecone Vector DB)]:::pinecone
-    end
+---
 
-    subgraph "2. Produção (Render)"
-        U((Usuário)) -->|POST /chat| F[FastAPI Backend]:::render
-        F -.->|1. Busca Contexto (k=15)| D
-        D -.->|2. Retorna Vetores Relevantes| F
-        F -.->|3. Envia Prompt + Contexto| G[OpenRouter API<br>Gemma 4 31B]:::openrouter
-        G -.->|4. Resposta Final| F
-        F -->|5. Retorna Resposta + Fontes| U
-    end
-```
+## 2. Etapa de Ingestão (`pipelines/ingestion/pinecone_ingestor.py`)
+Objetivo: Processar documentos e sincronizar vetores no Pinecone.
+1. **Leitura**: Carrega arquivos `.md` da pasta `data/docs/`.
+2. **Chunking**: Fatia textos com `RecursiveCharacterTextSplitter` (1000 caracteres / 200 overlap).
+3. **Vetorização**: Converte trechos em vetores densos usando HuggingFace Inference API (`sentence-transformers/all-MiniLM-L6-v2`).
+4. **Pinecone**: Persiste e atualiza os embeddings no índice em nuvem.
+
+---
+
+## 3. Monitoramento Autônomo e Auto-Cura (`pipelines/ingestion/monitor_and_heal.py`)
+Objetivo: Garantir resiliência, sanitizar dados e auto-corrigir falhas de CI/CD diariamente.
+- **Auditoria de Dados**: Detecta e purga arquivos truncados ou inválidos em `data/docs/`.
+- **Análise de Histórico**: Avalia as últimas 5 execuções de *cada* pipeline de ingestão via GitHub REST API (`/actions/runs` e `/jobs`).
+- **Diagnóstico com Contexto Total (`Google Gemini 3.6 Flash`)**: Envia o stack trace de erros emparelhado aos scripts de ingestão e workflows para que o Gemini proponha correções de código autônomas.
+- **Governança (`[LLM-COMMIT-AND-HEAL]`)**: Commita apenas correções de alta importância, respeitando uma trava de segurança de até 10 commits por dia.
+
+---
+
+## 4. Etapa de Consulta (`backend/api/` e `frontend/src/`)
+Objetivo: Atender requisições dos usuários em tempo real com fontes auditáveis.
+1. **Endpoint**: Frontend React faz streaming via Server-Sent Events (SSE) para o FastAPI (`/chat`).
+2. **Recuperação Híbrida**: Pinecone busca os vetores mais similares (k=15). Se necessário, realiza busca complementar na web.
+3. **Geração (LLM)**: OpenRouter invoca modelos instruídos de alta precisão (ex: Llama 3.3 / Gemma 4), retornando a resposta sintetizada acompanhada dos badges de fontes.
+4. **Analytics**: SQLite rastreia e canoniza as perguntas mais populares em um grid de até 8 sugestões.
