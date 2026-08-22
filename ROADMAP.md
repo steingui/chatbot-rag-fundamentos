@@ -1,52 +1,34 @@
-# 🗺️ Roadmap do Projeto (Próximos Passos)
+# 🗺️ Roadmap do Projeto (Próximos Passos e Melhorias)
 
-A arquitetura de Backend, Ingestão Multi-Fonte e ReAct Agent está **100% funcional, automatizada com CI/CD, idempotente e em produção no Render**. 
+A arquitetura base de Ingestão Multi-Fonte (Câmara, Senado, TSE, CGU), o Vector DB idempotente (Pinecone), o Backend ReAct Agent e o Frontend estão **funcionais e em produção**. As sugestões dinâmicas (UX) também foram implementadas.
 
-## Fase 0: Arquitetura Base (Concluído ✅)
-- [x] Criar scripts de scraping modulares (`scraper_camara.py`, etc) para extrair dados.
-- [x] Refatorar scraper para injetar metadados diretamente no chunk (contexto robusto).
-- [x] Construir módulo centralizado de Ingestão (`pinecone_ingestor.py`) utilizando Pinecone e Embeddings HuggingFace.
-- [x] Automatizar a Ingestão via GitHub Actions (Cron Jobs para Câmara, Senado, TSE e Transparência).
-- [x] Construir Backend em FastAPI para expor o LangChain e a lógica do RAG.
-- [x] Deploy da API no Render (Serverless) conectado ao OpenRouter (Llama 3 / Nemotron / DeepSeek).
-
-## Fase 1: Interface de Usuário (Frontend) (Concluído ✅)
-- [x] Criar interface gráfica (UI) para o Chatbot (Vite + React com estética terminal monospace em produção no Render).
-- [x] Conectar o frontend diretamente ao endpoint `/chat` do Render com suporte a multi-sessão e sugestões rápidas de prompt.
-- [x] Padronização de Branding: Favicon SVG customizado no estilo terminal (`>_`) e título de página `rag_politico`.
-
-## Fase 2: RAG Avançado e Qualidade de Dados (Concluído ✅)
-- [x] **Evolução do Scraper (Foco Eleições 2026):**
-  - [x] **Planos de Governo (TSE):** Extrair PDFs/textos das propostas de candidatos e aplicar uma etapa de "Refinamento" via LLM (limpeza e formatação) antes da ingestão.
-  - [x] **Fact-Checking:** Coletar feeds RSS de agências (Lupa, Aos Fatos) para cruzar discursos com checagens estruturadas no Pinecone (reduzindo alucinações).
-  - [x] **Financiamento e Bens:** Capturar evolução patrimonial e doadores de campanha na API do TSE.
-- [x] **Enriquecimento das Votações:** Buscar a "Ementa" (resumo do que trata a lei/proposição) na API da Câmara, para ir além da sigla fria (ex: "PEC 45/2019").
-- [x] **Memória de Conversação:** Adicionar suporte a histórico de conversação por sessão (`session_id`).
-- [x] **Citação de Fontes:** Modificar o RAG para retornar os metadados (links, sessões ou IDs) de onde a IA tirou a resposta.
-
-## Fase 3: Monitoramento, Infraestrutura e Consistência de Dados (Concluído ✅)
-- [x] **Garantia de Consistência e Idempotência no Vector DB:**
-  - [x] Geração de IDs determinísticos MD5 por chunk (`source` + `idx` + `hash_content`).
-  - [x] Pré-limpeza preventiva no Pinecone (`limpar_vetores_antigos_por_fonte`) via filtro de metadados antes da ingestão para eliminar chunks órfãos e duplicatas.
-- [x] **Resiliência contra Rate Limits (HTTP 429) no LLM:**
-  - [x] Implementar **Provider Routing com Fallbacks Nativos** (`ChatOpenAI.with_fallbacks`): `Nemotron 30B` -> `Llama 3.3 70B` -> `DeepSeek R1`.
-- [x] **Resiliência e Otimização de Busca Web:**
-  - [x] Refatorar busca Web com `DDGS().text` e `DDGS().news` em modo regional `br-pt`, evitando falhas de DNS em endpoints terceiros (Wikipedia) e adicionando timeout rigoroso de 5s.
-- [x] Deploy automático do Frontend (Vite/React) via Blueprint do Render.
-- [x] Otimização de CI/CD: Atualização de GitHub Actions para Node.js `latest` e instalação rápida `--prefer-binary`.
-
-## Fase 4: Expansão de Fontes de Dados Abertos
-- [x] **API do Senado Federal (`legis.senado.leg.br`):** Scraper e ingestor para proposições, votações, discursos dos senadores e uso da CEAPS (Cota Parlamentar). *(Concluído ✅)*
-- [x] **API do Portal da Transparência / CGU (`portaldatransparencia.gov.br`):** Rastreador de emendas parlamentares (individuais/PIX) e execução orçamentária por deputado/senador com requisições concorrentes (`ThreadPoolExecutor`). *(Concluído ✅)*
-- [x] **Querido Diário (Open Knowledge Brasil):** Conectar à API de Diários Oficiais Municipais para monitorar atos, nomeações e licitações locais. *(Concluído ✅)*
-- [x] **API REST do TSE (DivulgaCandContas):** Ingestão detalhada de prestação de contas de campanha por CPF/CNPJ de doadores e fornecedores. *(Concluído ✅)*
-- [x] **Feeds RSS de Checagem Adicionais:** Parser de feeds RSS de agências adicionais (*Estadão Verifica*, *Agência Pública*, *Aos Fatos*). *(Concluído ✅)*
-
-## Fase 5: Melhorias Futuras (Visão a Longo Prazo)
-- [ ] **Hybrid Search no Pinecone:** Misturar busca semântica (vetorial) com busca léxica (palavras-chave via BM25) para aumentar a precisão de buscas por nomes exatos de deputados ou siglas muito específicas.
-- [x] **Agentes (Multi-Source Synthesis):** O bot consulta em tempo real a base vetorial do Pinecone e a web via DuckDuckGo Search, unificando e sintetizando as fontes. *(Concluído ✅)*
-- [ ] **Banco de Dados Relacional:** Adicionar um PostgreSQL para salvar o perfil de cada deputado, permitindo respostas analíticas precisas (ex: "Quantas vezes o deputado X votou Sim neste ano?") sem depender de matemática via LLM (que costuma falhar).
-- [ ] **Autenticação:** Sistema de login para que usuários possam salvar seus históricos de chat e criar alertas de votações.
+Este documento foca exclusivamente nas melhorias pendentes, priorizando a mitigação de alucinações e o amadurecimento da IA.
 
 ---
-*Status Atual: Agente RAG + Web Operacional | Multi-Fonte (Câmara, Senado, TSE, CGU) | Vector DB Idempotente (Pinecone) | Frontend React Ativo*
+
+## 1. Discovery: Otimização da Estratégia de Merge e Mitigação de Alucinações (ReAct Agent + RAG)
+
+**Objetivo:** Eliminar alucinações causadas por excesso de contexto (ex: IA misturando dados de Cota Parlamentar com notícias irrelevantes de Web Search como Carnaval 2026) e melhorar a fluidez conversacional.
+
+### Problemas Atuais:
+- O Agente ReAct se confunde ao tentar amalgamar documentos legais extensos com resultados amplos da web, perdendo o isolamento dos fatos.
+- **Janela de Contexto:** O histórico de conversa atual precisa ser otimizado para que os prompts subsequentes mantenham uma coerência lógica com a conversa recente, evitando "amnésia" e perda da linha de raciocínio.
+
+### Hipóteses para Validação (Discovery):
+- [ ] **A. Roteamento Semântico (Semantic Router) vs. Merge Fixo:** Em vez de enviar as ferramentas de Web e RAG simultaneamente, um classificador inicial decide se a pergunta requer RAG interno, Web Search ou ambos, evitando poluir o contexto.
+- [ ] **B. Prompting de Síntese Hierárquica:** Instruir a LLM com mais rigor: *"O contexto interno é a FONTE DE VERDADE. A Web só preenche lacunas. Em caso de mistura de contextos distintos, mantenha-os separados"*.
+- [ ] **C. Arquitetura Multi-Step (Drafting):** Separar a formulação de resposta. O agente gera um rascunho com o RAG; e depois só busca na web o que faltou, unificando no final.
+- [ ] **D. Reranking Pós-Recuperação:** Adicionar um modelo de Reranker (ex: `cohere-rerank-3.5`) após o Pinecone, garantindo que a LLM receba apenas o "filé mignon" da informação vetorial, reduzindo ruído.
+
+**Próximo Passo:** Construir um script de Benchmark (`eval_merge.py`) com perguntas complexas para medir o grau de alucinação e avaliar as hipóteses acima.
+
+---
+
+## 2. Busca e Precisão de Entidades
+- [ ] **Hybrid Search no Pinecone:** Misturar busca semântica (vetorial) com busca léxica (palavras-chave via BM25) para aumentar a precisão de buscas por nomes exatos de deputados, políticos ou siglas muito específicas que os LLMs e Embeddings atuais confundem.
+
+## 3. Arquitetura de Dados Estruturada
+- [ ] **Banco de Dados Relacional (PostgreSQL):** Adicionar um banco SQL para salvar o perfil e o histórico determinístico de cada deputado. Isso permite respostas analíticas e exatas (ex: "Quantas vezes o deputado X votou Sim neste ano? Onde ele gastou mais CEAPS?") sem depender da capacidade analítica da LLM, que historicamente falha com matemática e consolidações.
+
+## 4. Recursos de Usuário e Segurança
+- [ ] **Autenticação:** Implementar um sistema de login para que os usuários possam persistir seus históricos de chat, salvar respostas favoritas e, futuramente, criar alertas automatizados sobre novos projetos de lei ou gastos.
