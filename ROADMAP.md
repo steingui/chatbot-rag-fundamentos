@@ -38,9 +38,9 @@ A arquitetura de Backend, Ingestão Multi-Fonte e ReAct Agent está **100% funci
 ## Fase 4: Expansão de Fontes de Dados Abertos
 - [x] **API do Senado Federal (`legis.senado.leg.br`):** Scraper e ingestor para proposições, votações, discursos dos senadores e uso da CEAPS (Cota Parlamentar). *(Concluído ✅)*
 - [x] **API do Portal da Transparência / CGU (`portaldatransparencia.gov.br`):** Rastreador de emendas parlamentares (individuais/PIX) e execução orçamentária por deputado/senador com requisições concorrentes (`ThreadPoolExecutor`). *(Concluído ✅)*
-- [ ] **Querido Diário (Open Knowledge Brasil):** Conectar à API de Diários Oficiais Municipais para monitorar atos, nomeações e licitações locais.
-- [ ] **API REST do TSE (DivulgaCandContas):** Ingestão detalhada de prestação de contas de campanha por CPF/CNPJ de doadores e fornecedores.
-- [ ] **Feeds RSS de Checagem Adicionais:** Parser de feeds RSS de agências adicionais (*Estadão Verifica*, *Agência Pública*).
+- [x] **Querido Diário (Open Knowledge Brasil):** Conectar à API de Diários Oficiais Municipais para monitorar atos, nomeações e licitações locais. *(Concluído ✅)*
+- [x] **API REST do TSE (DivulgaCandContas):** Ingestão detalhada de prestação de contas de campanha por CPF/CNPJ de doadores e fornecedores. *(Concluído ✅)*
+- [x] **Feeds RSS de Checagem Adicionais:** Parser de feeds RSS de agências adicionais (*Estadão Verifica*, *Agência Pública*, *Aos Fatos*). *(Concluído ✅)*
 
 ## Fase 5: Melhorias Futuras (Visão a Longo Prazo)
 - [ ] **Hybrid Search no Pinecone:** Misturar busca semântica (vetorial) com busca léxica (palavras-chave via BM25) para aumentar a precisão de buscas por nomes exatos de deputados ou siglas muito específicas.

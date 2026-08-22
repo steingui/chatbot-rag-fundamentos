@@ -10,7 +10,10 @@ logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
 DOCS_DIR = Path("data/docs")
 
 RSS_FEEDS = [
-    {"nome": "G1 Fato ou Fake", "url": "https://g1.globo.com/rss/g1/fato-ou-fake/"}
+    {"nome": "G1 Fato ou Fake", "url": "https://g1.globo.com/rss/g1/fato-ou-fake/"},
+    {"nome": "Estadão Verifica", "url": "https://politica.estadao.com.br/blogs/estadao-verifica/feed/"},
+    {"nome": "Agência Pública", "url": "https://apublica.org/feed/"},
+    {"nome": "Aos Fatos", "url": "https://www.aosfatos.org/noticias/feed/"}
 ]
 
 def clean_html(raw_html: str) -> str:
