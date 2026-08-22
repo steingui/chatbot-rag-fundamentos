@@ -1,5 +1,5 @@
 import React from 'react';
-import { Terminal, Plus, MessageSquare, Trash2, FileText } from 'lucide-react';
+import { Plus, Trash2 } from 'lucide-react';
 import { useChatStore, MAX_SESSIONS } from '../store/useChatStore';
 
 export const SessionSidebar: React.FC = () => {
@@ -16,21 +16,21 @@ export const SessionSidebar: React.FC = () => {
   return (
     <aside className="sidebar">
       <div className="sidebar-brand">
-        <Terminal size={18} className="brand-icon" />
+        <span className="brand-icon-text">&gt;_</span>
         <span className="brand-name">rag_politico</span>
         <span className="brand-ver">v1.0</span>
       </div>
 
       <div className="sidebar-section">
         <div className="sidebar-section-header">
-          <span>SESSÕES DE CHAT</span>
+          <span className="section-title">SESSÕES DE CHAT</span>
           <button
-            className="icon-btn"
+            className="new-session-btn"
             onClick={addSession}
             disabled={sessions.length >= MAX_SESSIONS || isLoading}
             title="Nova sessão (máx. 5)"
           >
-            <Plus size={14} />
+            <Plus size={13} />
           </button>
         </div>
 
@@ -41,7 +41,7 @@ export const SessionSidebar: React.FC = () => {
               className={`session-item ${idx === activeIdx ? 'active' : ''}`}
               onClick={() => setActiveIdx(idx)}
             >
-              <MessageSquare size={13} className="session-icon" />
+              <span className="session-bullet">{idx === activeIdx ? '▢' : '◯'}</span>
               <span className="session-title">{sess.label}</span>
               {sessions.length > 1 && (
                 <button
@@ -74,8 +74,7 @@ export const SessionSidebar: React.FC = () => {
 
       <div className="sidebar-footer">
         <span className="status-dot"></span>
-        <FileText size={11} />
-        <span>RAG • Câmara / Senado / TSE</span>
+        <span className="footer-text">RAG · Câmara / Senado / TSE</span>
       </div>
     </aside>
   );

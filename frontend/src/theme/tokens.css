@@ -1,20 +1,20 @@
 :root {
   /* Design Tokens - Palette & Colors */
-  --bg:          #0d0d0d;
-  --surface:     #111111;
-  --surface-2:   #1a1a1a;
-  --border:      #2a2a2a;
-  --border-hi:   #3a3a3a;
-  --text:        #e4e4e4;
-  --muted:       #666666;
+  --bg:          #0b0c0e;
+  --surface:     #111215;
+  --surface-2:   #16181d;
+  --border:      #23262d;
+  --border-hi:   #343842;
+  --text:        #e6e8ec;
+  --muted:       #6b7280;
   --accent:      #00ff88;
-  --accent-dim:  rgba(0, 255, 136, 0.12);
+  --accent-dim:  rgba(0, 255, 136, 0.1);
   --accent-glow: rgba(0, 255, 136, 0.08);
+  --gold:        #ffbd2e;
+  --gold-dim:    rgba(255, 189, 46, 0.12);
   --red:         #ff5f57;
-  --yellow:      #ffbd2e;
+  --red-dim:     rgba(255, 95, 87, 0.12);
   --green:       #28ca41;
-  --user-bg:     #1a1a2e;
-  --user-border: #2d2d4a;
 
   /* Typography & Layout Tokens */
   --font-family: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', monospace;

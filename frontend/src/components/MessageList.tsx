@@ -54,9 +54,14 @@ export const MessageList: React.FC = () => {
             >
               <div className={`message-bubble ${msg.role}`}>
                 <div className="msg-header">
-                  <span className="msg-author">
-                    {msg.role === 'user' ? '► USUÁRIO' : '⚡ ASSISTENTE (RAG)'}
-                  </span>
+                  {msg.role === 'user' ? (
+                    <span className="msg-author user-author">you@rag:~$</span>
+                  ) : (
+                    <div className="bot-header-title">
+                      <span className="bot-bolt">⚡</span>
+                      <span className="bot-author">ASSISTENTE (RAG)</span>
+                    </div>
+                  )}
                   <span className="msg-time">{formatTime(new Date(msg.timestamp))}</span>
                 </div>
 

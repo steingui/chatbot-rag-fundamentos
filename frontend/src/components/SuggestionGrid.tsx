@@ -7,18 +7,18 @@ export const SuggestionGrid: React.FC = () => {
   if (!suggestions || suggestions.length === 0) return null;
 
   return (
-    <div className="suggestions-block">
-      <span className="suggestions-title">SUGESTÕES POPULARES:</span>
-      <div className="suggestions-grid">
+    <div className="suggestions-container">
+      <span className="suggestions-header-label">SUGESTÕES POPULARES:</span>
+      <div className="suggestions-horizontal-grid">
         {suggestions.slice(0, 4).map((sug, i) => (
           <button
             key={i}
-            className="suggestion-card"
+            className="suggestion-card-item"
             onClick={() => sendMessageStream(sug.prompt)}
             disabled={isLoading}
           >
-            <span className="suggestion-text">{sug.prompt}</span>
-            <span className="suggestion-badge">{sug.count}x</span>
+            <span className="suggestion-card-text">{sug.prompt}</span>
+            <span className="suggestion-card-count">{sug.count}x</span>
           </button>
         ))}
       </div>

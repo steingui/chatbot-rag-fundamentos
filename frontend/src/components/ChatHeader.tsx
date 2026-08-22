@@ -11,13 +11,14 @@ export const ChatHeader: React.FC = () => {
       <div className="header-info">
         <h1 className="header-title">PAINEL DE CONSULTA LEGISLATIVA</h1>
         <span className="header-sub">
-          {currentSession ? currentSession.label : `SESSÃO ${activeIdx + 1}`}
+          {currentSession ? currentSession.label : `Sessão ${activeIdx + 1}`}
         </span>
       </div>
       <div className="header-meta">
         <ModelSelector />
-        <span className="badge">PINECOON_INDEX: rag-fundamentos</span>
-        <span className="badge live">ONLINE</span>
+        <span className="pinecone-badge">
+          PINECONE_INDEX: rag-fundamentos<span className="badge-online">ONLINE</span>
+        </span>
       </div>
     </header>
   );
