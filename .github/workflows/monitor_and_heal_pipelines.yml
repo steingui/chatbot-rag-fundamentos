@@ -5,6 +5,9 @@ on:
     - cron: '0 7 * * *' # Executa diariamente às 07:00 UTC
   workflow_dispatch:
 
+env:
+  FORCE_JAVASCRIPT_ACTIONS_NODE_VERSION: node24
+
 jobs:
   monitor-and-heal:
     runs-on: ubuntu-latest
