@@ -12,13 +12,13 @@ Este documento detalha o planejamento para duas features estratégicas voltadas 
 As sugestões mostram números (ex: "Quantas vezes a pergunta X foi feita") e tendem a ser perguntas genéricas e repetitivas geradas pelos próprios usuários, reduzindo o potencial de exploração da plataforma.
 
 ### Passos de Implementação (Actionables):
-- [ ] **Fase 1: Curadoria Hardcoded de "Iscas" (Ganhos Rápidos)**
+- [x] **Fase 1: Curadoria Hardcoded de "Iscas" (Ganhos Rápidos)**
   - Remover a lógica de contadores do frontend e do backend.
   - Substituir o feed do SQLite por uma lista randômica de perguntas elaboradas manualmente para causar curiosidade. Exemplos:
     - *"Qual é a correlação entre as empresas que mais doaram no TSE e os maiores contratos no Portal da Transparência?"*
     - *"Liste os parlamentares que mais mudaram de voto em pautas ambientais nos últimos 4 anos."*
     - *"Quais são as emendas parlamentares mais atípicas pagas no último mês?"*
-- [ ] **Fase 2: Geração Dinâmica (Cronjob LLM)**
+- [x] **Fase 2: Geração Dinâmica (Cronjob LLM)**
   - Criar um script rodando via GitHub Actions que, semanalmente, lê os *chunks* mais recentes injetados no Pinecone (ex: um novo projeto de lei polêmico) e gera dinamicamente 3 perguntas curiosas e provocativas sobre aquele assunto atual.
 
 ---
