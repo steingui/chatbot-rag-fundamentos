@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { X, Search, Database, Bot, Zap } from 'lucide-react';
+import { X, Database, Zap } from 'lucide-react';
 import './IntroModal.css';
 
 export function IntroModal() {
@@ -28,17 +28,11 @@ export function IntroModal() {
         </button>
 
         <div className="modal-header">
-          <div className="modal-icon-wrapper">
-            <Search className="modal-icon" size={28} />
-          </div>
           <h2 className="modal-title">Inteligência Artificial a favor da Transparência</h2>
         </div>
 
         <div className="modal-body">
           <div className="modal-section">
-            <h3 className="section-subtitle">
-              <Bot size={16} /> O que é?
-            </h3>
             <p>
               Somos um sistema <strong>RAG</strong> <em>(Retrieval-Augmented Generation, ou "Geração Aumentada por Recuperação" — uma técnica que ensina a IA a pesquisar em bibliotecas de arquivos antes de falar)</em> focado em política, legislação e eleições brasileiras, usando fontes oficiais.
             </p>
