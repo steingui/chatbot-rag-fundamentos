@@ -4,12 +4,13 @@
 **Status Pinecone:** `OK` | **Total Vetores:** 1131
 
 ## Auditoria e Auto-Cura de Documentos Local (`data/docs`)
-- **Total de Arquivos:** 161
+- **Total de Arquivos:** 0
 - **Arquivos Auto-Corrigidos:** 0
 - **Arquivos Purgados (Inválidos/Vazios):** 0
 
 ## Últimas 5 Execuções por Pipeline de Ingestão (GitHub Actions)
 ### Monitoramento Autônomo e Auto-Cura de Ingestões
+  - Execução ID `32581771277` (2026-08-22T15:27:56Z): `in_progress`
   - Execução ID `32581285453` (2026-08-22T15:18:11Z): `success`
   - Execução ID `32581104449` (2026-08-22T15:14:38Z): `failure`
 
@@ -34,4 +35,4 @@
   - Execução ID `32329032672` (2026-08-20T03:39:45Z): `success`
 
 ## Diagnóstico Autônomo de LLM (`[LLM-COMMIT-AND-HEAL]`)
-Falha ao consultar LLM para diagnóstico: Error code: 401 - {'error': {'message': 'Missing Authentication header', 'code': 401}}
+Falha ao executar diagnóstico por ausência de chaves de API válidas.
