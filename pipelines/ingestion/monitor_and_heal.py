@@ -111,8 +111,62 @@ def audit_github_workflows() -> list:
         
     return grouped_runs
 
+def get_codebase_context() -> str:
+    """Carrega o código fonte dos scripts de ingestão e workflows para fornecer contexto completo à LLM."""
+    code_context = []
+    base_dir = Path(__file__).resolve().parent.parent.parent
+    
+    # Scripts de Ingestão
+    ingest_dir = base_dir / "pipelines" / "ingestion"
+    if ingest_dir.exists():
+        for file in ingest_dir.glob("*.py"):
+            try:
+                content = file.read_text(encoding="utf-8")
+                lines = content.splitlines()[:250]
+                code_context.append(f"--- FILE: {file.relative_to(base_dir)} ---\n" + "\n".join(lines))
+            except Exception:
+                pass
+
+    # Workflows YAML
+    wf_dir = base_dir / ".github" / "workflows"
+    if wf_dir.exists():
+        for file in wf_dir.glob("*.yml"):
+            try:
+                content = file.read_text(encoding="utf-8")
+                code_context.append(f"--- WORKFLOW: {file.relative_to(base_dir)} ---\n" + content)
+            except Exception:
+                pass
+
+    return "\n\n".join(code_context)
+
+def get_failed_run_logs(run_id: int) -> str:
+    """Busca os detalhes dos erros e etapas com falha do job via API REST do GitHub."""
+    repo = os.environ.get("GITHUB_REPOSITORY", "steingui/chatbot-rag-fundamentos")
+    token = os.environ.get("GITHUB_TOKEN") or os.environ.get("GH_TOKEN")
+    headers = {"Accept": "application/vnd.github.v3+json"}
+    if token:
+        headers["Authorization"] = f"token {token}"
+        
+    url = f"https://api.github.com/repos/{repo}/actions/runs/{run_id}/jobs"
+    try:
+        res = requests.get(url, headers=headers, timeout=10)
+        if res.status_code == 200:
+            jobs = res.json().get("jobs", [])
+            failed_jobs_info = []
+            for j in jobs:
+                if j.get("conclusion") == "failure":
+                    steps_failed = [
+                        f"  - Step '{s['name']}' ({s.get('conclusion')})"
+                        for s in j.get("steps", []) if s.get("conclusion") == "failure"
+                    ]
+                    failed_jobs_info.append(f"Job `{j.get('name')}` falhou nas etapas:\n" + "\n".join(steps_failed))
+            return "\n".join(failed_jobs_info)
+    except Exception as e:
+        logging.warning(f"Não foi possível obter logs detalhados do run {run_id}: {e}")
+    return "Logs detalhados indisponíveis."
+
 def analyze_failures_with_llm(failed_runs: list) -> str:
-    """Utiliza o modelo Google Gemini (plano Antigravity) para analisar falhas detectadas e sugerir correções autônomas."""
+    """Utiliza o modelo Google Gemini (plano Antigravity) para analisar falhas com contexto da codebase inteira."""
     google_key = os.environ.get("GOOGLE_API_KEY") or os.environ.get("GEMINI_API_KEY")
     openrouter_key = os.environ.get("OPENROUTER_API_KEY")
     
@@ -122,11 +176,22 @@ def analyze_failures_with_llm(failed_runs: list) -> str:
     if not google_key and not openrouter_key:
         return "Nenhuma falha crítica ou chave de API (GOOGLE_API_KEY / GEMINI_API_KEY / OPENROUTER_API_KEY) ausente para diagnóstico via LLM."
         
+    # Enriquece os runs com os logs de falha das etapas do job
+    enriched_runs = []
+    for r in failed_runs:
+        run_copy = dict(r)
+        run_copy["job_details"] = get_failed_run_logs(r["run_id"])
+        enriched_runs.append(run_copy)
+
+    codebase_context = get_codebase_context()
+
     prompt = (
-        f"Você é um engenheiro de dados sênior e especialista em CI/CD do Antigravity. "
-        f"As seguintes GitHub Actions falharam no pipeline de dados do RAG político:\n"
-        f"{json.dumps(failed_runs, indent=2)}\n\n"
-        f"Forneça uma análise técnica concisa da provável causa raiz e a correção exata em Python/YAML com o prefixo [LLM-COMMIT-AND-HEAL]."
+        f"Você é um especialista sênior em engenharia de dados e CI/CD do repositório Antigravity.\n\n"
+        f"### CONTEXTO DA CODEBASE (SCRIPTS DE INGESTÃO & WORKFLOWS):\n"
+        f"{codebase_context}\n\n"
+        f"### FALHAS DETECTADAS NAS ÚLTIMAS EXECUÇÕES DO GITHUB ACTIONS:\n"
+        f"{json.dumps(enriched_runs, indent=2)}\n\n"
+        f"Analise o erro e os scripts acima. Proponha a causa raiz precisa e a correção exata em Python/YAML com o prefixo [LLM-COMMIT-AND-HEAL]."
     )
 
     # Prioridade 1: Google Gemini (Plano Antigravity)
@@ -140,7 +205,7 @@ def analyze_failures_with_llm(failed_runs: list) -> str:
                 max_retries=2
             )
             response = llm.invoke(prompt)
-            return f"**[Diagnóstico Gemini (Google Antigravity)]**\n{response.content}"
+            return f"**[Diagnóstico Gemini (Google Antigravity com Contexto de Codebase)]**\n{response.content}"
         except Exception as e:
             logging.warning(f"Falha ao invocar Google Gemini API: {e}. Tentando fallback OpenRouter...")
 
