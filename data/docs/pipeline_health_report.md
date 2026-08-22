@@ -10,18 +10,21 @@
 
 ## Últimas 5 Execuções por Pipeline de Ingestão (GitHub Actions)
 ### Monitoramento Autônomo e Auto-Cura de Ingestões
-  - Execução ID `32585253159` (2026-08-22T16:37:13Z): `in_progress`
-  - Execução ID `32584752333` (2026-08-22T16:27:25Z): `success`
-  - Execução ID `32584401819` (2026-08-22T16:20:25Z): `success`
-  - Execução ID `32584020789` (2026-08-22T16:12:40Z): `success`
-  - Execução ID `32582702260` (2026-08-22T15:46:21Z): `failure`
+  - Execução ID `32593772462` (2026-08-22T19:27:43Z): `in_progress`
+  - Execução ID `32590200068` (2026-08-22T18:15:25Z): `failure`
+  - Execução ID `32586304445` (2026-08-22T16:58:06Z): `failure`
+  - Execução ID `32585674287` (2026-08-22T16:45:32Z): `success`
+  - Execução ID `32585253159` (2026-08-22T16:37:13Z): `success`
 
 ### Ingestão Diária - Câmara dos Deputados
+  - Execução ID `32590150369` (2026-08-22T18:14:25Z): `success`
   - Execução ID `32583973239` (2026-08-22T16:11:42Z): `success`
   - Execução ID `32577980083` (2026-08-22T14:11:42Z): `success`
   - Execução ID `32572616606` (2026-08-22T12:18:05Z): `success`
   - Execução ID `32567018717` (2026-08-22T10:12:47Z): `success`
-  - Execução ID `32561876831` (2026-08-22T08:17:06Z): `success`
+
+### .github/workflows/monitor_and_heal_pipelines.yml
+  - Execução ID `32586218209` (2026-08-22T16:56:20Z): `failure`
 
 ### Ingestão Semanal - TSE (Bens e Financiamentos)
   - Execução ID `32549426068` (2026-08-22T03:36:09Z): `success`
@@ -39,56 +42,50 @@
 ## Diagnóstico Autônomo de LLM (`[LLM-COMMIT-AND-HEAL]`)
 **[Diagnóstico Gemini 3.6 Flash (Google Antigravity com Contexto de Codebase)]**
 ### Causa Raiz
-A etapa `Auto-Commit Data Quality & Health Fixes` falha porque o script `pipelines/ingestion/monitor_and_heal.py` não possui um bloco de execução principal (`__name__ == "__main__"`). Como resultado:
-1. O relatório `data/docs/pipeline_health_report.md` nunca é gerado/gravado em disco.
-2. A variável de saída `should_commit` não é registrada no arquivo `$GITHUB_OUTPUT`, fazendo com que a Action tente manipular arquivos inexistentes ou sem alterações.
+A etapa `Create Pull Request with Auto-Healed Fixes & Health Report` falhou na Action `peter-evans/create-pull-request@v6` devido a restrições de permissão do token padrão `GITHUB_TOKEN` em execuções engatilhadas por `workflow_run`. Por padrão, o GitHub bloqueia a criação de Pull Requests via `GITHUB_TOKEN` a menos que a opção *"Allow GitHub Actions to create and approve pull requests"* esteja ativada nas configurações do repositório, ou um Personal Access Token (`GH_TOKEN` / `PAT`) seja fornecido com permissões explícitas de gravação e automação.
 
 ---
 
-### Snippet de Correção
+### Correção
 
-Adicione o bloco de execução ao final de `pipelines/ingestion/monitor_and_heal.py`:
+#### 1. `.github/workflows/monitor_and_heal_pipelines.yml`
+Atualize a chave `token` da etapa para aceitar um PAT customizado (`GH_TOKEN`) com fallback para `GITHUB_TOKEN`, e garanta a configuração prévia da identidade do Git:
 
-```python
-if __name__ == "__main__":
-    logging.info("Iniciando auditoria e auto-cura...")
-    
-    # 1. Executa auditoria local e Pinecone
-    local_stats = audit_and_heal_local_docs()
-    pinecone_stats = audit_pinecone_health()
-    
-    # 2. Identifica falhas em workflows
-    workflow_runs = audit_github_workflows()
-    failed_runs = [
-        run for runs in workflow_runs.values() 
-        for run in runs if run.get("conclusion") == "failure"
-    ]
-    
-    llm_diagnosis = analyze_failures_with_llm(failed_runs)
-    
-    # 3. Gera e salva o relatório de saúde
-    report_md = f"""# Relatório de Saúde das Pipelines
-## Status da Base Local
-- **Total de Arquivos:** {local_stats['total_files']}
-- **Arquivos Corrigidos:** {local_stats['fixed_files']}
-- **Arquivos Removidos (Vazios/Corrompidos):** {local_stats['purged_files']}
+```yaml
+<<<<
+      - name: Create Pull Request with Auto-Healed Fixes & Health Report
+        if: steps.audit.outputs.should_commit == 'true'
+        uses: peter-evans/create-pull-request@v6
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          commit-message: "[LLM-AUTOCURE] fix(ingestion): auto-heal data quality & pipeline health report"
+          branch: auto-heal/pipeline-fix
+          title: "[LLM-AUTOCURE] Diagnóstico e Correção Autônoma de Ingestão"
+          body-path: 'data/docs/pipeline_health_report.md'
+          labels: 'autocure, pipeline-health'
+          delete-branch: true
+====
+      - name: Configure Git Identity
+        if: steps.audit.outputs.should_commit == 'true'
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
 
-## Status do Vector DB (Pinecone)
-- **Status:** {pinecone_stats.get('status')}
-- **Total de Vetores:** {pinecone_stats.get('total_vectors', 0)}
-
-## Diagnóstico LLM
-{llm_diagnosis}
-"""
-    REPORT_PATH.parent.mkdir(parents=True, exist_ok=True)
-    REPORT_PATH.write_text(report_md, encoding="utf-8")
-    logging.info(f"Relatório salvo em {REPORT_PATH}")
-
-    # 4. Sinaliza ao GitHub Actions que há alterações a serem commitadas
-    github_output = os.environ.get("GITHUB_OUTPUT")
-    if github_output:
-        should_commit = local_stats['fixed_files'] > 0 or local_stats['purged_files'] > 0 or REPORT_PATH.exists()
-        with open(github_output, "a", encoding="utf-8") as f:
-            f.write(f"should_commit={'true' if should_commit else 'false'}
-")
+      - name: Create Pull Request with Auto-Healed Fixes & Health Report
+        if: steps.audit.outputs.should_commit == 'true'
+        uses: peter-evans/create-pull-request@v6
+        with:
+          token: ${{ secrets.GH_TOKEN || secrets.GITHUB_TOKEN }}
+          commit-message: "[LLM-AUTOCURE] fix(ingestion): auto-heal data quality & pipeline health report"
+          branch: auto-heal/pipeline-fix
+          title: "[LLM-AUTOCURE] Diagnóstico e Correção Autônoma de Ingestão"
+          body-path: 'data/docs/pipeline_health_report.md'
+          labels: 'autocure, pipeline-health'
+          delete-branch: true
+>>>>
 ```
+
+#### 2. Configuração Manual Recomendada no GitHub (Repositório)
+No seu repositório do GitHub, navegue até:
+**Settings** > **Actions** > **General** > **Workflow permissions**  
+Marque a opção: **"Allow GitHub Actions to create and approve pull requests"** e salve.
