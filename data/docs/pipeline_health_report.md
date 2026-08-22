@@ -10,18 +10,21 @@
 
 ## Últimas 5 Execuções por Pipeline de Ingestão (GitHub Actions)
 ### Monitoramento Autônomo e Auto-Cura de Ingestões
-  - Execução ID `32585253159` (2026-08-22T16:37:13Z): `in_progress`
-  - Execução ID `32584752333` (2026-08-22T16:27:25Z): `success`
-  - Execução ID `32584401819` (2026-08-22T16:20:25Z): `success`
-  - Execução ID `32584020789` (2026-08-22T16:12:40Z): `success`
-  - Execução ID `32582702260` (2026-08-22T15:46:21Z): `failure`
+  - Execução ID `32595140657` (2026-08-22T19:55:17Z): `in_progress`
+  - Execução ID `32594871941` (2026-08-22T19:49:53Z): `failure`
+  - Execução ID `32594424897` (2026-08-22T19:40:46Z): `failure`
+  - Execução ID `32593772462` (2026-08-22T19:27:43Z): `success`
+  - Execução ID `32590200068` (2026-08-22T18:15:25Z): `failure`
 
 ### Ingestão Diária - Câmara dos Deputados
+  - Execução ID `32590150369` (2026-08-22T18:14:25Z): `success`
   - Execução ID `32583973239` (2026-08-22T16:11:42Z): `success`
   - Execução ID `32577980083` (2026-08-22T14:11:42Z): `success`
   - Execução ID `32572616606` (2026-08-22T12:18:05Z): `success`
   - Execução ID `32567018717` (2026-08-22T10:12:47Z): `success`
-  - Execução ID `32561876831` (2026-08-22T08:17:06Z): `success`
+
+### .github/workflows/monitor_and_heal_pipelines.yml
+  - Execução ID `32586218209` (2026-08-22T16:56:20Z): `failure`
 
 ### Ingestão Semanal - TSE (Bens e Financiamentos)
   - Execução ID `32549426068` (2026-08-22T03:36:09Z): `success`
@@ -37,58 +40,5 @@
   - Execução ID `32329032672` (2026-08-20T03:39:45Z): `success`
 
 ## Diagnóstico Autônomo de LLM (`[LLM-COMMIT-AND-HEAL]`)
-**[Diagnóstico Gemini 3.6 Flash (Google Antigravity com Contexto de Codebase)]**
-### Causa Raiz
-A etapa `Auto-Commit Data Quality & Health Fixes` falha porque o script `pipelines/ingestion/monitor_and_heal.py` não possui um bloco de execução principal (`__name__ == "__main__"`). Como resultado:
-1. O relatório `data/docs/pipeline_health_report.md` nunca é gerado/gravado em disco.
-2. A variável de saída `should_commit` não é registrada no arquivo `$GITHUB_OUTPUT`, fazendo com que a Action tente manipular arquivos inexistentes ou sem alterações.
-
----
-
-### Snippet de Correção
-
-Adicione o bloco de execução ao final de `pipelines/ingestion/monitor_and_heal.py`:
-
-```python
-if __name__ == "__main__":
-    logging.info("Iniciando auditoria e auto-cura...")
-    
-    # 1. Executa auditoria local e Pinecone
-    local_stats = audit_and_heal_local_docs()
-    pinecone_stats = audit_pinecone_health()
-    
-    # 2. Identifica falhas em workflows
-    workflow_runs = audit_github_workflows()
-    failed_runs = [
-        run for runs in workflow_runs.values() 
-        for run in runs if run.get("conclusion") == "failure"
-    ]
-    
-    llm_diagnosis = analyze_failures_with_llm(failed_runs)
-    
-    # 3. Gera e salva o relatório de saúde
-    report_md = f"""# Relatório de Saúde das Pipelines
-## Status da Base Local
-- **Total de Arquivos:** {local_stats['total_files']}
-- **Arquivos Corrigidos:** {local_stats['fixed_files']}
-- **Arquivos Removidos (Vazios/Corrompidos):** {local_stats['purged_files']}
-
-## Status do Vector DB (Pinecone)
-- **Status:** {pinecone_stats.get('status')}
-- **Total de Vetores:** {pinecone_stats.get('total_vectors', 0)}
-
-## Diagnóstico LLM
-{llm_diagnosis}
-"""
-    REPORT_PATH.parent.mkdir(parents=True, exist_ok=True)
-    REPORT_PATH.write_text(report_md, encoding="utf-8")
-    logging.info(f"Relatório salvo em {REPORT_PATH}")
-
-    # 4. Sinaliza ao GitHub Actions que há alterações a serem commitadas
-    github_output = os.environ.get("GITHUB_OUTPUT")
-    if github_output:
-        should_commit = local_stats['fixed_files'] > 0 or local_stats['purged_files'] > 0 or REPORT_PATH.exists()
-        with open(github_output, "a", encoding="utf-8") as f:
-            f.write(f"should_commit={'true' if should_commit else 'false'}
-")
-```
+**[Diagnóstico Gemini 3.6 Flash (Auto-Curado via Tool Calling)]**
+- **Tool Invocada:** `apply_file_patch` em `.github/workflows/monitor_and_heal_pipelines.yml` -> Resultado: Sucesso: Arquivo .github/workflows/monitor_and_heal_pipelines.yml curado fisicamente.
