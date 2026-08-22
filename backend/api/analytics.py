@@ -10,7 +10,11 @@ INITIAL_SEEDS = [
     ("Resuma a PEC 45/2019 e a reforma tributária", 24, "economia"),
     ("Como os deputados votaram sobre o arcabouço fiscal?", 18, "legislativo"),
     ("Quais bens foram declarados nas eleições recentes pelo TSE?", 12, "tse"),
-    ("O que a agência Lupa checou sobre imposto de renda?", 8, "fact-checking")
+    ("O que a agência Lupa checou sobre imposto de renda?", 8, "fact-checking"),
+    ("Quais irregularidades foram encontradas nas emendas Pix parlamentares?", 15, "transparencia"),
+    ("Qual a relação de Flávio Bolsonaro com o Banco Master e Daniel Vorcaro?", 10, "eleicoes"),
+    ("Quais suspeitas envolvem o INSS e o governo atual?", 9, "investigacao"),
+    ("Como o STF tem atuado na fiscalização do orçamento secreto?", 7, "judiciario")
 ]
 
 
@@ -47,7 +51,7 @@ def init_analytics_db():
             conn.commit()
 
 
-def get_top_suggestions(limit: int = 4) -> List[Dict]:
+def get_top_suggestions(limit: int = 8) -> List[Dict]:
     """Retorna as N consultas mais realizadas organizadas por contagem decrescente."""
     try:
         init_analytics_db()

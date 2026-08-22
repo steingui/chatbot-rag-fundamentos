@@ -67,7 +67,7 @@ class SuggestionsResponse(BaseModel):
 @app.get("/suggestions", response_model=SuggestionsResponse)
 @limiter.limit("60/minute")
 def suggestions(request: Request):
-    return SuggestionsResponse(suggestions=get_top_suggestions(limit=4))
+    return SuggestionsResponse(suggestions=get_top_suggestions(limit=8))
 
 
 _rag_initialized = False

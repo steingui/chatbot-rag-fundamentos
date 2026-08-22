@@ -10,7 +10,7 @@ export const SuggestionGrid: React.FC = () => {
     <div className="suggestions-container">
       <span className="suggestions-header-label">SUGESTÕES POPULARES:</span>
       <div className="suggestions-horizontal-grid">
-        {suggestions.slice(0, 4).map((sug, i) => (
+        {suggestions.slice(0, 8).map((sug, i) => (
           <button
             key={i}
             className="suggestion-card-item"
