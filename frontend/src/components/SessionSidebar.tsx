@@ -1,5 +1,5 @@
 import React from 'react';
-import { Plus, Trash2 } from 'lucide-react';
+import { Plus, Trash2, FileText } from 'lucide-react';
 import { useChatStore, MAX_SESSIONS } from '../store/useChatStore';
 
 export const SessionSidebar: React.FC = () => {
@@ -10,6 +10,7 @@ export const SessionSidebar: React.FC = () => {
     addSession,
     closeSession,
     clearActiveSession,
+    sendMessageStream,
     isLoading
   } = useChatStore();
 
@@ -61,6 +62,15 @@ export const SessionSidebar: React.FC = () => {
       </div>
 
       <div className="sidebar-actions">
+        <button
+          className="sidebar-btn"
+          onClick={() => sendMessageStream("Resuma nossa conversa em no máximo 1 tweet (280 caracteres).")}
+          disabled={isLoading || !sessions[activeIdx]?.messages.some(m => m.role === 'user')}
+          title="Resumir histórico em 1 tweet (280 caracteres)"
+        >
+          <FileText size={13} />
+          <span>Resumir Conversa</span>
+        </button>
         <button
           className="sidebar-btn danger"
           onClick={clearActiveSession}

@@ -45,6 +45,10 @@ class HybridRetriever:
         sorted_keys = sorted(doc_scores.keys(), key=lambda k: doc_scores[k], reverse=True)[:top_n]
         return [doc_map[k] for k in sorted_keys]
 
+    def invoke(self, input: Any, config: Any = None, **kwargs: Any) -> List[Document]:
+        query = input if isinstance(input, str) else str(input)
+        return self.get_relevant_documents(query)
+
     def get_relevant_documents(self, query: str) -> List[Document]:
         dense_docs = []
         try:

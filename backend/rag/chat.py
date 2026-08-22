@@ -173,7 +173,7 @@ Resposta:"""
 
     def stream(self, inputs: dict):
         question = inputs.get("question", "")
-        pinecone_docs = _retriever.get_relevant_documents(question) if _retriever else []
+        pinecone_docs = _retriever.invoke(question) if _retriever else []
         pinecone_context = "\n\n".join([d.page_content for d in pinecone_docs]) if pinecone_docs else "Nenhum documento interno relevante encontrado."
         sources = list(pinecone_docs)
 
