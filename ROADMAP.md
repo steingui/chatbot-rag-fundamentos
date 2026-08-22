@@ -25,7 +25,7 @@ Este documento foca exclusivamente nas melhorias pendentes, priorizando a mitiga
 ---
 
 ## 2. Busca e Precisão de Entidades
-- [ ] **Hybrid Search no Pinecone:** Misturar busca semântica (vetorial) com busca léxica (palavras-chave via BM25) para aumentar a precisão de buscas por nomes exatos de deputados, políticos ou siglas muito específicas que os LLMs e Embeddings atuais confundem.
+- [x] **Hybrid Search no Pinecone:** Misturar busca semântica (vetorial) com busca léxica (palavras-chave via BM25) para aumentar a precisão de buscas por nomes exatos de deputados, políticos ou siglas muito específicas que os LLMs e Embeddings atuais confundem.
 
 ## 3. Arquitetura de Dados Estruturada
 - [ ] **Banco de Dados Relacional (PostgreSQL):** Adicionar um banco SQL para salvar o perfil e o histórico determinístico de cada deputado. Isso permite respostas analíticas e exatas (ex: "Quantas vezes o deputado X votou Sim neste ano? Onde ele gastou mais CEAPS?") sem depender da capacidade analítica da LLM, que historicamente falha com matemática e consolidações.
