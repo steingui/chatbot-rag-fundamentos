@@ -58,7 +58,7 @@ graph TD
         Monitor --> Gemini["Google Gemini 3.6 Flash<br>(Análise de Erros + Codebase)"]
         Gemini -->|Auto-Commit| GitBot["[LLM-COMMIT-AND-HEAL]<br>(Max 10 commits/dia)"]
         Monitor --> Report["Health Report<br>(pipeline_health_report.md)"]
-        Report --> Ingestor
+        Monitor -->|Re-ingere Apenas Dados Purgados/Limpos| Ingestor
     end
 
     subgraph Producao["3. Aplicação em Produção (Render)"]
