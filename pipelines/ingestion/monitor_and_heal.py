@@ -112,31 +112,56 @@ def audit_github_workflows() -> list:
     return grouped_runs
 
 def analyze_failures_with_llm(failed_runs: list) -> str:
-    """Utiliza LLM (via OpenRouter) para analisar falhas detectadas nos workflows e sugerir patches de correção."""
-    api_key = os.environ.get("OPENROUTER_API_KEY")
-    if not api_key or not failed_runs:
-        return "Nenhuma falha crítica detectada ou chave OPENROUTER_API_KEY ausente para análise de LLM."
+    """Utiliza o modelo Google Gemini (plano Antigravity) para analisar falhas detectadas e sugerir correções autônomas."""
+    google_key = os.environ.get("GOOGLE_API_KEY") or os.environ.get("GEMINI_API_KEY")
+    openrouter_key = os.environ.get("OPENROUTER_API_KEY")
+    
+    if not failed_runs:
+        return "Nenhuma falha detectada nas últimas execuções."
         
-    try:
-        from langchain_openai import ChatOpenAI
-        llm = ChatOpenAI(
-            model="meta-llama/llama-3.3-70b-instruct:free",
-            openai_api_key=api_key,
-            openai_api_base="https://openrouter.ai/api/v1",
-            max_retries=2,
-            temperature=0.1
-        )
-        prompt = (
-            f"Você é um engenheiro de dados sênior e especialista em CI/CD. "
-            f"As seguintes GitHub Actions falharam no pipeline de dados do RAG político:\n"
-            f"{json.dumps(failed_runs, indent=2)}\n\n"
-            f"Forneça uma análise técnica concisa da provável causa raiz e a correção exata em Python/YAML."
-        )
-        response = llm.invoke(prompt)
-        return response.content
-    except Exception as e:
-        logging.error(f"Erro na análise autônoma de LLM: {e}")
-        return f"Falha ao consultar LLM para diagnóstico: {e}"
+    if not google_key and not openrouter_key:
+        return "Nenhuma falha crítica ou chave de API (GOOGLE_API_KEY / GEMINI_API_KEY / OPENROUTER_API_KEY) ausente para diagnóstico via LLM."
+        
+    prompt = (
+        f"Você é um engenheiro de dados sênior e especialista em CI/CD do Antigravity. "
+        f"As seguintes GitHub Actions falharam no pipeline de dados do RAG político:\n"
+        f"{json.dumps(failed_runs, indent=2)}\n\n"
+        f"Forneça uma análise técnica concisa da provável causa raiz e a correção exata em Python/YAML com o prefixo [LLM-COMMIT-AND-HEAL]."
+    )
+
+    # Prioridade 1: Google Gemini (Plano Antigravity)
+    if google_key:
+        try:
+            from langchain_google_genai import ChatGoogleGenerativeAI
+            llm = ChatGoogleGenerativeAI(
+                model="gemini-1.5-pro",
+                google_api_key=google_key,
+                temperature=0.1,
+                max_retries=2
+            )
+            response = llm.invoke(prompt)
+            return f"**[Diagnóstico Gemini (Google Antigravity)]**\n{response.content}"
+        except Exception as e:
+            logging.warning(f"Falha ao invocar Google Gemini API: {e}. Tentando fallback OpenRouter...")
+
+    # Fallback: OpenRouter API
+    if openrouter_key:
+        try:
+            from langchain_openai import ChatOpenAI
+            llm = ChatOpenAI(
+                model="meta-llama/llama-3.3-70b-instruct:free",
+                openai_api_key=openrouter_key,
+                openai_api_base="https://openrouter.ai/api/v1",
+                max_retries=2,
+                temperature=0.1
+            )
+            response = llm.invoke(prompt)
+            return f"**[Diagnóstico OpenRouter Fallback]**\n{response.content}"
+        except Exception as e:
+            logging.error(f"Erro na análise autônoma via OpenRouter: {e}")
+            return f"Falha ao consultar LLM para diagnóstico: {e}"
+
+    return "Falha ao executar diagnóstico por ausência de chaves de API válidas."
 
 def main():
     logging.info("Iniciando auditoria e autocorreção autônoma de dados e workflows...")
