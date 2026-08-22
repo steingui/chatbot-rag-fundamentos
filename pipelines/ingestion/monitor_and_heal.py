@@ -2,11 +2,17 @@ import os
 import re
 import json
 import logging
+import warnings
 import requests
 from pathlib import Path
 from dotenv import load_dotenv
 
 load_dotenv()
+
+# Silencia avisos internos de Automatic Function Calling (AFC) do SDK Google Gemini
+warnings.filterwarnings("ignore", message=".*automatic function calling.*")
+warnings.filterwarnings("ignore", category=UserWarning, module="google.generativeai")
+logging.getLogger("google.generativeai").setLevel(logging.ERROR)
 
 logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
 DOCS_DIR = Path("data/docs")
