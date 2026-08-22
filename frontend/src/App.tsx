@@ -25,6 +25,7 @@ export default function App() {
 
   useEffect(() => {
     document.documentElement.style.setProperty('--chat-font-size', `${fontSize}px`);
+    document.documentElement.style.fontSize = `${fontSize}px`;
   }, [fontSize]);
 
   const handleSubmit = (e: React.FormEvent) => {
