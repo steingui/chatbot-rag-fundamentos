@@ -1,8 +1,11 @@
 import re
 import logging
+import unicodedata
 from fastapi import HTTPException
 
+# SEC-008: Patterns expandidos com variantes em português, Unicode e técnicas avançadas
 PROMPT_INJECTION_PATTERNS = [
+    # Inglês
     r"ignore\s+(all\s+)?(previous|prior)\s+instructions",
     r"forget\s+(all\s+)?(previous|prior)\s+commands",
     r"you\s+are\s+now\s+a",
@@ -11,9 +14,25 @@ PROMPT_INJECTION_PATTERNS = [
     r"disregard\s+(all\s+)?above",
     r"jailbreak",
     r"dan\s+mode",
+    r"do\s+anything\s+now",
+    r"act\s+as\s+if\s+you\s+have\s+no\s+restrictions",
+    r"pretend\s+you\s+(are|can)",
+    r"new\s+instructions?\s*:",
+    r"ignore\s+safety",
+    # Português
+    r"ignore\s+(todas?\s+)?(as\s+)?instru[çc][õo]es\s+anteriores",
+    r"esque[çc]a\s+(tudo|todas?\s+regras?)",
+    r"agora\s+voc[êe]\s+[ée]\s+um",
+    r"finja\s+que\s+(voc[êe]|n[ãa]o\s+tem\s+restri)",
+    r"novas?\s+instru[çc][õo]es?\s*:",
+    r"desconsidere\s+(tudo|as?\s+regras?)",
+    # Code injection
     r"exec\s*\(",
     r"eval\s*\(",
     r"<script[\s>]",
+    r"javascript\s*:",
+    r"on(error|load|click)\s*=",
+    r"\{\{.*\}\}",  # Template injection
 ]
 
 COMPILED_INJECTION_REGEX = re.compile(
@@ -33,8 +52,11 @@ def validate_and_sanitize_query(query: str) -> str:
             detail="A consulta excede o limite máximo permitido de 1000 caracteres."
         )
 
-    if COMPILED_INJECTION_REGEX.search(cleaned_query):
-        logging.warning(f"Tentativa de Prompt Injection detectada e bloqueada: {cleaned_query[:60]}...")
+    # SEC-008: Normalização Unicode (NFKC) para evitar bypass via homoglyphs
+    normalized_query = unicodedata.normalize("NFKC", cleaned_query)
+
+    if COMPILED_INJECTION_REGEX.search(normalized_query):
+        logging.warning(f"SEC-008: Prompt Injection bloqueado (hash: {hash(cleaned_query)})")
         raise HTTPException(
             status_code=400,
             detail="Consulta bloqueada pelas diretrizes de segurança anti-prompt injection."
