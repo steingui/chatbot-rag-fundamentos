@@ -10,6 +10,7 @@ export const SessionSidebar: React.FC = () => {
     addSession,
     closeSession,
     clearActiveSession,
+    clearAllSessions,
     sendMessageStream,
     isLoading
   } = useChatStore();
@@ -83,6 +84,15 @@ export const SessionSidebar: React.FC = () => {
         >
           <Trash2 size={13} />
           <span>Limpar Sessão</span>
+        </button>
+        <button
+          className="sidebar-btn danger-all"
+          onClick={clearAllSessions}
+          disabled={isLoading}
+          title="Limpar todas as sessões e apagar todos os cookies"
+        >
+          <Trash2 size={13} />
+          <span>LIMPAR TODAS AS SESSÕES</span>
         </button>
       </div>
 

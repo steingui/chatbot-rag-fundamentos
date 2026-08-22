@@ -203,6 +203,20 @@ body {
   border-color: var(--red);
 }
 
+.sidebar-btn.danger-all {
+  color: #ff4757;
+  background: rgba(255, 71, 87, 0.12);
+  border: 1px dashed rgba(255, 71, 87, 0.5);
+  font-weight: 700;
+  letter-spacing: 0.03em;
+}
+
+.sidebar-btn.danger-all:hover:not(:disabled) {
+  background: rgba(255, 71, 87, 0.25);
+  border-color: #ff4757;
+  box-shadow: 0 0 8px rgba(255, 71, 87, 0.3);
+}
+
 .sidebar-footer {
   display: flex;
   align-items: center;

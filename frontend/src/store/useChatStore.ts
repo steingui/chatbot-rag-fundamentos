@@ -86,6 +86,7 @@ interface ChatState {
   addSession: () => void;
   closeSession: (idx: number) => void;
   clearActiveSession: () => void;
+  clearAllSessions: () => void;
   setSuggestions: (suggestions: SuggestionItem[]) => void;
   fetchSuggestions: () => Promise<void>;
   sendMessageStream: (queryText: string) => Promise<void>;
@@ -183,6 +184,31 @@ export const useChatStore = create<ChatState>((set, get) => ({
     updated[activeIdx] = freshSession;
     set({ sessions: updated });
     savePersistedSessions(updated);
+  },
+
+  clearAllSessions: () => {
+    // 1. Apaga todos os cookies
+    if (typeof document !== 'undefined' && document.cookie) {
+      document.cookie.split(';').forEach((c) => {
+        document.cookie = c
+          .replace(/^ +/, '')
+          .replace(/=.*/, '=;expires=' + new Date(0).toUTCString() + ';path=/');
+      });
+    }
+    // 2. Limpa localStorage
+    try {
+      localStorage.removeItem(LOCAL_STORAGE_KEY);
+      localStorage.removeItem(SUGGESTIONS_CACHE_KEY);
+      localStorage.clear();
+    } catch (e) {
+      console.warn('Erro ao limpar localStorage:', e);
+    }
+    // 3. Reseta o estado global para uma sessao limpa
+    set({
+      sessions: [makeSession(0)],
+      activeIdx: 0,
+      input: ''
+    });
   },
 
   setSuggestions: (suggestions) => set({ suggestions }),
