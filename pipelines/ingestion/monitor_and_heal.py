@@ -245,6 +245,11 @@ def analyze_failures_with_llm(failed_runs: list) -> str:
             from langchain_google_genai import ChatGoogleGenerativeAI
             from langchain_core.tools import tool
             
+            # SEC-002: Guardrails de segurança para edição autônoma
+            REPO_ROOT = Path(__file__).resolve().parent.parent.parent
+            ALLOWED_EXTENSIONS = {".yml", ".yaml", ".py", ".md", ".txt", ".toml", ".cfg"}
+            MAX_PATCH_SIZE = 5000
+
             @tool
             def apply_file_patch_tool(filepath: str, search_string: str, replace_string: str) -> str:
                 """Substitui um trecho exato de código em um arquivo da codebase para corrigir bugs.
@@ -254,10 +259,21 @@ def analyze_failures_with_llm(failed_runs: list) -> str:
                     replace_string: Novo trecho de código que substituirá o antigo.
                 """
                 try:
-                    path = Path(filepath)
-                    if not path.exists(): return f"Erro: {filepath} não existe no disco."
+                    path = Path(filepath).resolve()
+                    # Guardrail 1: Path Traversal — só permite edições dentro do repositório
+                    if not str(path).startswith(str(REPO_ROOT)):
+                        return f"BLOQUEADO: Path traversal detectado. '{filepath}' está fora do repositório."
+                    # Guardrail 2: Extensões permitidas
+                    if path.suffix not in ALLOWED_EXTENSIONS:
+                        return f"BLOQUEADO: Extensão '{path.suffix}' não permitida para edição autônoma."
+                    # Guardrail 3: Tamanho máximo do patch
+                    if len(replace_string) > MAX_PATCH_SIZE:
+                        return f"BLOQUEADO: Patch excede o limite de {MAX_PATCH_SIZE} caracteres."
+                    if not path.exists():
+                        return f"Erro: {filepath} não existe no disco."
                     content = path.read_text(encoding="utf-8")
-                    if search_string not in content: return f"Erro: 'search_string' não foi encontrada perfeitamente no arquivo."
+                    if search_string not in content:
+                        return f"Erro: 'search_string' não foi encontrada perfeitamente no arquivo."
                     new_content = content.replace(search_string, replace_string)
                     path.write_text(new_content, encoding="utf-8")
                     return f"Sucesso: Arquivo {filepath} curado fisicamente."

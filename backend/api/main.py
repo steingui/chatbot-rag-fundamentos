@@ -1,8 +1,10 @@
 from contextlib import asynccontextmanager
 from fastapi import FastAPI, HTTPException, BackgroundTasks
 from fastapi.middleware.cors import CORSMiddleware
+from starlette.middleware.base import BaseHTTPMiddleware
 from pydantic import BaseModel, Field
 import logging
+import os
 import re
 from typing import Optional
 
@@ -28,13 +30,29 @@ app = FastAPI(title="Chatbot RAG API", version="1.0.0", lifespan=lifespan)
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
+# SEC-001: CORS restrito a domínios conhecidos
+ALLOWED_ORIGINS = os.environ.get("ALLOWED_ORIGINS", "https://chatbot-rag-front-xnm0.onrender.com,http://localhost:5173").split(",")
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=ALLOWED_ORIGINS,
     allow_credentials=False,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=["GET", "POST"],
+    allow_headers=["Content-Type"],
 )
+
+
+# SEC-003: Security Headers
+class SecurityHeadersMiddleware(BaseHTTPMiddleware):
+    async def dispatch(self, request, call_next):
+        response = await call_next(request)
+        response.headers["X-Content-Type-Options"] = "nosniff"
+        response.headers["X-Frame-Options"] = "DENY"
+        response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+        response.headers["Permissions-Policy"] = "camera=(), microphone=(), geolocation=()"
+        return response
+
+app.add_middleware(SecurityHeadersMiddleware)
 
 
 class ChatRequest(BaseModel):
@@ -191,8 +209,8 @@ async def chat(request: Request, body: ChatRequest, background_tasks: Background
     except HTTPException:
         raise
     except Exception as e:
-        logging.error(f"Erro no chat: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        logging.error(f"Erro no chat: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail="Erro interno do servidor. Tente novamente.")
 
 
 import json
@@ -255,5 +273,5 @@ async def chat_stream(request: Request, body: ChatRequest, background_tasks: Bac
     except HTTPException:
         raise
     except Exception as e:
-        logging.error(f"Erro no chat_stream: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        logging.error(f"Erro no chat_stream: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail="Erro interno do servidor. Tente novamente.")
