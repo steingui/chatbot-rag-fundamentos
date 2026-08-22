@@ -131,15 +131,17 @@ def chat(request: ChatRequest):
         rag_chain = get_rag_chain(request.session_id, model_name=request.model)
         response = rag_chain.invoke({"question": request.query})
         
-        seen_files = set()
+        seen_keys = set()
         structured_sources = []
         
         if "source_documents" in response:
             for doc in response["source_documents"]:
                 src = doc.metadata.get("source", "Desconhecido")
-                if src not in seen_files:
-                    seen_files.add(src)
-                    structured_sources.append(parse_source_name(src))
+                source_obj = parse_source_name(src)
+                key = (source_obj.label, source_obj.url)
+                if key not in seen_keys:
+                    seen_keys.add(key)
+                    structured_sources.append(source_obj)
 
         return ChatResponse(answer=response["answer"], sources=structured_sources)
     except Exception as e:

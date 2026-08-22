@@ -341,7 +341,7 @@ export default function App() {
                     {msg.sources && msg.sources.length > 0 && (
                       <div className="sources-row">
                         <span className="sources-label">// fontes:</span>
-                        {msg.sources.map((s, i) =>
+                        {Array.from(new Map(msg.sources.map(s => [`${s.label}-${s.url || ''}`, s])).values()).map((s, i) =>
                           s.url ? (
                             <a key={i} href={s.url} target="_blank" rel="noopener noreferrer" className="source-chip" title={s.raw_file}>
                               <ExternalLink size={10} />{s.label}
