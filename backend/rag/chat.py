@@ -42,11 +42,26 @@ def init_components():
     # Encoder Lexico
     bm25_encoder = BM25Encoder().default()
 
-    _retriever = PineconeHybridSearchRetriever(
+    from langchain_pinecone import PineconeRerank
+    from langchain.retrievers import ContextualCompressionRetriever
+
+    base_retriever = PineconeHybridSearchRetriever(
         embeddings=embeddings,
         sparse_encoder=bm25_encoder,
         index=index,
-        top_k=10
+        top_k=30
+    )
+
+    # Reranker Nativo (Pinecone Inference) para filtrar ruído e mitigar alucinação
+    reranker = PineconeRerank(
+        model="bge-reranker-v2-m3",
+        pinecone_api_key=os.environ.get("PINECONE_API_KEY"),
+        top_n=5
+    )
+
+    _retriever = ContextualCompressionRetriever(
+        base_compressor=reranker,
+        base_retriever=base_retriever
     )
 
     api_key = os.environ.get("OPENROUTER_API_KEY", "")

@@ -18,7 +18,7 @@ Este documento foca exclusivamente nas melhorias pendentes, priorizando a mitiga
 - [ ] **A. Roteamento Semântico (Semantic Router) vs. Merge Fixo:** Em vez de enviar as ferramentas de Web e RAG simultaneamente, um classificador inicial decide se a pergunta requer RAG interno, Web Search ou ambos, evitando poluir o contexto.
 - [ ] **B. Prompting de Síntese Hierárquica:** Instruir a LLM com mais rigor: *"O contexto interno é a FONTE DE VERDADE. A Web só preenche lacunas. Em caso de mistura de contextos distintos, mantenha-os separados"*.
 - [ ] **C. Arquitetura Multi-Step (Drafting):** Separar a formulação de resposta. O agente gera um rascunho com o RAG; e depois só busca na web o que faltou, unificando no final.
-- [ ] **D. Reranking Pós-Recuperação:** Adicionar um modelo de Reranker (ex: `cohere-rerank-3.5`) após o Pinecone, garantindo que a LLM receba apenas o "filé mignon" da informação vetorial, reduzindo ruído.
+- [x] **D. Reranking Pós-Recuperação:** Adicionar um modelo de Reranker (ex: `cohere-rerank-3.5` ou `bge-reranker-v2-m3` nativo do Pinecone) garantindo que a LLM receba apenas o "filé mignon" da informação vetorial, reduzindo ruído.
 
 **Próximo Passo:** Construir um script de Benchmark (`eval_merge.py`) com perguntas complexas para medir o grau de alucinação e avaliar as hipóteses acima.
 
