@@ -92,7 +92,13 @@ def audit_github_workflows() -> list:
         res = requests.get(url, headers=headers, timeout=10)
         if res.status_code == 200:
             runs = res.json().get("workflow_runs", [])
+            seen_ids = set()
             for r in runs:
+                run_id = r.get("id")
+                if run_id in seen_ids:
+                    continue
+                seen_ids.add(run_id)
+
                 wf_name = r.get("name", "Outros Workflows")
                 if wf_name not in grouped_runs:
                     grouped_runs[wf_name] = []
@@ -104,12 +110,42 @@ def audit_github_workflows() -> list:
                         "status": r.get("status"),
                         "conclusion": r.get("conclusion"),
                         "created_at": r.get("created_at"),
-                        "run_id": r.get("id")
+                        "run_id": run_id
                     })
     except Exception as e:
         logging.error(f"Erro ao consultar execuções das GitHub Actions: {e}")
         
     return grouped_runs
+
+def _clean_llm_response(content) -> str:
+    """Extrai apenas o texto legível, removendo metadados, tokens de auth, assinaturas e dicionários brutos."""
+    if isinstance(content, list):
+        text_parts = []
+        for item in content:
+            if isinstance(item, dict) and item.get("type") == "text":
+                text_parts.append(item.get("text", ""))
+            elif isinstance(item, str):
+                text_parts.append(item)
+        content = "\n".join(text_parts)
+    elif not isinstance(content, str):
+        content = str(content)
+
+    # 1. Trata erros HTTP de autenticação ou chaves ausentes
+    if "401" in content or "Missing Authentication" in content or "Unauthorized" in content:
+        return "Diagnóstico suspenso: Nenhuma chave de API de LLM válida configurada no ambiente."
+
+    # 2. Remove assinaturas e metadados brutos (como 'extras', 'signature', JWTs, hashes)
+    content = re.sub(r"'extras':\s*\{.*?\}", "", content, flags=re.DOTALL)
+    content = re.sub(r"\'signature\':\s*\'[^\']+\'", "", content)
+    content = re.sub(r"eyJ[A-Za-z0-9-_=]+\.[A-Za-z0-9-_=]+\.?[A-Za-z0-9-_.+/=]*", "[TOKEN_OMITTED]", content)
+    
+    # 3. Desescapa quebras de linha e aspas brutas
+    content = content.replace("\\n", "\n").replace("\\'", "'").replace('\\"', '"')
+
+    # 4. Remove blocos de dicionários brutos contendo 'type' ou 'extras'
+    content = re.sub(r"\[\s*\{'type':.*?'extras':.*?\}\s*\]", "", content, flags=re.DOTALL)
+    
+    return content.strip()
 
 def get_codebase_context() -> str:
     """Carrega o código fonte dos scripts de ingestão e workflows para fornecer contexto completo à LLM."""
@@ -191,7 +227,10 @@ def analyze_failures_with_llm(failed_runs: list) -> str:
         f"{codebase_context}\n\n"
         f"### FALHAS DETECTADAS NAS ÚLTIMAS EXECUÇÕES DO GITHUB ACTIONS:\n"
         f"{json.dumps(enriched_runs, indent=2)}\n\n"
-        f"Analise o erro e os scripts acima. Proponha a causa raiz precisa e a correção exata em Python/YAML com o prefixo [LLM-COMMIT-AND-HEAL]."
+        f"INSTRUÇÕES DE RESPOSTA:\n"
+        f"1. Responda apenas com o diagnóstico essencial (Causa Raiz) e o diff/snippet de correção em Python/YAML.\n"
+        f"2. NUNCA inclua tokens, assinaturas criptográficas, hashes ou dumps de dicionários Python.\n"
+        f"3. Seja conciso e vá direto ao ponto."
     )
 
     # Prioridade 1: Google Gemini (Plano Antigravity)
@@ -205,7 +244,8 @@ def analyze_failures_with_llm(failed_runs: list) -> str:
                 max_retries=2
             )
             response = llm.invoke(prompt)
-            return f"**[Diagnóstico Gemini 3.6 Flash (Google Antigravity com Contexto de Codebase)]**\n{response.content}"
+            clean_text = _clean_llm_response(response.content)
+            return f"**[Diagnóstico Gemini 3.6 Flash (Google Antigravity com Contexto de Codebase)]**\n{clean_text}"
         except Exception as e:
             logging.warning(f"Falha ao invocar Google Gemini API: {e}. Tentando fallback OpenRouter...")
 
@@ -221,12 +261,13 @@ def analyze_failures_with_llm(failed_runs: list) -> str:
                 temperature=0.1
             )
             response = llm.invoke(prompt)
-            return f"**[Diagnóstico OpenRouter Fallback]**\n{response.content}"
+            clean_text = _clean_llm_response(response.content)
+            return f"**[Diagnóstico OpenRouter Fallback]**\n{clean_text}"
         except Exception as e:
             logging.error(f"Erro na análise autônoma via OpenRouter: {e}")
-            return f"Falha ao consultar LLM para diagnóstico: {e}"
+            return _clean_llm_response(str(e))
 
-    return "Falha ao executar diagnóstico por ausência de chaves de API válidas."
+    return "Diagnóstico suspenso: Nenhuma chave de API de LLM válida configurada no ambiente."
 
 def check_daily_commit_count(max_daily_commits: int = 10) -> bool:
     """Verifica se o número de commits [LLM-COMMIT-AND-HEAL] realizados no dia atual é menor que 10."""
