@@ -95,12 +95,27 @@ def ingest_documents(docs: list) -> None:
     # Gerar IDs determinísticos para garantir idempotência
     ids = [generate_deterministic_id(doc, i) for i, doc in enumerate(splits)]
 
-    vectorstore = PineconeVectorStore(
-        index_name=INDEX_NAME,
-        embedding=embeddings
+    from pinecone import Pinecone
+    from langchain_community.retrievers import PineconeHybridSearchRetriever
+    from pinecone_text.sparse import BM25Encoder
+
+    pc = Pinecone(api_key=os.environ.get("PINECONE_API_KEY"))
+    index = pc.Index(INDEX_NAME)
+    
+    bm25_encoder = BM25Encoder().default()
+
+    retriever = PineconeHybridSearchRetriever(
+        embeddings=embeddings,
+        sparse_encoder=bm25_encoder,
+        index=index
     )
-    vectorstore.add_documents(documents=splits, ids=ids)
-    logging.info(f"Ingestão e atualização de consistência concluídas! {len(splits)} chunks processados.")
+
+    logging.info(f"Fazendo upsert de {len(splits)} chunks híbridos (Densos + Esparsos/BM25)...")
+    texts = [doc.page_content for doc in splits]
+    metadatas = [doc.metadata for doc in splits]
+    retriever.add_texts(texts=texts, metadatas=metadatas, ids=ids)
+    
+    logging.info("Ingestão Híbrida concluída com sucesso.")
 
 
 def ingest_from_directory(docs_path: Path) -> None:

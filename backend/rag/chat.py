@@ -27,12 +27,27 @@ def init_components():
 
     logging.info(f"Conectando ao Pinecone (Index: {INDEX_NAME}) e ao LLM com resiliência a 429...")
     
+    from pinecone import Pinecone
+    from langchain_community.retrievers import PineconeHybridSearchRetriever
+    from pinecone_text.sparse import BM25Encoder
+
+    pc = Pinecone(api_key=os.environ.get("PINECONE_API_KEY"))
+    index = pc.Index(INDEX_NAME)
+
     embeddings = HuggingFaceEndpointEmbeddings(
         model=EMBEDDING_MODEL,
         huggingfacehub_api_token=os.environ.get("HF_TOKEN")
     )
-    vectorstore = PineconeVectorStore(index_name=INDEX_NAME, embedding=embeddings)
-    _retriever = vectorstore.as_retriever(search_kwargs={"k": 10})
+    
+    # Encoder Lexico
+    bm25_encoder = BM25Encoder().default()
+
+    _retriever = PineconeHybridSearchRetriever(
+        embeddings=embeddings,
+        sparse_encoder=bm25_encoder,
+        index=index,
+        top_k=10
+    )
 
     api_key = os.environ.get("OPENROUTER_API_KEY", "")
 

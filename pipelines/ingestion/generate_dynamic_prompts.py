@@ -11,22 +11,34 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(
 def get_dynamic_prompts() -> List[str]:
     """Recupera contexto do Pinecone e usa um LLM para gerar 3 prompts/iscas dinâmicas."""
     try:
-        from langchain_pinecone import PineconeVectorStore
+        from pinecone import Pinecone
+        from langchain_community.retrievers import PineconeHybridSearchRetriever
+        from pinecone_text.sparse import BM25Encoder
         from langchain_huggingface import HuggingFaceEndpointEmbeddings
         from langchain_openai import ChatOpenAI
         from langchain_core.prompts import PromptTemplate
         
-        # 1. Configurar Embeddings e VectorStore
+        # 1. Configurar Embeddings e Retriever Híbrido
         index_name = os.environ.get("PINECONE_INDEX_NAME", "rag-fundamentos")
         embeddings = HuggingFaceEndpointEmbeddings(
             model="sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2",
             huggingfacehub_api_token=os.environ.get("HF_TOKEN")
         )
-        vectorstore = PineconeVectorStore(index_name=index_name, embedding=embeddings)
+        
+        pc = Pinecone(api_key=os.environ.get("PINECONE_API_KEY"))
+        index = pc.Index(index_name)
+        bm25_encoder = BM25Encoder().default()
+        
+        retriever = PineconeHybridSearchRetriever(
+            embeddings=embeddings,
+            sparse_encoder=bm25_encoder,
+            index=index,
+            top_k=10
+        )
         
         # 2. Buscar contexto genérico de "assuntos recentes e polêmicos"
         query = "projeto de lei polêmico votação orçamento emendas escândalo cota parlamentar"
-        docs = vectorstore.similarity_search(query, k=10)
+        docs = retriever.invoke(query)
         
         if not docs:
             logging.warning("Nenhum documento retornado do Pinecone.")
