@@ -157,9 +157,49 @@ def chat(request: ChatRequest, background_tasks: BackgroundTasks):
                 key = (source_obj.label, source_obj.url)
                 if key not in seen_keys:
                     seen_keys.add(key)
-                    structured_sources.append(source_obj)
-
         return ChatResponse(answer=response["answer"], sources=structured_sources)
     except Exception as e:
         logging.error(f"Erro no chat: {e}")
         raise HTTPException(status_code=500, detail=str(e))
+
+
+import json
+from fastapi.responses import StreamingResponse
+
+@app.post("/chat/stream")
+def chat_stream(request: ChatRequest, background_tasks: BackgroundTasks):
+    try:
+        ensure_initialized()
+        background_tasks.add_task(record_query, request.query)
+        rag_chain = get_rag_chain(request.session_id, model_name=request.model)
+
+        def event_generator():
+            try:
+                for item in rag_chain.stream({"question": request.query}):
+                    if item.get("type") == "sources":
+                        seen_keys = set()
+                        structured_sources = []
+                        for doc in item.get("source_documents", []):
+                            src = doc.metadata.get("source", "Desconhecido")
+                            source_obj = parse_source_name(src)
+                            key = (source_obj.label, source_obj.url)
+                            if key not in seen_keys:
+                                seen_keys.add(key)
+                                structured_sources.append(source_obj.model_dump())
+                        payload = {"type": "sources", "sources": structured_sources}
+                        yield f"data: {json.dumps(payload, ensure_ascii=False)}\n\n"
+                    elif item.get("type") == "token":
+                        payload = {"type": "token", "token": item.get("token")}
+                        yield f"data: {json.dumps(payload, ensure_ascii=False)}\n\n"
+                yield "data: [DONE]\n\n"
+            except Exception as stream_err:
+                logging.error(f"Erro no event_generator: {stream_err}")
+                err_payload = {"type": "token", "token": f"\n[Erro no processamento: {stream_err}]"}
+                yield f"data: {json.dumps(err_payload, ensure_ascii=False)}\n\n"
+                yield "data: [DONE]\n\n"
+
+        return StreamingResponse(event_generator(), media_type="text/event-stream")
+    except Exception as e:
+        logging.error(f"Erro no chat_stream: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+

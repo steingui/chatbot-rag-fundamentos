@@ -171,6 +171,45 @@ Resposta:"""
             "source_documents": sources
         }
 
+    def stream(self, inputs: dict):
+        question = inputs.get("question", "")
+        pinecone_docs = _retriever.get_relevant_documents(question) if _retriever else []
+        pinecone_context = "\n\n".join([d.page_content for d in pinecone_docs]) if pinecone_docs else "Nenhum documento interno relevante encontrado."
+        sources = list(pinecone_docs)
+
+        web_context, web_sources = _buscar_noticias_web(question, self.session_id)
+        sources.extend(web_sources)
+
+        prompt_text = f"""Você é um assistente especialista em política brasileira e análise legislativa.
+Sua tarefa é responder à pergunta do usuário SINTETIZANDO E MESCLANDO as informações das duas fontes abaixo (Base Interna e Notícias da Web).
+
+REGRA CRÍTICA:
+- Se houver dados em ambas as fontes, funda-os em uma resposta única, coesa e estruturada.
+- Se perguntado sobre nomes, listas ou valores específicos e não houver comprovação exata nas fontes, NUNCA invente dados. Diga explicitamente o que foi encontrado.
+
+--- DADOS DA BASE INTERNA (Câmara/Senado/TSE/CGU/Checagens): ---
+{pinecone_context}
+
+--- DADOS RECENTES DA WEB (DuckDuckGo BR): ---
+{web_context}
+
+--- PERGUNTA DO USUÁRIO: ---
+{question}
+
+Resposta:"""
+
+        yield {"type": "sources", "source_documents": sources}
+
+        try:
+            for chunk in self.llm.stream(prompt_text):
+                text = chunk.content if hasattr(chunk, 'content') else str(chunk)
+                if text:
+                    yield {"type": "token", "token": text}
+        except Exception as e:
+            logging.error(f"Erro no streaming LLM: {e}")
+            yield {"type": "token", "token": "Não foi possível gerar a resposta completa devido a instabilidade temporária."}
+
+
 
 def get_rag_chain(session_id: str = "default", model_name: str = None):
     if _llm is None:
