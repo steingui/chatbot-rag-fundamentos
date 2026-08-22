@@ -49,7 +49,13 @@ def init_analytics_db():
 
 
 def get_top_suggestions(limit: int = 8) -> List[Dict]:
-    """Retorna as N consultas mais realizadas organizadas por contagem decrescente."""
+    """Retorna as N consultas mais realizadas organizadas por contagem decrescente.
+    
+    SEC-007: Todas as queries DEVEM usar parameterized statements (?).
+    NUNCA interpolar variáveis diretamente em strings SQL.
+    """
+    # Validação defensiva do parâmetro
+    limit = max(1, min(int(limit), 50))
     try:
         init_analytics_db()
         with get_db_connection() as conn:
