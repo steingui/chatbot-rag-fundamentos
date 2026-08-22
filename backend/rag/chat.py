@@ -66,17 +66,22 @@ def init_components():
 
 
 def _buscar_noticias_web(query: str, session_id: str = "default") -> tuple[str, list[Document]]:
-    """Recupera notícias da web via DuckDuckGo com tratamento de erros."""
+    """Recupera notícias e dados da web diretamente via DDGS.text (sem endpoints quebrados da wikipedia)."""
     sources = []
+    formatted_results = []
     try:
-        from langchain_community.tools import DuckDuckGoSearchResults
-        search_tool = DuckDuckGoSearchResults(num_results=4)
-        results_str = search_tool.run(query)
-        
-        urls = re.findall(r'link:\s*(https?://[^\s,]+)', results_str)
-        for url in urls:
-            sources.append(Document(page_content=url, metadata={"source": url}))
-            
+        from ddgs import DDGS
+        with DDGS() as ddgs:
+            results = list(ddgs.text(query, max_results=4))
+            for item in results:
+                title = item.get("title", "")
+                href = item.get("href", "")
+                snippet = item.get("body", "")
+                if href:
+                    sources.append(Document(page_content=f"{title}: {snippet}", metadata={"source": href}))
+                    formatted_results.append(f"[Título: {title} | Fonte Web: {href}]\n{snippet}")
+
+        results_str = "\n\n".join(formatted_results) if formatted_results else "Nenhuma notícia relevante encontrada na web."
         return results_str, sources
     except Exception as e:
         logging.warning(f"Aviso no DuckDuckGo (Web Search): {e}")
@@ -107,7 +112,7 @@ class MultiSourceAgentChain:
             logging.error(f"Erro ao consultar Pinecone: {e}")
             pinecone_context = "Falha ao consultar a base interna."
 
-        # 2. Recupera fatos recentes da Web (DuckDuckGo)
+        # 2. Recupera fatos recentes da Web (DuckDuckGo direto)
         web_context, web_sources = _buscar_noticias_web(question, self.session_id)
         sources.extend(web_sources)
 
