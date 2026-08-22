@@ -7,14 +7,14 @@ from typing import List, Dict
 DB_PATH = os.environ.get("ANALYTICS_DB_PATH", os.path.join(os.path.dirname(__file__), "analytics.db"))
 
 INITIAL_SEEDS = [
-    ("Resuma a PEC 45/2019 e a reforma tributária", 32, "legislativo"),
-    ("Como os deputados votaram sobre o arcabouço fiscal?", 28, "legislativo"),
-    ("Quais bens foram declarados por candidatos à presidência no TSE?", 25, "tse"),
-    ("O que os planos de governo no TSE propõem para saúde e economia?", 21, "tse"),
-    ("Quais repasses de emendas parlamentares constam no Portal da Transparência?", 19, "transparencia"),
-    ("Quais senadores mais utilizaram a cota parlamentar (CEAPS)?", 16, "senado"),
-    ("O que a agência Lupa checou sobre imposto de renda e declarações políticas?", 14, "fact-checking"),
-    ("Quais as propostas dos candidatos para segurança pública e combate à corrupção?", 12, "tse"),
+    ("Quais senadores mais utilizaram a cota parlamentar (CEAPS)?", 32, "senado"),
+    ("Qual o resultado da votação 2580259-24 na Câmara dos Deputados?", 28, "camara"),
+    ("Quais os gastos da senadora Damares Alves na cota CEAPS?", 25, "senado"),
+    ("O que diz a checagem sobre o golpe da lista de CPFs com indenização de R$ 5 mil?", 21, "fact-checking"),
+    ("Quais os detalhes da execução orçamentária da Emenda PIX nº 202581000001?", 19, "transparencia"),
+    ("Como votaram os senadores na votação do PLP 204 no Senado?", 16, "senado"),
+    ("Quais senadores tiveram reembolso de despesas de consumo no Senado em 2025?", 14, "senado"),
+    ("Como o deputado Carlos Zarattini votou na votação 2580259-24?", 12, "camara"),
 ]
 
 

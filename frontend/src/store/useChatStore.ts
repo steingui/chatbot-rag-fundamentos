@@ -131,14 +131,14 @@ export const useChatStore = create<ChatState>((set, get) => ({
   selectedModel: FREE_MODELS[0].id,
   isLoading: false,
   suggestions: [
-    { prompt: 'Resuma a PEC 45/2019 e a reforma tributária', count: 32 },
-    { prompt: 'Como os deputados votaram sobre o arcabouço fiscal?', count: 28 },
-    { prompt: 'Quais bens foram declarados por candidatos à presidência no TSE?', count: 25 },
-    { prompt: 'O que os planos de governo no TSE propõem para saúde e economia?', count: 21 },
-    { prompt: 'Quais repasses de emendas parlamentares constam no Portal da Transparência?', count: 19 },
-    { prompt: 'Quais senadores mais utilizaram a cota parlamentar (CEAPS)?', count: 16 },
-    { prompt: 'O que a agência Lupa checou sobre imposto de renda e declarações políticas?', count: 14 },
-    { prompt: 'Quais as propostas dos candidatos para segurança pública e combate à corrupção?', count: 12 }
+    { prompt: 'Quais senadores mais utilizaram a cota parlamentar (CEAPS)?', count: 32 },
+    { prompt: 'Qual o resultado da votação 2580259-24 na Câmara dos Deputados?', count: 28 },
+    { prompt: 'Quais os gastos da senadora Damares Alves na cota CEAPS?', count: 25 },
+    { prompt: 'O que diz a checagem sobre o golpe da lista de CPFs com indenização de R$ 5 mil?', count: 21 },
+    { prompt: 'Quais os detalhes da execução orçamentária da Emenda PIX nº 202581000001?', count: 19 },
+    { prompt: 'Como votaram os senadores na votação do PLP 204 no Senado?', count: 16 },
+    { prompt: 'Quais senadores tiveram reembolso de despesas de consumo no Senado em 2025?', count: 14 },
+    { prompt: 'Como o deputado Carlos Zarattini votou na votação 2580259-24?', count: 12 }
   ],
 
   setInput: (input) => set({ input }),
