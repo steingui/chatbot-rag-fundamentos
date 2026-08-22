@@ -27,7 +27,7 @@ jobs:
       - name: Install Dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install requests pinecone-client sentence-transformers langchain-pinecone langchain-huggingface langchain-google-genai google-generativeai python-dotenv
+          pip install requests pinecone-client sentence-transformers langchain-community langchain-pinecone langchain-huggingface langchain-google-genai google-generativeai python-dotenv
 
       - name: Run Monitor & Heal Audit
         env:
