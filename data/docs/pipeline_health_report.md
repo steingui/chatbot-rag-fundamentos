@@ -10,20 +10,22 @@
 
 ## Últimas 5 Execuções por Pipeline de Ingestão (GitHub Actions)
 ### Monitoramento Autônomo e Auto-Cura de Ingestões
-  - Execução ID `32595140657` (2026-08-22T19:55:17Z): `in_progress`
+  - Execução ID `32596001974` (2026-08-22T20:12:27Z): `in_progress`
+  - Execução ID `32595939298` (2026-08-22T20:11:11Z): `success`
+  - Execução ID `32595140657` (2026-08-22T19:55:17Z): `success`
   - Execução ID `32594871941` (2026-08-22T19:49:53Z): `failure`
   - Execução ID `32594424897` (2026-08-22T19:40:46Z): `failure`
-  - Execução ID `32593772462` (2026-08-22T19:27:43Z): `success`
-  - Execução ID `32590200068` (2026-08-22T18:15:25Z): `failure`
 
 ### Ingestão Diária - Câmara dos Deputados
+  - Execução ID `32595951013` (2026-08-22T20:11:25Z): `success`
   - Execução ID `32590150369` (2026-08-22T18:14:25Z): `success`
   - Execução ID `32583973239` (2026-08-22T16:11:42Z): `success`
   - Execução ID `32577980083` (2026-08-22T14:11:42Z): `success`
   - Execução ID `32572616606` (2026-08-22T12:18:05Z): `success`
-  - Execução ID `32567018717` (2026-08-22T10:12:47Z): `success`
 
 ### .github/workflows/monitor_and_heal_pipelines.yml
+  - Execução ID `32595632855` (2026-08-22T20:05:05Z): `failure`
+  - Execução ID `32595261972` (2026-08-22T19:57:44Z): `failure`
   - Execução ID `32586218209` (2026-08-22T16:56:20Z): `failure`
 
 ### Ingestão Semanal - TSE (Bens e Financiamentos)

@@ -28,6 +28,7 @@ jobs:
       actions: read
       issues: write
       pull-requests: write
+      workflows: write
 
     steps:
       - name: Checkout Repository
@@ -70,7 +71,7 @@ jobs:
         uses: peter-evans/create-pull-request@v6
         with:
           token: ${{ secrets.GH_TOKEN || secrets.GITHUB_TOKEN }}
-          commit-message: "[LLM-AUTOCURE] fix(ingestion): auto-heal data quality & pipeline health report"
+          commit-message: "[LLM-COMMIT-AND-HEAL] fix(ingestion): auto-heal data quality & pipeline health report"
           branch: auto-heal/pipeline-fix
           title: "[LLM-AUTOCURE] Diagnóstico e Correção Autônoma de Ingestão"
           body-path: 'data/docs/pipeline_health_report.md'
