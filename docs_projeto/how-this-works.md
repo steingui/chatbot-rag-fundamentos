@@ -40,3 +40,33 @@ Objetivo: Atender requisições dos usuários em tempo real com fontes auditáve
 2. **Recuperação Híbrida**: Pinecone busca os vetores mais similares (k=15). Se necessário, realiza busca complementar na web.
 3. **Geração (LLM)**: OpenRouter invoca modelos instruídos de alta precisão (ex: Llama 3.3 / Gemma 4), retornando a resposta sintetizada acompanhada dos badges de fontes.
 4. **Analytics**: SQLite rastreia e canoniza as perguntas mais populares em um grid de até 8 sugestões.
+
+---
+
+## Fluxo Geral da Arquitetura
+
+```mermaid
+graph TD
+    subgraph Ingestao["1. Coleta e Ingestão (GitHub Actions)"]
+        Scrapers["Scrapers Python<br>(Câmara, Senado, TSE, OKBR, RSS)"] --> Docs["Arquivos Markdown<br>(data/docs/*.md)"]
+        Docs --> Ingestor["Pinecone Ingestor<br>(HuggingFace Embeddings)"]
+        Ingestor --> Pinecone[("Pinecone Vector DB")]
+    end
+
+    subgraph AutoCura["2. Auditoria e Auto-Cura Autônoma (CI/CD)"]
+        Monitor["Monitor & Heal Script<br>(monitor_and_heal.py)"] --> API_GH["GitHub REST API<br>(Últimas 5 execuções / jobs)"]
+        Monitor --> Gemini["Google Gemini 3.6 Flash<br>(Análise de Erros + Codebase)"]
+        Gemini -->|Auto-Commit| GitBot["[LLM-COMMIT-AND-HEAL]<br>(Max 10 commits/dia)"]
+        Monitor --> Report["Health Report<br>(pipeline_health_report.md)"]
+        Report --> Ingestor
+    end
+
+    subgraph Producao["3. Aplicação em Produção (Render)"]
+        User(("Usuário")) -->|Prompt / Chat| Front["Frontend React + Vite<br>(SSE Streaming)"]
+        Front -->|API REST| Back["FastAPI Backend"]
+        Back -->|1. Busca Contexto k=15| Pinecone
+        Back -->|2. Prompt Augmentation| OpenRouter["OpenRouter LLM<br>(Llama 3.3 / Gemma 4)"]
+        OpenRouter -->|3. Resposta + Citação| Back
+        Back -->|4. Stream SSE| Front
+    end
+```
