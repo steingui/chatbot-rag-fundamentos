@@ -30,6 +30,7 @@ jobs:
           pip install requests pinecone-client sentence-transformers langchain-community langchain-pinecone langchain-huggingface langchain-google-genai google-generativeai python-dotenv
 
       - name: Run Monitor & Heal Audit
+        id: audit
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           PINECONE_API_KEY: ${{ secrets.PINECONE_API_KEY }}
@@ -47,6 +48,7 @@ jobs:
         run: python pipelines/ingestion/pinecone_ingestor.py
 
       - name: Auto-Commit Data Quality & Health Fixes
+        if: steps.audit.outputs.should_commit == 'true'
         uses: stefanzweifel/git-auto-commit-action@v5
         with:
           commit_message: "[LLM-COMMIT-AND-HEAL] fix(ingestion): auto-heal data quality & pipeline health report [skip ci]"

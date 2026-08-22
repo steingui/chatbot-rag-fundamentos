@@ -163,6 +163,39 @@ def analyze_failures_with_llm(failed_runs: list) -> str:
 
     return "Falha ao executar diagnóstico por ausência de chaves de API válidas."
 
+def check_daily_commit_count(max_daily_commits: int = 10) -> bool:
+    """Verifica se o número de commits [LLM-COMMIT-AND-HEAL] realizados no dia atual é menor que 10."""
+    try:
+        import subprocess
+        cmd = 'git log --since="today 00:00:00" --grep="\\[LLM-COMMIT-AND-HEAL\\]" --oneline'
+        res = subprocess.check_output(cmd, shell=True, text=True).strip()
+        count = len([line for line in res.split('\n') if line]) if res else 0
+        logging.info(f"Commits autônomos [LLM-COMMIT-AND-HEAL] hoje: {count}/{max_daily_commits}")
+        return count < max_daily_commits
+    except Exception as e:
+        logging.error(f"Erro ao verificar limite de commits: {e}")
+        return True
+
+def should_trigger_commit(doc_stats: dict, pinecone_stats: dict, failed_runs: list) -> bool:
+    """Determina se as alterações possuem alta importância e se o limite diário de 10 commits não foi atingido."""
+    is_high_importance = (
+        doc_stats.get("fixed_files", 0) > 0 or
+        doc_stats.get("purged_files", 0) > 0 or
+        pinecone_stats.get("status") != "OK" or
+        len(failed_runs) > 0
+    )
+    
+    if not is_high_importance:
+        logging.info("Ignorando commit: Nenhuma alteração crítica ou falha de alta importância foi detectada.")
+        return False
+        
+    under_limit = check_daily_commit_count(max_daily_commits=10)
+    if not under_limit:
+        logging.warning("Ignorando commit: Limite de 10 commits autônomos por dia foi atingido.")
+        return False
+        
+    return True
+
 def main():
     logging.info("Iniciando auditoria e autocorreção autônoma de dados e workflows...")
     
@@ -203,6 +236,13 @@ def main():
     
     REPORT_PATH.write_text(report_content, encoding="utf-8")
     logging.info("Relatório autônomo gerado em data/docs/pipeline_health_report.md")
+    
+    # Avalia portão de commit por alta importância e limite diário (max 10 commits)
+    can_commit = should_trigger_commit(doc_stats, pinecone_stats, all_failed_runs)
+    github_output = os.environ.get("GITHUB_OUTPUT")
+    if github_output:
+        with open(github_output, "a", encoding="utf-8") as f:
+            f.write(f"should_commit={'true' if can_commit else 'false'}\n")
 
 if __name__ == "__main__":
     main()
