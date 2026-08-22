@@ -43,7 +43,7 @@ export function IntroModal() {
               <Database size={16} /> Como funciona?
             </h3>
             <p>
-              Através de rotinas de ingestão (pipelines), nossos servidores buscam diariamente os dados do Portal da Transparência e do TSE, convertendo-os em coordenadas matemáticas (embeddings) guardadas em um Banco de Dados Vetorial.
+              Através de rotinas de ingestão (pipelines), nossos servidores buscam diariamente os dados do Portal da Transparência (CGU), do Tribunal Superior Eleitoral (TSE), da Câmara dos Deputados e do Senado Federal, convertendo-os em coordenadas matemáticas (embeddings) guardadas em um Banco de Dados Vetorial.
             </p>
             <p>
               No momento da sua pergunta, entra em cena a nossa arquitetura de <strong>Agente (ReAct)</strong>. Ele atua como um maestro: primeiro ele vasculha matematicamente o banco de dados em busca dos documentos oficiais que respondam à sua dúvida. Se julgar necessário, o Agente tem autonomia para executar pesquisas extras na internet em tempo real. Em seguida, ele <strong>mescla o contexto interno do banco com os dados ao vivo da web</strong>, injetando esse super-pacote de informações no cérebro da Inteligência Artificial, obrigando-a a criar um resumo com base exclusiva nesses fatos.
