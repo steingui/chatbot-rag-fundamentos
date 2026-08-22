@@ -6,8 +6,16 @@ import logging
 import re
 from typing import Optional
 
+from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi.util import get_remote_address
+from slowapi.errors import RateLimitExceeded
+from fastapi import Request
+
 from backend.rag.chat import init_components, get_rag_chain
 from backend.api.analytics import get_top_suggestions, record_query
+from backend.api.guardrails import validate_and_sanitize_query
+
+limiter = Limiter(key_func=get_remote_address)
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -16,6 +24,8 @@ async def lifespan(app: FastAPI):
     yield
 
 app = FastAPI(title="Chatbot RAG API", version="1.0.0", lifespan=lifespan)
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
 app.add_middleware(
     CORSMiddleware,
@@ -54,7 +64,8 @@ class SuggestionsResponse(BaseModel):
 
 
 @app.get("/suggestions", response_model=SuggestionsResponse)
-def suggestions():
+@limiter.limit("60/minute")
+def suggestions(request: Request):
     return SuggestionsResponse(suggestions=get_top_suggestions(limit=4))
 
 
@@ -140,12 +151,14 @@ def parse_source_name(raw_source: str) -> SourceObject:
 
 
 @app.post("/chat", response_model=ChatResponse)
-def chat(request: ChatRequest, background_tasks: BackgroundTasks):
+@limiter.limit("30/minute")
+def chat(request: Request, body: ChatRequest, background_tasks: BackgroundTasks):
     try:
+        query = validate_and_sanitize_query(body.query)
         ensure_initialized()
-        background_tasks.add_task(record_query, request.query)
-        rag_chain = get_rag_chain(request.session_id, model_name=request.model)
-        response = rag_chain.invoke({"question": request.query})
+        background_tasks.add_task(record_query, query)
+        rag_chain = get_rag_chain(body.session_id, model_name=body.model)
+        response = rag_chain.invoke({"question": query})
         
         seen_keys = set()
         structured_sources = []
@@ -157,7 +170,10 @@ def chat(request: ChatRequest, background_tasks: BackgroundTasks):
                 key = (source_obj.label, source_obj.url)
                 if key not in seen_keys:
                     seen_keys.add(key)
+                    structured_sources.append(source_obj)
         return ChatResponse(answer=response["answer"], sources=structured_sources)
+    except HTTPException:
+        raise
     except Exception as e:
         logging.error(f"Erro no chat: {e}")
         raise HTTPException(status_code=500, detail=str(e))
@@ -167,15 +183,17 @@ import json
 from fastapi.responses import StreamingResponse
 
 @app.post("/chat/stream")
-def chat_stream(request: ChatRequest, background_tasks: BackgroundTasks):
+@limiter.limit("30/minute")
+def chat_stream(request: Request, body: ChatRequest, background_tasks: BackgroundTasks):
     try:
+        query = validate_and_sanitize_query(body.query)
         ensure_initialized()
-        background_tasks.add_task(record_query, request.query)
-        rag_chain = get_rag_chain(request.session_id, model_name=request.model)
+        background_tasks.add_task(record_query, query)
+        rag_chain = get_rag_chain(body.session_id, model_name=body.model)
 
         def event_generator():
             try:
-                for item in rag_chain.stream({"question": request.query}):
+                for item in rag_chain.stream({"question": query}):
                     if item.get("type") == "sources":
                         seen_keys = set()
                         structured_sources = []
@@ -199,6 +217,8 @@ def chat_stream(request: ChatRequest, background_tasks: BackgroundTasks):
                 yield "data: [DONE]\n\n"
 
         return StreamingResponse(event_generator(), media_type="text/event-stream")
+    except HTTPException:
+        raise
     except Exception as e:
         logging.error(f"Erro no chat_stream: {e}")
         raise HTTPException(status_code=500, detail=str(e))

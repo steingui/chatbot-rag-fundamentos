@@ -8,9 +8,9 @@ Este documento estabelece o plano estratégico de evolução da infraestrutura d
 
 | Item | Descrição & Ação Técnica | Prioridade | Status |
 | :--- | :--- | :---: | :---: |
-| **Rate Limiting por IP/Sessão** | Implementar `slowapi` (Redis-backed) nos endpoints `/chat`, `/chat/stream` e `/suggestions` para prevenir ataques de negação de serviço (DoS) e estouro de cota nas APIs parceiras. | `Alta` | ⏳ Pendente |
-| **Proteção Anti-Prompt Injection** | Adicionar camada de guarda (*Guardrails* / Pydantic Validator) para sanitizar as perguntas dos usuários antes do envio para a LLM, bloqueando instruções maliciosas de alteração de comportamento. | `Alta` | ⏳ Pendente |
-| **Gestão de Segredos & CI/CD** | Remover referências diretas de chaves no repositório (ex: `TRANSPARENCIA_API_KEY` nos workflows) e configurar `Infisical` ou `GitHub Secrets` com validação de runtime. | `Alta` | ⏳ Pendente |
+| **Rate Limiting por IP/Sessão** | Implementar `slowapi` (Redis-backed) nos endpoints `/chat`, `/chat/stream` e `/suggestions` para prevenir ataques de negação de serviço (DoS) e estouro de cota nas APIs parceiras. | `Alta` | ✅ Concluído |
+| **Proteção Anti-Prompt Injection** | Adicionar camada de guarda (*Guardrails* / Pydantic Validator) para sanitizar as perguntas dos usuários antes do envio para a LLM, bloqueando instruções maliciosas de alteração de comportamento. | `Alta` | ✅ Concluído |
+| **Gestão de Segredos & CI/CD** | Remover referências diretas de chaves no repositório (ex: `TRANSPARENCIA_API_KEY` nos workflows) e configurar `Infisical` ou `GitHub Secrets` com validação de runtime. | `Alta` | ✅ Concluído |
 | **Autenticação & JWT** | Introduzir suporte a autenticação por API Key ou token JWT para proteger rotas administrativas e métricas de analytics. | `Média` | ⏳ Pendente |
 
 ---
