@@ -362,6 +362,69 @@ body {
   color: #ccc;
 }
 
+.bot-text p {
+  margin: 0 0 0.6rem 0;
+}
+.bot-text p:last-child {
+  margin-bottom: 0;
+}
+
+.bot-text h1, .bot-text h2, .bot-text h3, .bot-text h4 {
+  color: var(--accent);
+  margin: 0.9rem 0 0.4rem 0;
+  font-weight: 600;
+  line-height: 1.3;
+}
+.bot-text h1 { font-size: 1.1rem; border-bottom: 1px solid var(--border); padding-bottom: 0.3rem; }
+.bot-text h2 { font-size: 1.0rem; }
+.bot-text h3 { font-size: 0.9rem; }
+.bot-text h4 { font-size: 0.85rem; }
+
+.bot-text ul, .bot-text ol {
+  margin: 0.4rem 0 0.6rem 1.2rem;
+  padding: 0;
+}
+.bot-text li {
+  margin-bottom: 0.3rem;
+}
+
+.bot-text table {
+  width: 100%;
+  display: block;
+  overflow-x: auto;
+  border-collapse: collapse;
+  margin: 0.75rem 0;
+  font-size: 0.78rem;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+}
+
+.bot-text th {
+  background: rgba(0, 255, 136, 0.08);
+  color: var(--accent);
+  text-align: left;
+  padding: 0.5rem 0.75rem;
+  border-bottom: 1px solid var(--border);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.bot-text td {
+  padding: 0.5rem 0.75rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+  color: #d1d5db;
+  line-height: 1.5;
+}
+
+.bot-text tr:nth-child(even) td {
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.bot-text tr:last-child td {
+  border-bottom: none;
+}
+
 .bot-text strong { color: var(--text); font-weight: 600; }
 .bot-text em     { color: #aaa; font-style: italic; }
 .bot-text code   {

@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { Send, Trash2, FileText, ExternalLink, Terminal, Loader2, Plus, MessageSquare, Cpu } from 'lucide-react';
+import { parse } from 'marked';
 import './App.css';
 
 const API_URL = import.meta.env.VITE_API_URL || 'https://chatbot-rag-api-q2k5.onrender.com/chat';
@@ -56,11 +57,11 @@ const makeSession = (index: number): Session => ({
 });
 
 function formatMarkdown(text: string): string {
-  return text
-    .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-    .replace(/\*(.*?)\*/g, '<em>$1</em>')
-    .replace(/`(.*?)`/g, '<code>$1</code>')
-    .replace(/\n/g, '<br/>');
+  try {
+    return parse(text, { gfm: true, breaks: true }) as string;
+  } catch {
+    return text;
+  }
 }
 
 function formatTime(date: Date): string {
