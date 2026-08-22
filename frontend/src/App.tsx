@@ -5,6 +5,7 @@ import { SessionSidebar } from './components/SessionSidebar';
 import { ChatHeader } from './components/ChatHeader';
 import { MessageList } from './components/MessageList';
 import { SuggestionGrid } from './components/SuggestionGrid';
+import { IntroModal } from './components/IntroModal';
 import './App.css';
 
 export default function App() {
@@ -36,6 +37,7 @@ export default function App() {
 
   return (
     <div className="layout">
+      <IntroModal />
       <SessionSidebar />
 
       <main className="chat-panel">
