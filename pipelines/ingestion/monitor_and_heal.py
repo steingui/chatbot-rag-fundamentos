@@ -208,7 +208,7 @@ def get_failed_run_logs(run_id: int) -> str:
     return "Logs detalhados indisponíveis."
 
 def analyze_failures_with_llm(failed_runs: list) -> str:
-    """Utiliza o modelo Google Gemini (plano Antigravity) para analisar falhas com contexto da codebase inteira."""
+    """Utiliza o modelo Google Gemini (plano Antigravity) para analisar falhas e corrigir o código via Tool Calling."""
     google_key = os.environ.get("GOOGLE_API_KEY") or os.environ.get("GEMINI_API_KEY")
     openrouter_key = os.environ.get("OPENROUTER_API_KEY")
     
@@ -228,30 +228,60 @@ def analyze_failures_with_llm(failed_runs: list) -> str:
     codebase_context = get_codebase_context()
 
     prompt = (
-        f"Você é um especialista sênior em engenharia de dados e CI/CD do repositório Antigravity.\n\n"
-        f"### CONTEXTO DA CODEBASE (SCRIPTS DE INGESTÃO & WORKFLOWS):\n"
-        f"{codebase_context}\n\n"
+        f"Você é um engenheiro de software sênior autônomo atuando em CI/CD.\n\n"
+        f"### CONTEXTO DA CODEBASE:\n{codebase_context}\n\n"
         f"### FALHAS DETECTADAS NAS ÚLTIMAS EXECUÇÕES DO GITHUB ACTIONS:\n"
         f"{json.dumps(enriched_runs, indent=2)}\n\n"
         f"INSTRUÇÕES DE RESPOSTA:\n"
-        f"1. Responda apenas com o diagnóstico essencial (Causa Raiz) e o diff/snippet de correção em Python/YAML.\n"
-        f"2. NUNCA inclua tokens, assinaturas criptográficas, hashes ou dumps de dicionários Python.\n"
-        f"3. Seja conciso e vá direto ao ponto."
+        f"1. Analise o erro. Se for possível corrigir no código fonte (ex: alterar um .yml ou .py), INVOQUE OBRIGATORIAMENTE a ferramenta 'apply_file_patch_tool'.\n"
+        f"2. Se não for possível corrigir via código, responda apenas com o diagnóstico conciso.\n"
+        f"3. NUNCA inclua tokens, assinaturas ou dumps no seu texto de resposta."
     )
 
-    # Prioridade 1: Google Gemini (Plano Antigravity)
+    # Prioridade 1: Google Gemini (Plano Antigravity) com Tool Calling
     if google_key:
         try:
             from langchain_google_genai import ChatGoogleGenerativeAI
+            from langchain_core.tools import tool
+            
+            @tool
+            def apply_file_patch_tool(filepath: str, search_string: str, replace_string: str) -> str:
+                """Substitui um trecho exato de código em um arquivo da codebase para corrigir bugs.
+                Args:
+                    filepath: Caminho completo do arquivo a ser modificado.
+                    search_string: Trecho exato do código que deve ser substituído.
+                    replace_string: Novo trecho de código que substituirá o antigo.
+                """
+                try:
+                    path = Path(filepath)
+                    if not path.exists(): return f"Erro: {filepath} não existe no disco."
+                    content = path.read_text(encoding="utf-8")
+                    if search_string not in content: return f"Erro: 'search_string' não foi encontrada perfeitamente no arquivo."
+                    new_content = content.replace(search_string, replace_string)
+                    path.write_text(new_content, encoding="utf-8")
+                    return f"Sucesso: Arquivo {filepath} curado fisicamente."
+                except Exception as e:
+                    return f"Erro ao aplicar patch: {e}"
+            
             llm = ChatGoogleGenerativeAI(
                 model="gemini-3.6-flash",
                 google_api_key=google_key,
                 temperature=0.1,
                 max_retries=2
-            )
+            ).bind_tools([apply_file_patch_tool])
+            
             response = llm.invoke(prompt)
+            
+            if response.tool_calls:
+                reports = []
+                for tc in response.tool_calls:
+                    if tc["name"] == "apply_file_patch_tool":
+                        res = apply_file_patch_tool.invoke(tc["args"])
+                        reports.append(f"- **Tool Invocada:** `apply_file_patch` em `{tc['args'].get('filepath')}` -> Resultado: {res}")
+                return f"**[Diagnóstico Gemini 3.6 Flash (Auto-Curado via Tool Calling)]**\n" + "\n".join(reports)
+            
             clean_text = _clean_llm_response(response.content)
-            return f"**[Diagnóstico Gemini 3.6 Flash (Google Antigravity com Contexto de Codebase)]**\n{clean_text}"
+            return f"**[Diagnóstico Gemini 3.6 Flash]**\n{clean_text}"
         except Exception as e:
             logging.warning(f"Falha ao invocar Google Gemini API: {e}. Tentando fallback OpenRouter...")
 
