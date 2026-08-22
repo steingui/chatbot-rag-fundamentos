@@ -51,3 +51,5 @@ jobs:
         with:
           commit_message: "[LLM-COMMIT-AND-HEAL] fix(ingestion): auto-heal data quality & pipeline health report [skip ci]"
           branch: main
+          file_pattern: 'data/docs/pipeline_health_report.md'
+          add_options: '--force'
