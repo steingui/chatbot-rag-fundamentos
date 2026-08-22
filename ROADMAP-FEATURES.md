@@ -29,6 +29,7 @@ As sugestões mostram números (ex: "Quantas vezes a pergunta X foi feita") e te
 
 ### Problema Atual
 Atualmente, o Agente ReAct pode se confundir ao tentar amalgamar documentos legais extensos com resultados de notícias rápidas da web, gerando respostas não lineares, priorizando a web em detrimento do dado oficial, ou perdendo o tracking exato da fonte.
+Além disso, a **janela de contexto precisa melhorar significativamente** para garantir que os prompts subsequentes do usuário mantenham uma conversa coerente com o histórico recente, evitando amnésia e perda de linha de raciocínio.
 
 ### Hipóteses para Validação (Discovery):
 

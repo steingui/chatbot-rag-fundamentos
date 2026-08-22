@@ -23,6 +23,8 @@ export const MessageList: React.FC = () => {
   };
 
   const parentRef = useRef<HTMLDivElement>(null);
+  const [isAutoScrollEnabled, setIsAutoScrollEnabled] = React.useState(true);
+  const prevMessagesLength = useRef(messages.length);
 
   const virtualizer = useVirtualizer({
     count: messages.length,
@@ -31,15 +33,26 @@ export const MessageList: React.FC = () => {
     overscan: 5
   });
 
-  // Auto-scroll para o final quando uma nova mensagem/token chega
+  const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
+    const { scrollTop, scrollHeight, clientHeight } = e.currentTarget;
+    const isBottom = Math.abs(scrollHeight - clientHeight - scrollTop) < 100;
+    setIsAutoScrollEnabled(isBottom);
+  };
+
+  // Auto-scroll condicional: sempre rola em nova mensagem, ou se o usuário estiver no fim
   useEffect(() => {
+    const isNewMessage = messages.length > prevMessagesLength.current;
+    prevMessagesLength.current = messages.length;
+
     if (messages.length > 0) {
-      virtualizer.scrollToIndex(messages.length - 1, { align: 'end' });
+      if (isNewMessage || isAutoScrollEnabled) {
+        virtualizer.scrollToIndex(messages.length - 1, { align: 'end' });
+      }
     }
-  }, [messages.length, messages[messages.length - 1]?.content, virtualizer]);
+  }, [messages.length, messages[messages.length - 1]?.content, virtualizer, isAutoScrollEnabled]);
 
   return (
-    <div className="messages-area" ref={parentRef}>
+    <div className="messages-area" ref={parentRef} onScroll={handleScroll}>
       <div
         style={{
           height: `${virtualizer.getTotalSize()}px`,
