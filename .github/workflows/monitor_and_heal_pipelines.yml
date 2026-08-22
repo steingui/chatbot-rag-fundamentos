@@ -4,6 +4,18 @@ on:
   schedule:
     - cron: '0 7 * * *' # Executa diariamente às 07:00 UTC
   workflow_dispatch:
+  workflow_run:
+    workflows:
+      - "Ingestão Diária - Câmara dos Deputados"
+      - "Ingestão Diária - Senado Federal"
+      - "Ingestão Diária - Fact Checking (RSS Multi-Agências)"
+      - "Ingestão Diária - Querido Diário (Atos Municipais)"
+      - "Ingestão Semanal - Portal da Transparência / CGU"
+      - "Ingestão Semanal - TSE DivulgaCandContas (Prestação de Contas)"
+      - "Ingestão Semanal - TSE (Bens e Financiamentos)"
+      - "Ingestão Mensal - PDFs e Planos de Governo (TSE)"
+    types:
+      - completed
 
 env:
   FORCE_JAVASCRIPT_ACTIONS_NODE_VERSION: node24
