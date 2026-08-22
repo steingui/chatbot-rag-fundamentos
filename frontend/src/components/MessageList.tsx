@@ -25,7 +25,7 @@ export const MessageList: React.FC = () => {
   const parentRef = useRef<HTMLDivElement>(null);
   const [isAutoScrollEnabled, setIsAutoScrollEnabled] = React.useState(true);
   const prevMessagesLength = useRef(messages.length);
-  const prevScrollTop = useRef(0);
+  const prevScrollInfo = useRef({ scrollTop: 0, scrollHeight: 0, clientHeight: 0 });
 
   const virtualizer = useVirtualizer({
     count: messages.length,
@@ -39,13 +39,24 @@ export const MessageList: React.FC = () => {
     const isBottom = Math.abs(scrollHeight - clientHeight - scrollTop) < 100;
     setIsAutoScrollEnabled(isBottom);
     
-    // Ocultar sugestões ao rolar para baixo, mostrar ao rolar para cima
-    if (scrollTop > prevScrollTop.current && scrollTop > 50) {
-      setShowSuggestions(false);
-    } else if (scrollTop < prevScrollTop.current) {
-      setShowSuggestions(true);
+    const prev = prevScrollInfo.current;
+    // Ignorar eventos disparados por redimensionamento ou novas mensagens
+    if (scrollHeight === prev.scrollHeight) {
+      const prevDistanceFromBottom = prev.scrollHeight - prev.clientHeight - prev.scrollTop;
+      const currentDistanceFromBottom = scrollHeight - clientHeight - scrollTop;
+      
+      // Ocultar sugestões ao rolar para baixo, mostrar ao rolar para cima
+      // Usar a distância até o fim evita loops de layout quando o clientHeight muda
+      if (currentDistanceFromBottom < prevDistanceFromBottom - 5) {
+        // Rolou para baixo
+        setShowSuggestions(false);
+      } else if (currentDistanceFromBottom > prevDistanceFromBottom + 5) {
+        // Rolou para cima
+        setShowSuggestions(true);
+      }
     }
-    prevScrollTop.current = scrollTop;
+    
+    prevScrollInfo.current = { scrollTop, scrollHeight, clientHeight };
   };
 
   // Auto-scroll condicional: sempre rola em nova mensagem, ou se o usuário estiver no fim
