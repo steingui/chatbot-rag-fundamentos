@@ -36,28 +36,32 @@ export const SessionSidebar: React.FC = () => {
         </div>
 
         <div className="session-list">
-          {sessions.map((sess, idx) => (
-            <div
-              key={sess.id}
-              className={`session-item ${idx === activeIdx ? 'active' : ''}`}
-              onClick={() => setActiveIdx(idx)}
-            >
-              <span className="session-bullet">{idx === activeIdx ? '▢' : '◯'}</span>
-              <span className="session-title">{sess.label}</span>
-              {sessions.length > 1 && (
-                <button
-                  className="close-sess-btn"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    closeSession(idx);
-                  }}
-                  title="Fechar sessão"
-                >
-                  ×
-                </button>
-              )}
-            </div>
-          ))}
+          {sessions.map((sess, idx) => {
+            const firstUserMsg = sess.messages?.find(m => m.role === 'user');
+            const displayLabel = firstUserMsg ? firstUserMsg.content : (sess.label || `Sessão ${idx + 1}`).replace(/\.\.\.$/, '');
+            return (
+              <div
+                key={sess.id}
+                className={`session-item ${idx === activeIdx ? 'active' : ''}`}
+                onClick={() => setActiveIdx(idx)}
+              >
+                <span className="session-bullet">{idx === activeIdx ? '▢' : '◯'}</span>
+                <span className="session-title">{displayLabel}</span>
+                {sessions.length > 1 && (
+                  <button
+                    className="close-sess-btn"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      closeSession(idx);
+                    }}
+                    title="Fechar sessão"
+                  >
+                    ×
+                  </button>
+                )}
+              </div>
+            );
+          })}
         </div>
       </div>
 

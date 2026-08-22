@@ -100,11 +100,17 @@ const loadPersistedSessions = (): Session[] | null => {
     const raw = localStorage.getItem(LOCAL_STORAGE_KEY);
     if (!raw) return null;
     const parsed = JSON.parse(raw);
-    return parsed.map((s: any) => ({
-      ...s,
-      createdAt: new Date(s.createdAt),
-      messages: s.messages.map((m: any) => ({ ...m, timestamp: new Date(m.timestamp) }))
-    }));
+    return parsed.map((s: any) => {
+      const messages = (s.messages || []).map((m: any) => ({ ...m, timestamp: new Date(m.timestamp) }));
+      const firstUserMsg = messages.find((m: any) => m.role === 'user');
+      const label = firstUserMsg ? firstUserMsg.content : (s.label || '').replace(/\.\.\.$/, '');
+      return {
+        ...s,
+        label,
+        createdAt: new Date(s.createdAt),
+        messages
+      };
+    });
   } catch {
     return null;
   }
