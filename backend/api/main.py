@@ -22,22 +22,7 @@ limiter = Limiter(key_func=get_remote_address)
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Pré-download do NLTK para evitar timeout/Restart do Render na primeira requisição
-    logging.info("Pré-carregando dependências NLTK (BM25)...")
-    try:
-        import nltk
-        import threading
-        
-        def _download_nltk():
-            nltk.download('punkt', quiet=True)
-            nltk.download('punkt_tab', quiet=True)
-            nltk.download('stopwords', quiet=True)
-            
-        # Baixa em background para não bloquear o boot do uvicorn
-        threading.Thread(target=_download_nltk, daemon=True).start()
-    except Exception as e:
-        logging.error(f"Erro ao baixar NLTK: {e}")
-        
+    # Inicialização lazy — não bloqueia o healthcheck do Render
     logging.info("API iniciada. RAG será carregado na primeira requisição.")
     yield
 

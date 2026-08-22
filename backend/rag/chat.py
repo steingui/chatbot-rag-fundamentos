@@ -29,7 +29,7 @@ def init_components():
     
     from pinecone import Pinecone
     from langchain_community.retrievers import PineconeHybridSearchRetriever
-    from pinecone_text.sparse import BM25Encoder
+    from backend.rag.sparse_encoder import FastBM25Encoder
 
     pc = Pinecone(api_key=os.environ.get("PINECONE_API_KEY"))
     index = pc.Index(INDEX_NAME)
@@ -39,8 +39,8 @@ def init_components():
         huggingfacehub_api_token=os.environ.get("HF_TOKEN")
     )
     
-    # Encoder Lexico
-    bm25_encoder = BM25Encoder().default()
+    # Encoder Lexico Leve (evita OOM no Render)
+    bm25_encoder = FastBM25Encoder()
 
     from langchain_pinecone import PineconeRerank
     from langchain.retrievers import ContextualCompressionRetriever

@@ -97,12 +97,12 @@ def ingest_documents(docs: list) -> None:
 
     from pinecone import Pinecone
     from langchain_community.retrievers import PineconeHybridSearchRetriever
-    from pinecone_text.sparse import BM25Encoder
+    from backend.rag.sparse_encoder import FastBM25Encoder
 
     pc = Pinecone(api_key=os.environ.get("PINECONE_API_KEY"))
     index = pc.Index(INDEX_NAME)
     
-    bm25_encoder = BM25Encoder().default()
+    bm25_encoder = FastBM25Encoder()
 
     retriever = PineconeHybridSearchRetriever(
         embeddings=embeddings,

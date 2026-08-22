@@ -13,7 +13,7 @@ def get_dynamic_prompts() -> List[str]:
     try:
         from pinecone import Pinecone
         from langchain_community.retrievers import PineconeHybridSearchRetriever
-        from pinecone_text.sparse import BM25Encoder
+        from backend.rag.sparse_encoder import FastBM25Encoder
         from langchain_huggingface import HuggingFaceEndpointEmbeddings
         from langchain_openai import ChatOpenAI
         from langchain_core.prompts import PromptTemplate
@@ -27,7 +27,7 @@ def get_dynamic_prompts() -> List[str]:
         
         pc = Pinecone(api_key=os.environ.get("PINECONE_API_KEY"))
         index = pc.Index(index_name)
-        bm25_encoder = BM25Encoder().default()
+        bm25_encoder = FastBM25Encoder()
         
         retriever = PineconeHybridSearchRetriever(
             embeddings=embeddings,
