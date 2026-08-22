@@ -125,14 +125,14 @@ export const useChatStore = create<ChatState>((set, get) => ({
   selectedModel: FREE_MODELS[0].id,
   isLoading: false,
   suggestions: [
-    { prompt: 'Resuma a PEC 45/2019 e a reforma tributária', count: 24 },
-    { prompt: 'Como os deputados votaram sobre o arcabouço fiscal?', count: 18 },
-    { prompt: 'Quais irregularidades foram encontradas nas emendas Pix parlamentares?', count: 15 },
-    { prompt: 'Quais bens foram declarados nas eleições recentes pelo TSE?', count: 12 },
-    { prompt: 'Qual a relação de Flávio Bolsonaro com o Banco Master e Daniel Vorcaro?', count: 10 },
-    { prompt: 'Quais suspeitas envolvem o INSS e o governo atual?', count: 9 },
-    { prompt: 'O que a agência Lupa checou sobre imposto de renda?', count: 8 },
-    { prompt: 'Como o STF tem atuado na fiscalização do orçamento secreto?', count: 7 }
+    { prompt: 'Resuma a PEC 45/2019 e a reforma tributária', count: 32 },
+    { prompt: 'Como os deputados votaram sobre o arcabouço fiscal?', count: 28 },
+    { prompt: 'Quais bens foram declarados por candidatos à presidência no TSE?', count: 25 },
+    { prompt: 'O que os planos de governo no TSE propõem para saúde e economia?', count: 21 },
+    { prompt: 'Quais repasses de emendas parlamentares constam no Portal da Transparência?', count: 19 },
+    { prompt: 'Quais senadores mais utilizaram a cota parlamentar (CEAPS)?', count: 16 },
+    { prompt: 'O que a agência Lupa checou sobre imposto de renda e declarações políticas?', count: 14 },
+    { prompt: 'Quais as propostas dos candidatos para segurança pública e combate à corrupção?', count: 12 }
   ],
 
   setInput: (input) => set({ input }),

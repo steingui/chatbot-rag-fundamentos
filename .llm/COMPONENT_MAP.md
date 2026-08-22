@@ -45,7 +45,7 @@ App.tsx (root)
 - **Classe CSS**: `.model-select`
 
 ### `SuggestionGrid.tsx`
-- **Responsabilidade**: Grid horizontal de 4 sugestões populares com badge de contagem
+- **Responsabilidade**: Grid horizontal de 8 sugestões populares com badge de contagem
 - **Store deps**: `suggestions`, `sendMessageStream`, `isLoading`
 - **Comportamento**: Click em sugestão → `sendMessageStream(sug.prompt)`
 - **Classes CSS**: `.suggestions-container`, `.suggestion-card-item`, `.suggestion-card-count`

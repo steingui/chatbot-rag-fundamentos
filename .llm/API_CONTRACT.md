@@ -19,7 +19,7 @@ Health check.
 
 ### `GET /suggestions`
 
-Retorna as 4 consultas mais populares.
+Retorna as 8 consultas mais populares.
 Rate limit: **60/min** por IP.
 
 **Response** `200`:

@@ -325,8 +325,11 @@ body {
 
 .suggestions-horizontal-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 0.6rem;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 0.5rem;
+  max-height: 165px;
+  overflow-y: auto;
+  padding-right: 0.2rem;
 }
 
 .suggestion-card-item {
@@ -360,6 +363,7 @@ body {
   overflow: hidden;
   display: -webkit-box;
   -webkit-line-clamp: 2;
+  line-clamp: 2;
   -webkit-box-orient: vertical;
 }
 

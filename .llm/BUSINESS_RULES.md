@@ -85,12 +85,12 @@ Classificação de fontes em `main.py:parse_source_name()`:
 1. Query < 5 chars → ignorada
 2. **Fuzzy Match** (SequenceMatcher ratio ≥ 0.68) contra queries existentes → incrementa contagem
 3. Se não houver match → **Canonização via LLM** (prompt leve) → insere como nova sugestão
-4. Frontend exibe top 4 por contagem decrescente
+4. Frontend exibe top 8 por contagem decrescente
 
 ### Cache de Sugestões (Frontend)
 
 - `localStorage` com TTL de 5 minutos (`SUGGESTIONS_TTL_MS = 300_000`)
-- Fallback hardcoded com 4 sugestões iniciais (seeds populados no SQLite em `init_analytics_db`)
+- Fallback hardcoded com 8 sugestões iniciais (seeds populados no SQLite em `init_analytics_db`)
 
 ## Regras de Cache (Backend)
 

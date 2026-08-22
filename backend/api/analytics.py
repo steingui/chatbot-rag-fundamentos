@@ -7,14 +7,14 @@ from typing import List, Dict
 DB_PATH = os.environ.get("ANALYTICS_DB_PATH", os.path.join(os.path.dirname(__file__), "analytics.db"))
 
 INITIAL_SEEDS = [
-    ("Resuma a PEC 45/2019 e a reforma tributária", 24, "economia"),
-    ("Como os deputados votaram sobre o arcabouço fiscal?", 18, "legislativo"),
-    ("Quais bens foram declarados nas eleições recentes pelo TSE?", 12, "tse"),
-    ("O que a agência Lupa checou sobre imposto de renda?", 8, "fact-checking"),
-    ("Quais irregularidades foram encontradas nas emendas Pix parlamentares?", 15, "transparencia"),
-    ("Qual a relação de Flávio Bolsonaro com o Banco Master e Daniel Vorcaro?", 10, "eleicoes"),
-    ("Quais suspeitas envolvem o INSS e o governo atual?", 9, "investigacao"),
-    ("Como o STF tem atuado na fiscalização do orçamento secreto?", 7, "judiciario")
+    ("Resuma a PEC 45/2019 e a reforma tributária", 32, "legislativo"),
+    ("Como os deputados votaram sobre o arcabouço fiscal?", 28, "legislativo"),
+    ("Quais bens foram declarados por candidatos à presidência no TSE?", 25, "tse"),
+    ("O que os planos de governo no TSE propõem para saúde e economia?", 21, "tse"),
+    ("Quais repasses de emendas parlamentares constam no Portal da Transparência?", 19, "transparencia"),
+    ("Quais senadores mais utilizaram a cota parlamentar (CEAPS)?", 16, "senado"),
+    ("O que a agência Lupa checou sobre imposto de renda e declarações políticas?", 14, "fact-checking"),
+    ("Quais as propostas dos candidatos para segurança pública e combate à corrupção?", 12, "tse"),
 ]
 
 
@@ -25,7 +25,7 @@ def get_db_connection():
 
 
 def init_analytics_db():
-    """Inicializa a tabela sqlite e popula seeds iniciais se o banco estiver vazio."""
+    """Inicializa a tabela sqlite e popula seeds iniciais se o banco tiver menos que as sementes padrão."""
     os.makedirs(os.path.dirname(DB_PATH), exist_ok=True)
     with get_db_connection() as conn:
         cursor = conn.cursor()
@@ -39,16 +39,13 @@ def init_analytics_db():
             );
         """)
         
-        # Popula seeds se a tabela estiver vazia
-        cursor.execute("SELECT COUNT(*) FROM query_stats")
-        if cursor.fetchone()[0] == 0:
-            logging.info("Populando seeds iniciais de sugestões no banco de analytics...")
-            for prompt, count, category in INITIAL_SEEDS:
-                cursor.execute(
-                    "INSERT INTO query_stats (canonical_prompt, count, category) VALUES (?, ?, ?)",
-                    (prompt, count, category)
-                )
-            conn.commit()
+        # Popula ou completa sementes iniciais se faltarem itens
+        for prompt, count, category in INITIAL_SEEDS:
+            cursor.execute(
+                "INSERT INTO query_stats (canonical_prompt, count, category) VALUES (?, ?, ?) ON CONFLICT(canonical_prompt) DO NOTHING",
+                (prompt, count, category)
+            )
+        conn.commit()
 
 
 def get_top_suggestions(limit: int = 8) -> List[Dict]:
