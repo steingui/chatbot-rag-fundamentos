@@ -56,7 +56,10 @@ def validate_and_sanitize_query(query: str) -> str:
     normalized_query = unicodedata.normalize("NFKC", cleaned_query)
 
     if COMPILED_INJECTION_REGEX.search(normalized_query):
-        logging.warning(f"SEC-008: Prompt Injection bloqueado (hash: {hash(cleaned_query)})")
+        import hashlib
+        # SEC-011: Loga apenas o hash (SHA-256 truncado) da query maliciosa para não expor PII nos logs (LGPD)
+        query_hash = hashlib.sha256(cleaned_query.encode('utf-8')).hexdigest()[:16]
+        logging.warning(f"SEC-011: Prompt Injection bloqueado (hash: {query_hash})")
         raise HTTPException(
             status_code=400,
             detail="Consulta bloqueada pelas diretrizes de segurança anti-prompt injection."
