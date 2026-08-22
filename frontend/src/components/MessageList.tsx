@@ -5,9 +5,22 @@ import { useChatStore, formatMarkdown, formatTime } from '../store/useChatStore'
 import { SourceBadges } from './SourceBadges';
 
 export const MessageList: React.FC = () => {
-  const { sessions, activeIdx, isLoading } = useChatStore();
+  const { sessions, activeIdx, isLoading, selectedModel } = useChatStore();
   const currentSession = sessions[activeIdx];
   const messages = currentSession?.messages || [];
+
+  const getBotAuthorLabel = (modelId: string) => {
+    if (!modelId) return 'llm@rag_eleicoes';
+    if (modelId.includes('deepseek')) return 'deepseek_r1@rag_eleicoes';
+    if (modelId.includes('nemotron')) return 'nemotron_30b@rag_eleicoes';
+    if (modelId.includes('llama')) return 'llama_70b@rag_eleicoes';
+    if (modelId.includes('gemini')) return 'gemini_flash@rag_eleicoes';
+    if (modelId.includes('qwen')) return 'qwen_72b@rag_eleicoes';
+    
+    const name = modelId.split('/')[1] || modelId.split('/')[0] || 'llm';
+    const clean = name.split(':')[0].replace(/[^a-zA-Z0-9]/g, '_').toLowerCase();
+    return `${clean}@rag_eleicoes`;
+  };
 
   const parentRef = useRef<HTMLDivElement>(null);
 
@@ -61,7 +74,7 @@ export const MessageList: React.FC = () => {
                   ) : (
                     <div className="bot-header-title">
                       <span className="bot-bolt">⚡</span>
-                      <span className="bot-author">CIVIC_AI</span>
+                      <span className="bot-author">{getBotAuthorLabel(selectedModel)}</span>
                     </div>
                   )}
                   <span className="msg-time">{formatTime(new Date(msg.timestamp))}</span>
