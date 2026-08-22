@@ -33,7 +33,7 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v4
         with:
-          token: ${{ secrets.GITHUB_TOKEN }}
+          token: ${{ secrets.GH_TOKEN || secrets.GITHUB_TOKEN }}
           fetch-depth: 0
 
       - name: Set up Python
@@ -69,7 +69,7 @@ jobs:
         if: steps.audit.outputs.should_commit == 'true'
         uses: peter-evans/create-pull-request@v6
         with:
-          token: ${{ secrets.GITHUB_TOKEN }}
+          token: ${{ secrets.GH_TOKEN || secrets.GITHUB_TOKEN }}
           commit-message: "[LLM-AUTOCURE] fix(ingestion): auto-heal data quality & pipeline health report"
           branch: auto-heal/pipeline-fix
           title: "[LLM-AUTOCURE] Diagnóstico e Correção Autônoma de Ingestão"
