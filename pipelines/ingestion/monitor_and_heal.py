@@ -234,8 +234,9 @@ def analyze_failures_with_llm(failed_runs: list) -> str:
         f"{json.dumps(enriched_runs, indent=2)}\n\n"
         f"INSTRUÇÕES DE RESPOSTA:\n"
         f"1. Analise o erro. Se for possível corrigir no código fonte (ex: alterar um .yml ou .py), INVOQUE OBRIGATORIAMENTE a ferramenta 'apply_file_patch_tool'.\n"
-        f"2. Se não for possível corrigir via código, responda apenas com o diagnóstico conciso.\n"
-        f"3. NUNCA inclua tokens, assinaturas ou dumps no seu texto de resposta."
+        f"2. GUARDRAIL CRÍTICO: Nunca tente corrigir erros de permissão alterando o bloco 'permissions' dos arquivos YAML (ex: nunca adicione 'workflows: write'), pois isso quebra a sintaxe do GitHub Actions.\n"
+        f"3. Se não for possível corrigir via código de forma segura, responda apenas com o diagnóstico conciso.\n"
+        f"4. NUNCA inclua tokens, assinaturas ou dumps no seu texto de resposta."
     )
 
     # Prioridade 1: Google Gemini (Plano Antigravity) com Tool Calling
