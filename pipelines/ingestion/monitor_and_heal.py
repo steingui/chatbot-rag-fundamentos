@@ -105,12 +105,42 @@ def audit_github_workflows() -> list:
         
     return []
 
+def analyze_failures_with_llm(failed_runs: list) -> str:
+    """Utiliza LLM (via OpenRouter) para analisar falhas detectadas nos workflows e sugerir patches de correção."""
+    api_key = os.environ.get("OPENROUTER_API_KEY")
+    if not api_key or not failed_runs:
+        return "Nenhuma falha crítica detectada ou chave OPENROUTER_API_KEY ausente para análise de LLM."
+        
+    try:
+        from langchain_openai import ChatOpenAI
+        llm = ChatOpenAI(
+            model="meta-llama/llama-3.3-70b-instruct:free",
+            openai_api_key=api_key,
+            openai_api_base="https://openrouter.ai/api/v1",
+            max_retries=2,
+            temperature=0.1
+        )
+        prompt = (
+            f"Você é um engenheiro de dados sênior e especialista em CI/CD. "
+            f"As seguintes GitHub Actions falharam no pipeline de dados do RAG político:\n"
+            f"{json.dumps(failed_runs, indent=2)}\n\n"
+            f"Forneça uma análise técnica concisa da provável causa raiz e a correção exata em Python/YAML."
+        )
+        response = llm.invoke(prompt)
+        return response.content
+    except Exception as e:
+        logging.error(f"Erro na análise autônoma de LLM: {e}")
+        return f"Falha ao consultar LLM para diagnóstico: {e}"
+
 def main():
     logging.info("Iniciando auditoria e autocorreção autônoma de dados e workflows...")
     
     doc_stats = audit_and_heal_local_docs()
     pinecone_stats = audit_pinecone_health()
     workflow_runs = audit_github_workflows()
+    
+    failed_runs = [r for r in workflow_runs if r.get("conclusion") in ["failure", "cancelled", "timed_out"]]
+    llm_diagnosis = analyze_failures_with_llm(failed_runs) if failed_runs else "Todos os workflows recentes executados com sucesso (100% integridade)."
     
     # Gera relatório Markdown consolidado
     wf_text = "\n".join([
@@ -127,7 +157,9 @@ def main():
         f"- **Arquivos Auto-Corrigidos:** {doc_stats['fixed_files']}\n"
         f"- **Arquivos Purgados (Inválidos/Vazios):** {doc_stats['purged_files']}\n\n"
         f"## Status das Últimas Execuções de Workflows (GitHub Actions)\n"
-        f"{wf_text}\n"
+        f"{wf_text}\n\n"
+        f"## Diagnóstico Autônomo de LLM (`[LLM-COMMIT-AND-HEAL]`)\n"
+        f"{llm_diagnosis}\n"
     )
     
     REPORT_PATH.write_text(report_content, encoding="utf-8")
