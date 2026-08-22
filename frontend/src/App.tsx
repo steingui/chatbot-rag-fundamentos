@@ -3,6 +3,7 @@ import { Send, Trash2, FileText, ExternalLink, Terminal, Loader2, Plus, MessageS
 import './App.css';
 
 const API_URL = import.meta.env.VITE_API_URL || 'https://chatbot-rag-api-q2k5.onrender.com/chat';
+const SUGGESTION_API_URL = API_URL.replace(/\/chat$/, '/suggestions');
 const MAX_SESSIONS = 5;
 
 const FREE_MODELS = [
@@ -13,12 +14,10 @@ const FREE_MODELS = [
   { id: 'qwen/qwen-2.5-72b-instruct:free', label: 'qwen-2.5-72b · free' }
 ];
 
-const SUGGESTIONS = [
-  'Resuma a PEC 45/2019 e a reforma tributária',
-  'Como os deputados votaram sobre o arcabouço fiscal?',
-  'Quais bens foram declarados nas eleições recentes pelo TSE?',
-  'O que a agência Lupa checou sobre imposto de renda?'
-];
+type SuggestionItem = {
+  prompt: string;
+  count: number;
+};
 
 type Source = {
   type: string;
@@ -75,11 +74,35 @@ export default function App() {
   const [selectedModel, setSelectedModel] = useState(FREE_MODELS[0].id);
   const [isLoading, setIsLoading] = useState(false);
   const [isSummarizing, setIsSummarizing] = useState(false);
+  const [suggestions, setSuggestions] = useState<SuggestionItem[]>([
+    { prompt: 'Resuma a PEC 45/2019 e a reforma tributária', count: 24 },
+    { prompt: 'Como os deputados votaram sobre o arcabouço fiscal?', count: 18 },
+    { prompt: 'Quais bens foram declarados nas eleições recentes pelo TSE?', count: 12 },
+    { prompt: 'O que a agência Lupa checou sobre imposto de renda?', count: 8 }
+  ]);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
   const activeSession = sessions[activeIdx];
+
+  const fetchSuggestions = useCallback(async () => {
+    try {
+      const res = await fetch(SUGGESTION_API_URL);
+      if (res.ok) {
+        const data = await res.json();
+        if (data.suggestions && data.suggestions.length > 0) {
+          setSuggestions(data.suggestions);
+        }
+      }
+    } catch (e) {
+      console.warn('Usando sugestões offline/fallback:', e);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchSuggestions();
+  }, [fetchSuggestions]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -150,6 +173,7 @@ export default function App() {
       updateSession(capturedIdx, s => ({ ...s, messages: [...s.messages, errorMsg] }));
     } finally {
       setIsLoading(false);
+      fetchSuggestions();
     }
   };
 
@@ -324,15 +348,16 @@ export default function App() {
                       <div className="suggestions-block">
                         <span className="suggestions-title">// sugestões de consulta:</span>
                         <div className="suggestions-grid">
-                          {SUGGESTIONS.map((prompt, idx) => (
+                          {suggestions.map((item, idx) => (
                             <button
                               key={idx}
                               className="suggestion-card"
-                              onClick={() => executeQuery(prompt)}
+                              onClick={() => executeQuery(item.prompt)}
                               disabled={isLoading}
                             >
                               <span className="suggestion-icon">›</span>
-                              <span>{prompt}</span>
+                              <span className="suggestion-text">{item.prompt}</span>
+                              <span className="suggestion-badge" title={`${item.count} consultas efetuadas`}>{item.count}x</span>
                             </button>
                           ))}
                         </div>

@@ -1,5 +1,5 @@
 from contextlib import asynccontextmanager
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, BackgroundTasks
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 import logging
@@ -7,6 +7,7 @@ import re
 from typing import Optional
 
 from backend.rag.chat import init_components, get_rag_chain
+from backend.api.analytics import get_top_suggestions, record_query
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -41,6 +42,20 @@ class SourceObject(BaseModel):
 class ChatResponse(BaseModel):
     answer: str
     sources: list[SourceObject] = Field(default_factory=list, description="Lista estruturada de fontes")
+
+
+class SuggestionItem(BaseModel):
+    prompt: str
+    count: int
+
+
+class SuggestionsResponse(BaseModel):
+    suggestions: list[SuggestionItem]
+
+
+@app.get("/suggestions", response_model=SuggestionsResponse)
+def suggestions():
+    return SuggestionsResponse(suggestions=get_top_suggestions(limit=4))
 
 
 _rag_initialized = False
@@ -125,9 +140,10 @@ def parse_source_name(raw_source: str) -> SourceObject:
 
 
 @app.post("/chat", response_model=ChatResponse)
-def chat(request: ChatRequest):
+def chat(request: ChatRequest, background_tasks: BackgroundTasks):
     try:
         ensure_initialized()
+        background_tasks.add_task(record_query, request.query)
         rag_chain = get_rag_chain(request.session_id, model_name=request.model)
         response = rag_chain.invoke({"question": request.query})
         

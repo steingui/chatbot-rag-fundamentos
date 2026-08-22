@@ -528,6 +528,7 @@ body {
 .suggestion-card {
   display: flex;
   align-items: center;
+  justify-content: space-between;
   gap: 0.5rem;
   background: var(--surface-2);
   border: 1px solid var(--border);
@@ -558,6 +559,23 @@ body {
   font-size: 0.85rem;
   flex-shrink: 0;
 }
+
+.suggestion-text {
+  flex: 1;
+}
+
+.suggestion-badge {
+  background: rgba(255, 184, 108, 0.12);
+  color: #ffb86c;
+  border: 1px solid rgba(255, 184, 108, 0.3);
+  font-size: 0.65rem;
+  font-weight: 700;
+  padding: 0.1rem 0.38rem;
+  border-radius: 4px;
+  flex-shrink: 0;
+  letter-spacing: 0.03em;
+}
+
 
 /* ── SCROLLBAR ──────────────────────── */
 ::-webkit-scrollbar { width: 4px; }
