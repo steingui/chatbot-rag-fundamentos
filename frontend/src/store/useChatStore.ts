@@ -42,7 +42,13 @@ export type Session = {
   createdAt: Date;
 };
 
-const newSessionId = () => `sess-${Math.random().toString(36).substring(2, 9)}`;
+// SEC-010: Gera IDs de forma criptograficamente segura para prevenir ataques de colisão/previsibilidade
+const newSessionId = () => {
+  if (typeof crypto !== 'undefined' && crypto.randomUUID) {
+    return `sess-${crypto.randomUUID()}`;
+  }
+  return `sess-${Math.random().toString(36).substring(2, 9)}`;
+};
 
 export const makeSession = (index: number): Session => ({
   id: newSessionId(),
