@@ -55,11 +55,13 @@ export const MessageList: React.FC = () => {
               <div className={`message-bubble ${msg.role}`}>
                 <div className="msg-header">
                   {msg.role === 'user' ? (
-                    <span className="msg-author user-author">you@rag:~$</span>
+                    <span className="msg-author user-author">
+                      you@{currentSession?.id ? currentSession.id.replace(/^session-/, '').slice(0, 8) : 'usr'}:~$
+                    </span>
                   ) : (
                     <div className="bot-header-title">
                       <span className="bot-bolt">⚡</span>
-                      <span className="bot-author">ASSISTENTE (RAG)</span>
+                      <span className="bot-author">CIVIC_AI</span>
                     </div>
                   )}
                   <span className="msg-time">{formatTime(new Date(msg.timestamp))}</span>
