@@ -4,10 +4,10 @@ import { useChatStore } from '../store/useChatStore';
 export const SuggestionGrid: React.FC = () => {
   const { suggestions, showSuggestions, sendMessageStream, isLoading } = useChatStore();
 
-  if (!suggestions || suggestions.length === 0 || !showSuggestions) return null;
+  if (!suggestions || suggestions.length === 0) return null;
 
   return (
-    <div className="suggestions-container">
+    <div className={`suggestions-container ${showSuggestions ? '' : 'hidden-suggestions'}`}>
       <span className="suggestions-header-label">SUGESTÕES POPULARES:</span>
       <div className="suggestions-horizontal-grid">
         {suggestions.slice(0, 8).map((sug, i) => (
