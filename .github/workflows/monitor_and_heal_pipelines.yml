@@ -4,10 +4,6 @@ on:
   schedule:
     - cron: '0 7 * * *' # Executa diariamente às 07:00 UTC
   workflow_dispatch:
-
-env:
-  FORCE_JAVASCRIPT_ACTIONS_NODE_VERSION: node24
-  NODE_OPTIONS: "--no-warnings"
   workflow_run:
     workflows:
       - "Ingestão Diária - Câmara dos Deputados"
@@ -21,6 +17,9 @@ env:
     types:
       - completed
 
+env:
+  FORCE_JAVASCRIPT_ACTIONS_NODE_VERSION: node24
+  NODE_OPTIONS: "--no-warnings"
 jobs:
   monitor-and-heal:
     runs-on: ubuntu-latest
