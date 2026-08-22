@@ -164,7 +164,7 @@ def get_codebase_context() -> str:
         for file in ingest_dir.glob("*.py"):
             try:
                 content = file.read_text(encoding="utf-8")
-                lines = content.splitlines()[:250]
+                lines = content.splitlines()[:500]
                 code_context.append(f"--- FILE: {file.relative_to(base_dir)} ---\n" + "\n".join(lines))
             except Exception:
                 pass
