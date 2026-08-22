@@ -20,8 +20,6 @@ As sugestões mostram números (ex: "Quantas vezes a pergunta X foi feita") e te
     - *"Quais são as emendas parlamentares mais atípicas pagas no último mês?"*
 - [ ] **Fase 2: Geração Dinâmica (Cronjob LLM)**
   - Criar um script rodando via GitHub Actions que, semanalmente, lê os *chunks* mais recentes injetados no Pinecone (ex: um novo projeto de lei polêmico) e gera dinamicamente 3 perguntas curiosas e provocativas sobre aquele assunto atual.
-- [ ] **Fase 3: Atualização de UI**
-  - Redesenhar os cards de sugestão no chat inicial, utilizando tipografia e ícones que instiguem o clique, removendo qualquer badge quantitativo numérico.
 
 ---
 
