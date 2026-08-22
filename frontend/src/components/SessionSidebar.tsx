@@ -1,5 +1,5 @@
 import React from 'react';
-import { Plus, Trash2, FileText } from 'lucide-react';
+import { Plus, Trash2, FileText, ZoomIn, ZoomOut } from 'lucide-react';
 import { useChatStore, MAX_SESSIONS } from '../store/useChatStore';
 
 export const SessionSidebar: React.FC = () => {
@@ -11,6 +11,9 @@ export const SessionSidebar: React.FC = () => {
     closeSession,
     clearActiveSession,
     clearAllSessions,
+    fontSize,
+    increaseFontSize,
+    decreaseFontSize,
     sendMessageStream,
     isLoading
   } = useChatStore();
@@ -67,6 +70,30 @@ export const SessionSidebar: React.FC = () => {
       </div>
 
       <div className="sidebar-actions">
+        {/* Controle de Zoom de Fonte Acima do Botão de Resumo */}
+        <div className="zoom-control-box" title="Ajustar tamanho do texto das sessões">
+          <span className="zoom-title">ZOOM TEXTO</span>
+          <div className="zoom-actions-row">
+            <button
+              className="zoom-btn"
+              onClick={decreaseFontSize}
+              disabled={fontSize <= 11}
+              title="Diminuir fonte (-)"
+            >
+              <ZoomOut size={12} />
+            </button>
+            <span className="zoom-display-val">{fontSize}px</span>
+            <button
+              className="zoom-btn"
+              onClick={increaseFontSize}
+              disabled={fontSize >= 20}
+              title="Aumentar fonte (+)"
+            >
+              <ZoomIn size={12} />
+            </button>
+          </div>
+        </div>
+
         <button
           className="sidebar-btn"
           onClick={() => sendMessageStream("Resuma nossa conversa em no máximo 1 tweet (280 caracteres).")}

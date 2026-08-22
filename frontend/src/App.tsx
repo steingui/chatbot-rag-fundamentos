@@ -12,6 +12,7 @@ export default function App() {
     input,
     setInput,
     isLoading,
+    fontSize,
     fetchSuggestions,
     sendMessageStream
   } = useChatStore();
@@ -21,6 +22,10 @@ export default function App() {
   useEffect(() => {
     fetchSuggestions();
   }, [fetchSuggestions]);
+
+  useEffect(() => {
+    document.documentElement.style.setProperty('--chat-font-size', `${fontSize}px`);
+  }, [fontSize]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();

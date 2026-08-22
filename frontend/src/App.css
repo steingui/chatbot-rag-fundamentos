@@ -217,6 +217,63 @@ body {
   box-shadow: 0 0 8px rgba(255, 71, 87, 0.3);
 }
 
+/* ── ZOOM CONTROL BAR ────────────────── */
+.zoom-control-box {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 0.45rem 0.65rem;
+}
+
+.zoom-title {
+  font-size: 0.58rem;
+  font-weight: 700;
+  color: var(--muted);
+  letter-spacing: 0.08em;
+}
+
+.zoom-actions-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.zoom-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  color: var(--text);
+  cursor: pointer;
+  transition: var(--transition);
+  padding: 0;
+}
+
+.zoom-btn:hover:not(:disabled) {
+  border-color: var(--accent);
+  color: var(--accent);
+  background: var(--accent-dim);
+}
+
+.zoom-btn:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+.zoom-display-val {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--accent);
+  font-family: inherit;
+}
+
 .sidebar-footer {
   display: flex;
   align-items: center;

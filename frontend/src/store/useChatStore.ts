@@ -78,6 +78,7 @@ interface ChatState {
   selectedModel: string;
   isLoading: boolean;
   suggestions: SuggestionItem[];
+  fontSize: number;
   
   // Actions
   setInput: (input: string) => void;
@@ -87,6 +88,9 @@ interface ChatState {
   closeSession: (idx: number) => void;
   clearActiveSession: () => void;
   clearAllSessions: () => void;
+  increaseFontSize: () => void;
+  decreaseFontSize: () => void;
+  resetFontSize: () => void;
   setSuggestions: (suggestions: SuggestionItem[]) => void;
   fetchSuggestions: () => Promise<void>;
   sendMessageStream: (queryText: string) => Promise<void>;
@@ -209,6 +213,29 @@ export const useChatStore = create<ChatState>((set, get) => ({
       activeIdx: 0,
       input: ''
     });
+  },
+
+  fontSize: Number(typeof localStorage !== 'undefined' ? localStorage.getItem('rag_chat_fontsize') || 14 : 14),
+
+  increaseFontSize: () => {
+    const current = get().fontSize;
+    if (current >= 20) return;
+    const next = Math.min(20, current + 1);
+    set({ fontSize: next });
+    try { localStorage.setItem('rag_chat_fontsize', String(next)); } catch {}
+  },
+
+  decreaseFontSize: () => {
+    const current = get().fontSize;
+    if (current <= 11) return;
+    const next = Math.max(11, current - 1);
+    set({ fontSize: next });
+    try { localStorage.setItem('rag_chat_fontsize', String(next)); } catch {}
+  },
+
+  resetFontSize: () => {
+    set({ fontSize: 14 });
+    try { localStorage.setItem('rag_chat_fontsize', '14'); } catch {}
   },
 
   setSuggestions: (suggestions) => set({ suggestions }),
