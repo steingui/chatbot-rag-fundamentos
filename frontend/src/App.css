@@ -418,7 +418,7 @@ body {
   padding: 0.5rem 0.6rem;
   color: var(--text);
   font-family: inherit;
-  font-size: 0.50rem;
+  font-size: 0.85rem;
   cursor: pointer;
   text-align: left;
   transition: var(--transition);
@@ -445,7 +445,7 @@ body {
   background: rgba(255, 189, 46, 0.12);
   border: 1px solid rgba(255, 189, 46, 0.35);
   color: #ffbd2e;
-  font-size: 0.55rem;
+  font-size: 0.75rem;
   font-weight: 700;
   padding: 0.1rem 0.35rem;
   border-radius: 4px;
