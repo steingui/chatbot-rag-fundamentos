@@ -65,26 +65,51 @@ def init_components():
     _llm = primary_llm.with_fallbacks([fallback_1, fallback_2])
 
 
+def _clean_url(url: str) -> str:
+    """Remove parâmetros de rastreamento (UTM, etc.) mantendo a URL limpa."""
+    return re.sub(r'(\?|&)utm_[^&]+', '', url).rstrip('?&')
+
+
 def _buscar_noticias_web(query: str, session_id: str = "default") -> tuple[str, list[Document]]:
-    """Recupera notícias e dados da web diretamente via DDGS.text (sem endpoints quebrados da wikipedia)."""
+    """Recupera notícias e dados da web via DDGS (Text + News fallback) com timeout de 5s e região Brasil."""
     sources = []
     formatted_results = []
+    
     try:
         from ddgs import DDGS
-        with DDGS() as ddgs:
-            results = list(ddgs.text(query, max_results=4))
+        results = []
+        
+        # Estratégia 1: Busca de texto otimizada para o Brasil
+        with DDGS(timeout=5) as ddgs:
+            try:
+                results = list(ddgs.text(query, region="br-pt", max_results=5))
+            except Exception as txt_err:
+                logging.debug(f"Falha no modo texto DDGS, tentando aba notícias: {txt_err}")
+                
+            # Estratégia 2: Fallback para Notícias se a busca textual não trouxer resultados
+            if not results:
+                try:
+                    results = list(ddgs.news(query, region="br-pt", max_results=5))
+                except Exception as news_err:
+                    logging.debug(f"Falha no modo notícias DDGS: {news_err}")
+
+            # Processamento e deduplicação
+            seen_urls = set()
             for item in results:
-                title = item.get("title", "")
-                href = item.get("href", "")
-                snippet = item.get("body", "")
-                if href:
+                title = item.get("title", "").strip()
+                href = _clean_url(item.get("href", item.get("url", "")).strip())
+                snippet = item.get("body", item.get("excerpt", "")).strip()
+                
+                if href and href not in seen_urls:
+                    seen_urls.add(href)
                     sources.append(Document(page_content=f"{title}: {snippet}", metadata={"source": href}))
                     formatted_results.append(f"[Título: {title} | Fonte Web: {href}]\n{snippet}")
 
         results_str = "\n\n".join(formatted_results) if formatted_results else "Nenhuma notícia relevante encontrada na web."
         return results_str, sources
+
     except Exception as e:
-        logging.warning(f"Aviso no DuckDuckGo (Web Search): {e}")
+        logging.warning(f"Aviso na busca Web (DDGS): {e}")
         return "Notícias recentes da web indisponíveis no momento.", []
 
 
@@ -112,7 +137,7 @@ class MultiSourceAgentChain:
             logging.error(f"Erro ao consultar Pinecone: {e}")
             pinecone_context = "Falha ao consultar a base interna."
 
-        # 2. Recupera fatos recentes da Web (DuckDuckGo direto)
+        # 2. Recupera fatos recentes da Web (DDGS BR com fallback)
         web_context, web_sources = _buscar_noticias_web(question, self.session_id)
         sources.extend(web_sources)
 
@@ -127,7 +152,7 @@ REGRA CRÍTICA:
 --- DADOS DA BASE INTERNA (Câmara/Senado/TSE/CGU/Checagens): ---
 {pinecone_context}
 
---- DADOS RECENTES DA WEB (DuckDuckGo): ---
+--- DADOS RECENTES DA WEB (DuckDuckGo BR): ---
 {web_context}
 
 --- PERGUNTA DO USUÁRIO: ---
