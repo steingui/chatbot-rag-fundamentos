@@ -1,0 +1,39 @@
+name: Geração de Prompts Dinâmicos (Cronjob LLM)
+
+on:
+  schedule:
+    - cron: '0 8 * * 1' # Toda segunda-feira às 08:00 UTC
+  workflow_dispatch: # Permite execução manual
+
+jobs:
+  generate-prompts:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Gerar Prompts Dinâmicos
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+          PINECONE_API_KEY: ${{ secrets.PINECONE_API_KEY }}
+          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+        run: |
+          cd pipelines/ingestion
+          python generate_dynamic_prompts.py --output ../../backend/api/curated_prompts.json
+          
+      - name: Commit e Push caso haja mudanças
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git add backend/api/curated_prompts.json
+          git commit -m "chore(ux): atualiza sugestões dinâmicas via cronjob LLM" || echo "Nenhuma mudança para commitar"
+          git push
