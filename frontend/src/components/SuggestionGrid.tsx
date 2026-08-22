@@ -2,9 +2,9 @@ import React from 'react';
 import { useChatStore } from '../store/useChatStore';
 
 export const SuggestionGrid: React.FC = () => {
-  const { suggestions, sendMessageStream, isLoading } = useChatStore();
+  const { suggestions, showSuggestions, sendMessageStream, isLoading } = useChatStore();
 
-  if (!suggestions || suggestions.length === 0) return null;
+  if (!suggestions || suggestions.length === 0 || !showSuggestions) return null;
 
   return (
     <div className="suggestions-container">

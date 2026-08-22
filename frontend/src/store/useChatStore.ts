@@ -84,6 +84,7 @@ interface ChatState {
   selectedModel: string;
   isLoading: boolean;
   suggestions: SuggestionItem[];
+  showSuggestions: boolean;
   fontSize: number;
   
   // Actions
@@ -98,6 +99,7 @@ interface ChatState {
   decreaseFontSize: () => void;
   resetFontSize: () => void;
   setSuggestions: (suggestions: SuggestionItem[]) => void;
+  setShowSuggestions: (show: boolean) => void;
   fetchSuggestions: () => Promise<void>;
   sendMessageStream: (queryText: string) => Promise<void>;
 }
@@ -141,6 +143,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
   input: '',
   selectedModel: FREE_MODELS[0].id,
   isLoading: false,
+  showSuggestions: true,
   suggestions: [
     { prompt: 'Qual é a correlação entre as empresas que mais doaram no TSE e os maiores contratos no Portal da Transparência?' },
     { prompt: 'Liste os parlamentares que mais mudaram de voto em pautas ambientais nos últimos 4 anos.' },
@@ -150,6 +153,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
 
   setInput: (input) => set({ input }),
   setSelectedModel: (selectedModel) => set({ selectedModel }),
+  setShowSuggestions: (showSuggestions) => set({ showSuggestions }),
   setActiveIdx: (activeIdx) => set({ activeIdx }),
 
   addSession: () => {

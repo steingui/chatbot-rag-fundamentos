@@ -5,7 +5,7 @@ import { useChatStore, formatMarkdown, formatTime } from '../store/useChatStore'
 import { SourceBadges } from './SourceBadges';
 
 export const MessageList: React.FC = () => {
-  const { sessions, activeIdx, isLoading, selectedModel } = useChatStore();
+  const { sessions, activeIdx, isLoading, selectedModel, setShowSuggestions } = useChatStore();
   const currentSession = sessions[activeIdx];
   const messages = currentSession?.messages || [];
 
@@ -25,6 +25,7 @@ export const MessageList: React.FC = () => {
   const parentRef = useRef<HTMLDivElement>(null);
   const [isAutoScrollEnabled, setIsAutoScrollEnabled] = React.useState(true);
   const prevMessagesLength = useRef(messages.length);
+  const prevScrollTop = useRef(0);
 
   const virtualizer = useVirtualizer({
     count: messages.length,
@@ -37,6 +38,14 @@ export const MessageList: React.FC = () => {
     const { scrollTop, scrollHeight, clientHeight } = e.currentTarget;
     const isBottom = Math.abs(scrollHeight - clientHeight - scrollTop) < 100;
     setIsAutoScrollEnabled(isBottom);
+    
+    // Ocultar sugestões ao rolar para baixo, mostrar ao rolar para cima
+    if (scrollTop > prevScrollTop.current && scrollTop > 50) {
+      setShowSuggestions(false);
+    } else if (scrollTop < prevScrollTop.current) {
+      setShowSuggestions(true);
+    }
+    prevScrollTop.current = scrollTop;
   };
 
   // Auto-scroll condicional: sempre rola em nova mensagem, ou se o usuário estiver no fim
