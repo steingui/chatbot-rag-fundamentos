@@ -29,39 +29,37 @@ export default function App() {
   };
 
   return (
-    <div className="app-container">
+    <div className="layout">
       <SessionSidebar />
 
-      <main className="main-content">
+      <main className="chat-panel">
         <ChatHeader />
         <SuggestionGrid />
         <MessageList />
 
-        <footer className="chat-footer">
+        <footer className="input-area">
           <form onSubmit={handleSubmit} className="input-form">
-            <div className="input-wrapper">
-              <span className="prompt-symbol">&gt;</span>
-              <input
-                ref={inputRef}
-                type="text"
-                className="chat-input"
-                placeholder="Pergunte sobre PECs, projetos de lei, votações ou checagens..."
-                value={input}
-                onChange={(e) => setInput(e.target.value)}
-                disabled={isLoading}
-              />
-              <button
-                type="submit"
-                className="send-btn"
-                disabled={!input.trim() || isLoading}
-              >
-                {isLoading ? (
-                  <Loader2 size={16} className="spin-icon" />
-                ) : (
-                  <Send size={16} />
-                )}
-              </button>
-            </div>
+            <span className="input-prefix">&gt;</span>
+            <input
+              ref={inputRef}
+              type="text"
+              className="chat-input"
+              placeholder="Pergunte sobre PECs, projetos de lei, votações ou checagens..."
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              disabled={isLoading}
+            />
+            <button
+              type="submit"
+              className="send-btn"
+              disabled={!input.trim() || isLoading}
+            >
+              {isLoading ? (
+                <Loader2 size={16} className="spin-icon spin" />
+              ) : (
+                <Send size={16} />
+              )}
+            </button>
           </form>
         </footer>
       </main>

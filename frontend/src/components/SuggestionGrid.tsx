@@ -7,8 +7,8 @@ export const SuggestionGrid: React.FC = () => {
   if (!suggestions || suggestions.length === 0) return null;
 
   return (
-    <div className="suggestions-bar">
-      <span className="suggestions-label">SUGESTÕES POPULARES:</span>
+    <div className="suggestions-block">
+      <span className="suggestions-title">SUGESTÕES POPULARES:</span>
       <div className="suggestions-grid">
         {suggestions.slice(0, 4).map((sug, i) => (
           <button
@@ -18,7 +18,7 @@ export const SuggestionGrid: React.FC = () => {
             disabled={isLoading}
           >
             <span className="suggestion-text">{sug.prompt}</span>
-            <span className="suggestion-count-badge">{sug.count}x</span>
+            <span className="suggestion-badge">{sug.count}x</span>
           </button>
         ))}
       </div>

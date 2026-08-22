@@ -26,7 +26,7 @@ export const MessageList: React.FC = () => {
   }, [messages.length, messages[messages.length - 1]?.content, virtualizer]);
 
   return (
-    <div className="chat-messages" ref={parentRef}>
+    <div className="messages-area" ref={parentRef}>
       <div
         style={{
           height: `${virtualizer.getTotalSize()}px`,
