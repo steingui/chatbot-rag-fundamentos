@@ -30,10 +30,10 @@ Este documento estabelece o plano estratégico de evolução da infraestrutura d
 
 | Item | Descrição & Ação Técnica | Prioridade | Status |
 | :--- | :--- | :---: | :---: |
-| **Retriever Híbrido (Dense + BM25)** | Combinar a busca vetorial densa do Pinecone com busca lexical esparsa (BM25 / Hybrid Search) para melhorar a precisão em termos técnicos e números de proposições legislativas. | `Alta` | ⏳ Pendente |
-| **Worker Assíncrono de Ingestão** | Separar o pipeline de raspagem e atualização semanal de dados em um serviço de background com Celery/Redis ou GitHub Actions distribuído. | `Média` | ⏳ Pendente |
-| **Multi-Provider Fallback Dynamic** | Expandir o orquestrador de resiliência a erros 429/500 para alternar dinamicamente entre OpenRouter, Groq e Ollama local caso haja indisponibilidade na rede. | `Média` | ⏳ Pendente |
-| **Docker Multi-Stage Build** | Otimizar a imagem Docker do backend reduzindo o tamanho final da imagem base com `python:3.11-slim`, desativando cache do pip e separando dependências de dev. | `Média` | ⏳ Pendente |
+| **Retriever Híbrido (Dense + BM25)** | Combinar a busca vetorial densa do Pinecone com busca lexical esparsa (BM25 / Hybrid Search) para melhorar a precisão em termos técnicos e números de proposições legislativas. | `Alta` | ✅ Concluído |
+| **Worker Assíncrono de Ingestão** | Separar o pipeline de raspagem e atualização semanal de dados em um serviço de background com Celery/Redis ou GitHub Actions distribuído. | `Média` | ✅ Concluído |
+| **Multi-Provider Fallback Dynamic** | Expandir o orquestrador de resiliência a erros 429/500 para alternar dinamicamente entre OpenRouter, Groq e Ollama local caso haja indisponibilidade na rede. | `Média` | ✅ Concluído |
+| **Docker Multi-Stage Build** | Otimizar a imagem Docker do backend reduzindo o tamanho final da imagem base com `python:3.11-slim`, desativando cache do pip e separando dependências de dev. | `Média` | ✅ Concluído |
 
 ---
 
@@ -41,6 +41,6 @@ Este documento estabelece o plano estratégico de evolução da infraestrutura d
 
 | Item | Descrição & Ação Técnica | Prioridade | Status |
 | :--- | :--- | :---: | :---: |
-| **Suíte de Testes com Pytest** | Criar testes automatizados com `pytest` e `pytest-asyncio`, mockando chamadas externas ao Pinecone e OpenRouter para garantir estabilidade dos endpoints no CI/CD. | `Alta` | ⏳ Pendente |
+| **Suíte de Testes com Pytest** | Criar testes automatizados com `pytest` e `pytest-asyncio`, mockando chamadas externas ao Pinecone e OpenRouter para garantir estabilidade dos endpoints no CI/CD. | `Alta` | ✅ Concluído |
 | **Observabilidade (Sentry & OpenTelemetry)** | Integrar `Sentry` para rastreamento de exceções em tempo real e `Prometheus`/`OpenTelemetry` para monitorar latência de inferência e saúde dos retrievers. | `Média` | ⏳ Pendente |
 | **Documentação Interativa OpenAPI** | Enriquecer as descrições dos schemas Pydantic e respostas de erro na documentação Swagger (`/docs`) e ReDoc (`/redoc`). | `Baixa` | ⏳ Pendente |

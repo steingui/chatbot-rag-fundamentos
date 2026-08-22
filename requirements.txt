@@ -13,3 +13,4 @@ requests
 duckduckgo-search
 ddgs
 slowapi
+rank-bm25
