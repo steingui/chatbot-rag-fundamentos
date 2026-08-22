@@ -103,7 +103,7 @@ class ChatResponse(BaseModel):
 
 class SuggestionItem(BaseModel):
     prompt: str
-    count: int
+    count: Optional[int] = Field(default=0)
 
 
 class SuggestionsResponse(BaseModel):

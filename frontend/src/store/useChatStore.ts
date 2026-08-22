@@ -17,7 +17,7 @@ export const FREE_MODELS = [
 
 export type SuggestionItem = {
   prompt: string;
-  count: number;
+  count?: number;
 };
 
 export type Source = {
@@ -142,14 +142,10 @@ export const useChatStore = create<ChatState>((set, get) => ({
   selectedModel: FREE_MODELS[0].id,
   isLoading: false,
   suggestions: [
-    { prompt: 'Quais senadores mais utilizaram a cota parlamentar (CEAPS)?', count: 32 },
-    { prompt: 'Qual o resultado da votação 2580259-24 na Câmara dos Deputados?', count: 28 },
-    { prompt: 'Quais os gastos da senadora Damares Alves na cota CEAPS?', count: 25 },
-    { prompt: 'O que diz a checagem sobre o golpe da lista de CPFs com indenização de R$ 5 mil?', count: 21 },
-    { prompt: 'Quais os detalhes da execução orçamentária da Emenda PIX nº 202581000001?', count: 19 },
-    { prompt: 'Como votaram os senadores na votação do PLP 204 no Senado?', count: 16 },
-    { prompt: 'Quais senadores tiveram reembolso de despesas de consumo no Senado em 2025?', count: 14 },
-    { prompt: 'Como o deputado Carlos Zarattini votou na votação 2580259-24?', count: 12 }
+    { prompt: 'Qual é a correlação entre as empresas que mais doaram no TSE e os maiores contratos no Portal da Transparência?' },
+    { prompt: 'Liste os parlamentares que mais mudaram de voto em pautas ambientais nos últimos 4 anos.' },
+    { prompt: 'Quais são as emendas parlamentares mais atípicas pagas no último mês?' },
+    { prompt: 'Quais senadores mais utilizaram a cota parlamentar (CEAPS) nos últimos 6 meses?' },
   ],
 
   setInput: (input) => set({ input }),

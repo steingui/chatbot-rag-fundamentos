@@ -1,77 +1,30 @@
 import os
-import sqlite3
+import random
 import logging
-import difflib
 from typing import List, Dict
 
-DB_PATH = os.environ.get("ANALYTICS_DB_PATH", os.path.join(os.path.dirname(__file__), "analytics.db"))
-
-INITIAL_SEEDS = [
-    ("Quais senadores mais utilizaram a cota parlamentar (CEAPS)?", 32, "senado"),
-    ("Qual o resultado da votação 2580259-24 na Câmara dos Deputados?", 28, "camara"),
-    ("Quais os gastos da senadora Damares Alves na cota CEAPS?", 25, "senado"),
-    ("O que diz a checagem sobre o golpe da lista de CPFs com indenização de R$ 5 mil?", 21, "fact-checking"),
-    ("Quais os detalhes da execução orçamentária da Emenda PIX nº 202581000001?", 19, "transparencia"),
-    ("Como votaram os senadores na votação do PLP 204 no Senado?", 16, "senado"),
-    ("Quais senadores tiveram reembolso de despesas de consumo no Senado em 2025?", 14, "senado"),
-    ("Como o deputado Carlos Zarattini votou na votação 2580259-24?", 12, "camara"),
+# Fase 1: Prompts provocativos elaborados manualmente
+CURATED_PROMPTS = [
+    "Qual é a correlação entre as empresas que mais doaram no TSE e os maiores contratos no Portal da Transparência?",
+    "Liste os parlamentares que mais mudaram de voto em pautas ambientais nos últimos 4 anos.",
+    "Quais são as emendas parlamentares mais atípicas pagas no último mês?",
+    "Quais senadores mais utilizaram a cota parlamentar (CEAPS) nos últimos 6 meses?",
+    "Houve alguma ligação entre as votações recentes de desoneração fiscal e o plano de governo eleito?",
+    "Quais propostas na Câmara dos Deputados mais divergem dos dados de execução orçamentária do Portal da Transparência?",
+    "O que diz a base de fact-checking sobre fraudes eleitorais recentes e as falas na CPI das urnas?",
+    "Há casos recentes de empresas recém-criadas recebendo grandes repasses da União via CGU?"
 ]
 
+def get_top_suggestions(limit: int = 4) -> List[Dict]:
+    """Fase 1: Retorna N iscas curiosas aleatórias (sem contadores)."""
+    limit = max(1, min(int(limit), len(CURATED_PROMPTS)))
+    selected = random.sample(CURATED_PROMPTS, limit)
+    # A estrutura atual do frontend esperava Dict com "prompt" e opcional "count" (agora obsoleto)
+    return [{"prompt": p} for p in selected]
 
-def get_db_connection():
-    conn = sqlite3.connect(DB_PATH)
-    conn.row_factory = sqlite3.Row
-    return conn
-
-
-def init_analytics_db():
-    """Inicializa a tabela sqlite e popula seeds iniciais se o banco tiver menos que as sementes padrão."""
-    os.makedirs(os.path.dirname(DB_PATH), exist_ok=True)
-    with get_db_connection() as conn:
-        cursor = conn.cursor()
-        cursor.execute("""
-            CREATE TABLE IF NOT EXISTS query_stats (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                canonical_prompt TEXT UNIQUE NOT NULL,
-                count INTEGER DEFAULT 1,
-                category TEXT DEFAULT 'geral',
-                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-            );
-        """)
-        
-        # Popula ou completa sementes iniciais se faltarem itens
-        for prompt, count, category in INITIAL_SEEDS:
-            cursor.execute(
-                "INSERT INTO query_stats (canonical_prompt, count, category) VALUES (?, ?, ?) ON CONFLICT(canonical_prompt) DO NOTHING",
-                (prompt, count, category)
-            )
-        conn.commit()
-
-
-def get_top_suggestions(limit: int = 8) -> List[Dict]:
-    """Retorna as N consultas mais realizadas organizadas por contagem decrescente.
-    
-    SEC-007: Todas as queries DEVEM usar parameterized statements (?).
-    NUNCA interpolar variáveis diretamente em strings SQL.
-    """
-    # Validação defensiva do parâmetro
-    limit = max(1, min(int(limit), 50))
-    try:
-        init_analytics_db()
-        with get_db_connection() as conn:
-            cursor = conn.cursor()
-            cursor.execute(
-                "SELECT canonical_prompt, count FROM query_stats ORDER BY count DESC, updated_at DESC LIMIT ?",
-                (limit,)
-            )
-            rows = cursor.fetchall()
-            return [{"prompt": row["canonical_prompt"], "count": row["count"]} for row in rows]
-    except Exception as e:
-        logging.error(f"Erro ao buscar sugestões no SQLite: {e}")
-        return [
-            {"prompt": prompt, "count": count} for prompt, count, _ in INITIAL_SEEDS[:limit]
-        ]
-
+def record_query(query: str):
+    """(Obsoleto) - Função mantida vazia provisoriamente para não quebrar background_tasks do main.py."""
+    pass
 
 def _canonizar_via_llm(raw_query: str) -> str:
     """Utiliza LLM leve para formatar uma nova pergunta no padrão perfeito de título/sugestão."""

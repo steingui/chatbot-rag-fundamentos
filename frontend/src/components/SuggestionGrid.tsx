@@ -18,7 +18,6 @@ export const SuggestionGrid: React.FC = () => {
             disabled={isLoading}
           >
             <span className="suggestion-card-text">{sug.prompt}</span>
-            <span className="suggestion-card-count">{sug.count}x</span>
           </button>
         ))}
       </div>
