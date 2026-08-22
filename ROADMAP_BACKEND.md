@@ -19,9 +19,9 @@ Este documento estabelece o plano estratégico de evolução da infraestrutura d
 
 | Item | Descrição & Ação Técnica | Prioridade | Status |
 | :--- | :--- | :---: | :---: |
-| **Cache Semanticamente Similar** | Implementar cache semântico em Redis (via `GPTCache` ou similar) para retornar respostas de perguntas frequentes sem refazer inferências na LLM e consultas no Pinecone. | `Alta` | ⏳ Pendente |
-| **Persistência Externa (PostgreSQL)** | Migrar o banco local `analytics.db` (SQLite) para um serviço gerenciado (Supabase/Neon/PostgreSQL) garantindo persistência duradoura dos contadores entre deploys no Render. | `Alta` | ⏳ Pendente |
-| **Assincronismo Nativo (Async/Await)** | Refatorar endpoints do FastAPI e chamadas do DuckDuckGo/Pinecone para utilizar `async def` e requisições assíncronas com `httpx`, evitando travamentos do evento principal do Uvicorn. | `Alta` | ⏳ Pendente |
+| **Cache Semanticamente Similar** | Implementar cache semântico em Redis (via `GPTCache` ou similar) para retornar respostas de perguntas frequentes sem refazer inferências na LLM e consultas no Pinecone. | `Alta` | ✅ Concluído |
+| **Persistência Externa (PostgreSQL)** | Migrar o banco local `analytics.db` (SQLite) para um serviço gerenciado (Supabase/Neon/PostgreSQL) garantindo persistência duradoura dos contadores entre deploys no Render. | `Alta` | ✅ Concluído |
+| **Assincronismo Nativo (Async/Await)** | Refatorar endpoints do FastAPI e chamadas do DuckDuckGo/Pinecone para utilizar `async def` e requisições assíncronas com `httpx`, evitando travamentos do evento principal do Uvicorn. | `Alta` | ✅ Concluído |
 | **Compressão e Resposta Gzip** | Adicionar `GZipMiddleware` no FastAPI para reduzir o tamanho dos payloads transmitidos nas consultas legislativas extensas. | `Baixa` | ⏳ Pendente |
 
 ---

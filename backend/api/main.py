@@ -12,6 +12,7 @@ from slowapi.errors import RateLimitExceeded
 from fastapi import Request
 
 from backend.rag.chat import init_components, get_rag_chain
+from backend.rag.cache import global_rag_cache
 from backend.api.analytics import get_top_suggestions, record_query
 from backend.api.guardrails import validate_and_sanitize_query
 
@@ -134,9 +135,16 @@ def parse_source_name(raw_source: str) -> SourceObject:
             url="https://divulgacandcontas.tse.jus.br/",
             raw_file=raw_source
         )
-    elif "tse_plano" in raw_source or "pdf" in raw_source.lower():
+    elif "proposicao" in raw_source.lower() or "camara" in raw_source.lower():
         return SourceObject(
-            type="TSE - DivulgaCand",
+            type="Dados Oficiais",
+            label="Câmara dos Deputados",
+            url="https://www.camara.leg.br/",
+            raw_file=raw_source
+        )
+    elif "plano_governo" in raw_source.lower() or "tse" in raw_source.lower():
+        return SourceObject(
+            type="Dados Oficiais",
             label="Plano de Governo",
             url="https://divulgacandcontas.tse.jus.br/",
             raw_file=raw_source
@@ -152,9 +160,15 @@ def parse_source_name(raw_source: str) -> SourceObject:
 
 @app.post("/chat", response_model=ChatResponse)
 @limiter.limit("30/minute")
-def chat(request: Request, body: ChatRequest, background_tasks: BackgroundTasks):
+async def chat(request: Request, body: ChatRequest, background_tasks: BackgroundTasks):
     try:
         query = validate_and_sanitize_query(body.query)
+        cached = global_rag_cache.get(query, body.model)
+        if cached:
+            background_tasks.add_task(record_query, query)
+            sources = [SourceObject(**s) for s in cached.get("sources", [])]
+            return ChatResponse(answer=cached.get("answer", ""), sources=sources)
+
         ensure_initialized()
         background_tasks.add_task(record_query, query)
         rag_chain = get_rag_chain(body.session_id, model_name=body.model)
@@ -171,6 +185,8 @@ def chat(request: Request, body: ChatRequest, background_tasks: BackgroundTasks)
                 if key not in seen_keys:
                     seen_keys.add(key)
                     structured_sources.append(source_obj)
+        
+        global_rag_cache.set(query, {"answer": response["answer"], "sources": [s.model_dump() for s in structured_sources]}, body.model)
         return ChatResponse(answer=response["answer"], sources=structured_sources)
     except HTTPException:
         raise
@@ -184,15 +200,29 @@ from fastapi.responses import StreamingResponse
 
 @app.post("/chat/stream")
 @limiter.limit("30/minute")
-def chat_stream(request: Request, body: ChatRequest, background_tasks: BackgroundTasks):
+async def chat_stream(request: Request, body: ChatRequest, background_tasks: BackgroundTasks):
     try:
         query = validate_and_sanitize_query(body.query)
+        cached = global_rag_cache.get(query, body.model)
+        
+        if cached:
+            background_tasks.add_task(record_query, query)
+            def cached_event_generator():
+                payload_src = {"type": "sources", "sources": cached.get("sources", [])}
+                yield f"data: {json.dumps(payload_src, ensure_ascii=False)}\n\n"
+                payload_tok = {"type": "token", "token": cached.get("answer", "")}
+                yield f"data: {json.dumps(payload_tok, ensure_ascii=False)}\n\n"
+                yield "data: [DONE]\n\n"
+            return StreamingResponse(cached_event_generator(), media_type="text/event-stream")
+
         ensure_initialized()
         background_tasks.add_task(record_query, query)
         rag_chain = get_rag_chain(body.session_id, model_name=body.model)
 
         def event_generator():
             try:
+                full_tokens = []
+                cached_sources = []
                 for item in rag_chain.stream({"question": query}):
                     if item.get("type") == "sources":
                         seen_keys = set()
@@ -204,11 +234,16 @@ def chat_stream(request: Request, body: ChatRequest, background_tasks: Backgroun
                             if key not in seen_keys:
                                 seen_keys.add(key)
                                 structured_sources.append(source_obj.model_dump())
+                        cached_sources = structured_sources
                         payload = {"type": "sources", "sources": structured_sources}
                         yield f"data: {json.dumps(payload, ensure_ascii=False)}\n\n"
                     elif item.get("type") == "token":
-                        payload = {"type": "token", "token": item.get("token")}
+                        token = item.get("token", "")
+                        full_tokens.append(token)
+                        payload = {"type": "token", "token": token}
                         yield f"data: {json.dumps(payload, ensure_ascii=False)}\n\n"
+                
+                global_rag_cache.set(query, {"answer": "".join(full_tokens), "sources": cached_sources}, body.model)
                 yield "data: [DONE]\n\n"
             except Exception as stream_err:
                 logging.error(f"Erro no event_generator: {stream_err}")
@@ -222,4 +257,3 @@ def chat_stream(request: Request, body: ChatRequest, background_tasks: Backgroun
     except Exception as e:
         logging.error(f"Erro no chat_stream: {e}")
         raise HTTPException(status_code=500, detail=str(e))
-
