@@ -1,0 +1,50 @@
+name: Monitoramento Autônomo e Auto-Cura de Ingestões
+
+on:
+  schedule:
+    - cron: '0 7 * * *' # Executa diariamente às 07:00 UTC
+  workflow_dispatch:
+
+jobs:
+  monitor-and-heal:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      actions: read
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Install Dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install requests pinecone-client sentence-transformers langchain-pinecone langchain-huggingface python-dotenv
+
+      - name: Run Monitor & Heal Audit
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PINECONE_API_KEY: ${{ secrets.PINECONE_API_KEY }}
+          PINECONE_INDEX_NAME: ${{ secrets.PINECONE_INDEX_NAME }}
+        run: python pipelines/ingestion/monitor_and_heal.py
+
+      - name: Re-Ingest Fixed Documents to Pinecone
+        env:
+          PINECONE_API_KEY: ${{ secrets.PINECONE_API_KEY }}
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+          PINECONE_INDEX_NAME: ${{ secrets.PINECONE_INDEX_NAME }}
+        run: python pipelines/ingestion/pinecone_ingestor.py
+
+      - name: Auto-Commit Data Quality & Health Fixes
+        uses: stefanzweifel/git-auto-commit-action@v5
+        with:
+          commit_message: "fix(ingestion): auto-heal data quality & pipeline health report [skip ci]"
+          branch: main
