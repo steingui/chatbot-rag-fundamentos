@@ -1,9 +1,17 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
-import { Send, Trash2, FileText, ExternalLink, Terminal, Loader2, Plus, MessageSquare } from 'lucide-react';
+import { Send, Trash2, FileText, ExternalLink, Terminal, Loader2, Plus, MessageSquare, Cpu } from 'lucide-react';
 import './App.css';
 
 const API_URL = import.meta.env.VITE_API_URL || 'https://chatbot-rag-api-q2k5.onrender.com/chat';
 const MAX_SESSIONS = 5;
+
+const FREE_MODELS = [
+  { id: 'nvidia/nemotron-3-nano-30b-a3b:free', label: 'nvidia/nemotron-30b · free' },
+  { id: 'meta-llama/llama-3.3-70b-instruct:free', label: 'llama-3.3-70b · free' },
+  { id: 'deepseek/deepseek-r1:free', label: 'deepseek-r1 · free' },
+  { id: 'google/gemini-2.0-flash-exp:free', label: 'gemini-2.0-flash · free' },
+  { id: 'qwen/qwen-2.5-72b-instruct:free', label: 'qwen-2.5-72b · free' }
+];
 
 const SUGGESTIONS = [
   'Resuma a PEC 45/2019 e a reforma tributária',
@@ -42,7 +50,7 @@ const makeSession = (index: number): Session => ({
   messages: [{
     id: 'init',
     role: 'bot',
-    content: `> Sessão ${index + 1} iniciada. Sistema conectado à Câmara dos Deputados, TSE e agências de fact-checking.\n\nComo posso te ajudar?`,
+    content: `> Sessão ${index + 1} iniciada. Sistema conectado à Câmara dos Deputados, Senado Federal, TSE e CGU.\n\nComo posso te ajudar?`,
     timestamp: new Date()
   }],
   createdAt: new Date()
@@ -64,6 +72,7 @@ export default function App() {
   const [sessions, setSessions] = useState<Session[]>([makeSession(0)]);
   const [activeIdx, setActiveIdx] = useState(0);
   const [input, setInput] = useState('');
+  const [selectedModel, setSelectedModel] = useState(FREE_MODELS[0].id);
   const [isLoading, setIsLoading] = useState(false);
   const [isSummarizing, setIsSummarizing] = useState(false);
 
@@ -85,11 +94,11 @@ export default function App() {
     setSessions(prev => prev.map((s, i) => i === idx ? updater(s) : s));
   }, []);
 
-  const sendToAPI = async (sessionId: string, query: string) => {
+  const sendToAPI = async (sessionId: string, query: string, model: string) => {
     const res = await fetch(API_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ session_id: sessionId, query })
+      body: JSON.stringify({ session_id: sessionId, query, model })
     });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     return res.json() as Promise<{ answer: string; sources: Source[] }>;
@@ -122,7 +131,7 @@ export default function App() {
     setIsLoading(true);
 
     try {
-      const data = await sendToAPI(sessions[capturedIdx].id, query);
+      const data = await sendToAPI(sessions[capturedIdx].id, query, selectedModel);
       const botMsg: Message = {
         id: (Date.now() + 1).toString(),
         role: 'bot',
@@ -132,18 +141,15 @@ export default function App() {
       };
       updateSession(capturedIdx, s => ({ ...s, messages: [...s.messages, botMsg] }));
     } catch {
-      updateSession(capturedIdx, s => ({
-        ...s,
-        messages: [...s.messages, {
-          id: (Date.now() + 1).toString(),
-          role: 'bot',
-          content: '> ERRO: Falha ao conectar com a API. Tente novamente.',
-          timestamp: new Date()
-        }]
-      }));
+      const errorMsg: Message = {
+        id: (Date.now() + 1).toString(),
+        role: 'bot',
+        content: '> **Erro de conexão**: Não foi possível consultar o backend. Tente novamente em instantes.',
+        timestamp: new Date()
+      };
+      updateSession(capturedIdx, s => ({ ...s, messages: [...s.messages, errorMsg] }));
     } finally {
       setIsLoading(false);
-      inputRef.current?.focus();
     }
   };
 
@@ -159,57 +165,52 @@ export default function App() {
     setActiveIdx(newIdx);
   };
 
-  const handleCloseSession = (idx: number) => {
-    if (sessions.length === 1) {
-      // Se é a última, reseta ela ao invés de fechar
-      setSessions([makeSession(0)]);
-      setActiveIdx(0);
-      return;
+  const handleCloseSession = (idxToClose: number) => {
+    if (sessions.length === 1) return;
+    setSessions(prev => prev.filter((_, i) => i !== idxToClose));
+    if (activeIdx >= idxToClose && activeIdx > 0) {
+      setActiveIdx(prev => prev - 1);
     }
-    setSessions(prev => prev.filter((_, i) => i !== idx));
-    setActiveIdx(prev => Math.min(prev, sessions.length - 2));
   };
 
   const handleClearContext = () => {
-    const newSess = makeSession(activeIdx);
-    newSess.label = activeSession.label; // mantém o label
-    updateSession(activeIdx, () => newSess);
-    inputRef.current?.focus();
+    const freshSession: Session = {
+      id: newSessionId(),
+      label: `Sessão ${activeIdx + 1}`,
+      messages: [{
+        id: 'init',
+        role: 'bot',
+        content: `> Contexto limpo. Nova sessão \`${activeSession.label}\` pronta.`,
+        timestamp: new Date()
+      }],
+      createdAt: new Date()
+    };
+    updateSession(activeIdx, () => freshSession);
   };
 
   const handleSummarize = async () => {
-    const userQueries = activeSession.messages
+    if (isSummarizing || activeSession.messages.length < 2) return;
+    setIsSummarizing(true);
+
+    const userQuestions = activeSession.messages
       .filter(m => m.role === 'user')
       .map(m => m.content)
-      .join(' | ');
-    if (!userQueries) return;
+      .join('; ');
 
-    setIsSummarizing(true);
-    const capturedIdx = activeIdx;
+    const promptText = `Resuma os principais pontos discutidos nesta sessão até agora. Tópicos abordados: ${userQuestions}`;
+
     try {
-      const data = await sendToAPI(
-        activeSession.id,
-        `Faça um resumo conciso em tópicos das perguntas e temas desta conversa: "${userQueries}"`
-      );
-      updateSession(capturedIdx, s => ({
-        ...s,
-        messages: [...s.messages, {
-          id: Date.now().toString(),
-          role: 'bot',
-          content: '📋 **Resumo da conversa:**\n\n' + data.answer,
-          timestamp: new Date()
-        }]
-      }));
+      const data = await sendToAPI(activeSession.id, promptText, selectedModel);
+      const summaryMsg: Message = {
+        id: Date.now().toString(),
+        role: 'bot',
+        content: `**📋 Resumo da Sessão (${activeSession.label}):**\n\n${data.answer}`,
+        sources: data.sources,
+        timestamp: new Date()
+      };
+      updateSession(activeIdx, s => ({ ...s, messages: [...s.messages, summaryMsg] }));
     } catch {
-      updateSession(capturedIdx, s => ({
-        ...s,
-        messages: [...s.messages, {
-          id: Date.now().toString(),
-          role: 'bot',
-          content: '> ERRO ao gerar resumo.',
-          timestamp: new Date()
-        }]
-      }));
+      // ignora erro no resumo
     } finally {
       setIsSummarizing(false);
     }
@@ -220,21 +221,20 @@ export default function App() {
       {/* SIDEBAR */}
       <aside className="sidebar">
         <div className="sidebar-logo">
-          <Terminal size={18} />
+          <Terminal size={18} className="accent" />
           <span>rag<span className="accent">_politico</span></span>
         </div>
 
-        {/* SESSIONS LIST */}
         <div className="sessions-section">
           <div className="sidebar-section-header">
-            <span className="sidebar-label">// sessões ({sessions.length}/{MAX_SESSIONS})</span>
+            <span className="sidebar-label">Sessões ({sessions.length}/{MAX_SESSIONS})</span>
             <button
               className="new-session-btn"
               onClick={handleNewSession}
               disabled={sessions.length >= MAX_SESSIONS}
-              title={sessions.length >= MAX_SESSIONS ? 'Limite de 5 sessões atingido' : 'Nova sessão'}
+              title="Nova Sessão"
             >
-              <Plus size={12} />
+              <Plus size={14} />
             </button>
           </div>
 
@@ -245,13 +245,15 @@ export default function App() {
                 className={`session-item ${idx === activeIdx ? 'active' : ''}`}
                 onClick={() => setActiveIdx(idx)}
               >
-                <MessageSquare size={11} className="session-icon" />
+                <MessageSquare size={12} className="session-icon" />
                 <span className="session-label">{sess.label}</span>
-                <button
-                  className="session-close"
-                  onClick={e => { e.stopPropagation(); handleCloseSession(idx); }}
-                  title="Fechar sessão"
-                >×</button>
+                {sessions.length > 1 && (
+                  <button
+                    className="session-close"
+                    onClick={e => { e.stopPropagation(); handleCloseSession(idx); }}
+                    title="Fechar sessão"
+                  >×</button>
+                )}
               </li>
             ))}
           </ul>
@@ -284,7 +286,22 @@ export default function App() {
             <span className="header-sep">$</span>
             <span>{activeSession.label}</span>
           </div>
-          <div className="model-badge">nvidia/nemotron-30b · free</div>
+
+          <div className="model-select-wrapper">
+            <Cpu size={13} className="accent" />
+            <select
+              className="model-select"
+              value={selectedModel}
+              onChange={e => setSelectedModel(e.target.value)}
+              title="Selecione o modelo OpenRouter Free Tier"
+            >
+              {FREE_MODELS.map(m => (
+                <option key={m.id} value={m.id}>
+                  {m.label}
+                </option>
+              ))}
+            </select>
+          </div>
         </header>
 
         <main className="messages-area">

@@ -258,14 +258,36 @@ body {
 .prompt-prefix { color: var(--accent); }
 .header-sep { color: var(--muted); }
 
-.model-badge {
-  font-size: 0.65rem;
-  color: var(--muted);
+.model-select-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.model-select {
+  font-family: inherit;
+  font-size: 0.68rem;
+  color: var(--accent);
   background: var(--surface-2);
   border: 1px solid var(--border);
   padding: 0.25rem 0.6rem;
   border-radius: 99px;
+  cursor: pointer;
+  outline: none;
+  transition: all 0.15s ease;
 }
+
+.model-select:hover, .model-select:focus {
+  border-color: var(--accent);
+  background: var(--accent-dim);
+}
+
+.model-select option {
+  background: var(--surface-2);
+  color: var(--text);
+  font-family: inherit;
+}
+
 
 /* ── MESSAGES ────────────────────────── */
 .messages-area {

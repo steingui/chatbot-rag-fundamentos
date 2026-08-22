@@ -3,6 +3,7 @@ from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 import logging
+import re
 from typing import Optional
 
 from backend.rag.chat import init_components, get_rag_chain
@@ -23,11 +24,12 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-import re
 
 class ChatRequest(BaseModel):
     session_id: Optional[str] = Field(default="default_session", description="ID da sessão do usuário")
     query: str
+    model: Optional[str] = Field(default=None, description="Modelo OpenRouter a ser utilizado")
+
 
 class SourceObject(BaseModel):
     type: str
@@ -35,11 +37,14 @@ class SourceObject(BaseModel):
     url: Optional[str] = None
     raw_file: str
 
+
 class ChatResponse(BaseModel):
     answer: str
     sources: list[SourceObject] = Field(default_factory=list, description="Lista estruturada de fontes")
 
+
 _rag_initialized = False
+
 
 def ensure_initialized():
     global _rag_initialized
@@ -48,9 +53,11 @@ def ensure_initialized():
         init_components()
         _rag_initialized = True
 
+
 @app.get("/")
 def read_root():
     return {"status": "ok", "message": "API RAG rodando no Render"}
+
 
 def parse_source_name(raw_source: str) -> SourceObject:
     if raw_source.startswith("http://") or raw_source.startswith("https://"):
@@ -65,7 +72,6 @@ def parse_source_name(raw_source: str) -> SourceObject:
             raw_file=raw_source
         )
     elif "votacao_" in raw_source:
-        # Puxa o ID da proposicao (ex: 2618177) do nome do arquivo
         match = re.search(r"votacao_(\d+)", raw_source)
         prop_id = match.group(1) if match else ""
         return SourceObject(
@@ -74,11 +80,25 @@ def parse_source_name(raw_source: str) -> SourceObject:
             url=f"https://www.camara.leg.br/proposicoesWeb/fichadetramitacao?idProposicao={prop_id}" if prop_id else None,
             raw_file=raw_source
         )
+    elif "senado" in raw_source.lower():
+        return SourceObject(
+            type="Senado Federal",
+            label="Matéria / Discurso",
+            url="https://legis.senado.leg.br/dadosabertos/docs/ui/",
+            raw_file=raw_source
+        )
+    elif "transparencia" in raw_source.lower() or "cgu" in raw_source.lower():
+        return SourceObject(
+            type="Portal da Transparência (CGU)",
+            label="Execução Orçamentária",
+            url="https://portaldatransparencia.gov.br/",
+            raw_file=raw_source
+        )
     elif "lupa" in raw_source.lower() or "aosfatos" in raw_source.lower():
         return SourceObject(
             type="Agência de Fact-Checking",
             label="Checagem de Fatos",
-            url="https://lupa.uol.com.br/", # Mock estático para frontend
+            url="https://lupa.uol.com.br/",
             raw_file=raw_source
         )
     elif "tse_bens" in raw_source:
@@ -103,11 +123,12 @@ def parse_source_name(raw_source: str) -> SourceObject:
             raw_file=raw_source
         )
 
+
 @app.post("/chat", response_model=ChatResponse)
 def chat(request: ChatRequest):
     try:
         ensure_initialized()
-        rag_chain = get_rag_chain(request.session_id)
+        rag_chain = get_rag_chain(request.session_id, model_name=request.model)
         response = rag_chain.invoke({"question": request.query})
         
         seen_files = set()

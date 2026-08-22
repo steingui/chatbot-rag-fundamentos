@@ -18,7 +18,6 @@ INDEX_NAME = os.environ.get("PINECONE_INDEX_NAME", "rag-fundamentos")
 _retriever = None
 _llm = None
 _session_agents = {}
-_session_sources = {}
 
 
 def init_components():
@@ -37,7 +36,7 @@ def init_components():
 
     api_key = os.environ.get("OPENROUTER_API_KEY", "")
 
-    # LLM Principal + Fallbacks para contornar Rate Limit (HTTP 429) no OpenRouter Free Tier
+    # LLM Padrão + Fallbacks para contornar Rate Limit (HTTP 429) no OpenRouter Free Tier
     primary_llm = ChatOpenAI(
         model="nvidia/nemotron-3-nano-30b-a3b:free",
         openai_api_key=api_key,
@@ -173,9 +172,21 @@ Resposta:"""
         }
 
 
-def get_rag_chain(session_id: str = "default"):
+def get_rag_chain(session_id: str = "default", model_name: str = None):
     if _llm is None:
         init_components()
+
+    # Se um modelo específico for solicitado via frontend, instancia com fallbacks ativos
+    if model_name:
+        api_key = os.environ.get("OPENROUTER_API_KEY", "")
+        custom_llm = ChatOpenAI(
+            model=model_name,
+            openai_api_key=api_key,
+            openai_api_base=OPENROUTER_BASE,
+            max_retries=3,
+            temperature=0.2
+        ).with_fallbacks([_llm])
+        return MultiSourceAgentChain(custom_llm, session_id)
 
     if session_id in _session_agents:
         return _session_agents[session_id]
