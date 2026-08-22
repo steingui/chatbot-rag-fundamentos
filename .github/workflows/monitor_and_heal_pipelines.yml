@@ -14,6 +14,8 @@ jobs:
     permissions:
       contents: write
       actions: read
+      issues: write
+      pull-requests: write
 
     steps:
       - name: Checkout Repository
@@ -51,10 +53,14 @@ jobs:
           PINECONE_INDEX_NAME: ${{ secrets.PINECONE_INDEX_NAME }}
         run: python pipelines/ingestion/pinecone_ingestor.py
 
-      - name: Auto-Commit Data Quality & Health Fixes
+      - name: Create Pull Request with Auto-Healed Fixes & Health Report
         if: steps.audit.outputs.should_commit == 'true'
-        uses: stefanzweifel/git-auto-commit-action@v5
+        uses: peter-evans/create-pull-request@v6
         with:
-          commit_message: "[LLM-AUTOCURE] fix(ingestion): auto-heal data quality & pipeline health report [skip ci]"
-          branch: main
-          file_pattern: 'data/docs/pipeline_health_report.md'
+          token: ${{ secrets.GITHUB_TOKEN }}
+          commit-message: "[LLM-AUTOCURE] fix(ingestion): auto-heal data quality & pipeline health report"
+          branch: auto-heal/pipeline-fix
+          title: "[LLM-AUTOCURE] Diagnóstico e Correção Autônoma de Ingestão"
+          body-path: 'data/docs/pipeline_health_report.md'
+          labels: 'autocure, pipeline-health'
+          delete-branch: true
