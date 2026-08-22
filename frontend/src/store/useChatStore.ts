@@ -91,8 +91,35 @@ interface ChatState {
   sendMessageStream: (queryText: string) => Promise<void>;
 }
 
+const LOCAL_STORAGE_KEY = 'rag_chat_sessions_v1';
+const SUGGESTIONS_CACHE_KEY = 'rag_suggestions_cache_v1';
+const SUGGESTIONS_TTL_MS = 5 * 60 * 1000; // 5 min TTL
+
+const loadPersistedSessions = (): Session[] | null => {
+  try {
+    const raw = localStorage.getItem(LOCAL_STORAGE_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    return parsed.map((s: any) => ({
+      ...s,
+      createdAt: new Date(s.createdAt),
+      messages: s.messages.map((m: any) => ({ ...m, timestamp: new Date(m.timestamp) }))
+    }));
+  } catch {
+    return null;
+  }
+};
+
+const savePersistedSessions = (sessions: Session[]) => {
+  try {
+    localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(sessions));
+  } catch (e) {
+    console.warn('Falha ao salvar sessoes no localStorage:', e);
+  }
+};
+
 export const useChatStore = create<ChatState>((set, get) => ({
-  sessions: [makeSession(0)],
+  sessions: loadPersistedSessions() || [makeSession(0)],
   activeIdx: 0,
   input: '',
   selectedModel: FREE_MODELS[0].id,
@@ -112,10 +139,9 @@ export const useChatStore = create<ChatState>((set, get) => ({
     const { sessions } = get();
     if (sessions.length >= MAX_SESSIONS) return;
     const newIdx = sessions.length;
-    set({
-      sessions: [...sessions, makeSession(newIdx)],
-      activeIdx: newIdx
-    });
+    const updated = [...sessions, makeSession(newIdx)];
+    set({ sessions: updated, activeIdx: newIdx });
+    savePersistedSessions(updated);
   },
 
   closeSession: (idxToClose) => {
@@ -127,6 +153,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
       newActive = activeIdx - 1;
     }
     set({ sessions: newSessions, activeIdx: newActive });
+    savePersistedSessions(newSessions);
   },
 
   clearActiveSession: () => {
@@ -145,17 +172,40 @@ export const useChatStore = create<ChatState>((set, get) => ({
     const updated = [...sessions];
     updated[activeIdx] = freshSession;
     set({ sessions: updated });
+    savePersistedSessions(updated);
   },
 
   setSuggestions: (suggestions) => set({ suggestions }),
 
   fetchSuggestions: async () => {
+    // Cache Inteligente de Sugestões com TTL
+    try {
+      const cached = localStorage.getItem(SUGGESTIONS_CACHE_KEY);
+      if (cached) {
+        const { timestamp, data } = JSON.parse(cached);
+        if (Date.now() - timestamp < SUGGESTIONS_TTL_MS && data?.length > 0) {
+          set({ suggestions: data });
+          return;
+        }
+      }
+    } catch {
+      // Ignora erro de parse do cache
+    }
+
     try {
       const res = await fetch(SUGGESTION_API_URL);
       if (res.ok) {
         const data = await res.json();
         if (data.suggestions && data.suggestions.length > 0) {
           set({ suggestions: data.suggestions });
+          try {
+            localStorage.setItem(SUGGESTIONS_CACHE_KEY, JSON.stringify({
+              timestamp: Date.now(),
+              data: data.suggestions
+            }));
+          } catch {
+            // Ignora erro de escrita
+          }
         }
       }
     } catch (e) {
@@ -166,6 +216,8 @@ export const useChatStore = create<ChatState>((set, get) => ({
   sendMessageStream: async (queryText: string) => {
     const query = queryText.trim();
     const { isLoading, activeIdx, sessions, selectedModel, fetchSuggestions } = get();
+
+    // Proteção Anti-Spam & Trava Concorrente Estrita
     if (!query || isLoading) return;
 
     const capturedIdx = activeIdx;
@@ -206,6 +258,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
       messages: [...updatedSessions[capturedIdx].messages, userMsg, botMsg]
     };
     set({ sessions: updatedSessions });
+    savePersistedSessions(updatedSessions);
 
     let accumulatedContent = '';
     let accumulatedSources: Source[] = [];
@@ -237,6 +290,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
         );
         updatedSessions[capturedIdx] = { ...updatedSessions[capturedIdx], messages: msgs };
         set({ sessions: updatedSessions });
+        savePersistedSessions(updatedSessions);
         return;
       }
 
@@ -278,6 +332,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
           }
         }
       }
+      savePersistedSessions(get().sessions);
     } catch (e) {
       console.error('Erro no streaming:', e);
       updatedSessions = [...get().sessions];
@@ -289,6 +344,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
       );
       updatedSessions[capturedIdx] = { ...updatedSessions[capturedIdx], messages: msgs };
       set({ sessions: updatedSessions });
+      savePersistedSessions(updatedSessions);
     } finally {
       set({ isLoading: false });
       fetchSuggestions();

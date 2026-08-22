@@ -17,15 +17,29 @@ export const SourceBadges: React.FC<SourceBadgesProps> = ({ sources }) => {
     return true;
   });
 
+  const validateSafeUrl = (url?: string | null): string | null => {
+    if (!url) return null;
+    try {
+      const parsed = new URL(url);
+      if (parsed.protocol === 'http:' || parsed.protocol === 'https:') {
+        return parsed.href;
+      }
+      return null;
+    } catch {
+      return null;
+    }
+  };
+
   return (
     <div className="msg-sources">
       <div className="sources-row">
         <span className="sources-label">FONTES CONSULTADAS:</span>
-        {distinctSources.map((src, sIdx) => (
-          src.url ? (
+        {distinctSources.map((src, sIdx) => {
+          const safeUrl = validateSafeUrl(src.url);
+          return safeUrl ? (
             <a
               key={sIdx}
-              href={src.url}
+              href={safeUrl}
               target="_blank"
               rel="noopener noreferrer"
               className="source-chip"
@@ -38,8 +52,8 @@ export const SourceBadges: React.FC<SourceBadgesProps> = ({ sources }) => {
             <span key={sIdx} className="source-chip no-link" title={src.raw_file}>
               {src.label}
             </span>
-          )
-        ))}
+          );
+        })}
       </div>
     </div>
   );
