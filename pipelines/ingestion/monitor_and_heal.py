@@ -199,13 +199,13 @@ def analyze_failures_with_llm(failed_runs: list) -> str:
         try:
             from langchain_google_genai import ChatGoogleGenerativeAI
             llm = ChatGoogleGenerativeAI(
-                model="gemini-1.5-pro",
+                model="gemini-3.6-flash",
                 google_api_key=google_key,
                 temperature=0.1,
                 max_retries=2
             )
             response = llm.invoke(prompt)
-            return f"**[Diagnóstico Gemini (Google Antigravity com Contexto de Codebase)]**\n{response.content}"
+            return f"**[Diagnóstico Gemini 3.6 Flash (Google Antigravity com Contexto de Codebase)]**\n{response.content}"
         except Exception as e:
             logging.warning(f"Falha ao invocar Google Gemini API: {e}. Tentando fallback OpenRouter...")
 
