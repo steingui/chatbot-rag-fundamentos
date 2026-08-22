@@ -10,7 +10,8 @@
 
 ## Últimas 5 Execuções por Pipeline de Ingestão (GitHub Actions)
 ### Monitoramento Autônomo e Auto-Cura de Ingestões
-  - Execução ID `32581771277` (2026-08-22T15:27:56Z): `in_progress`
+  - Execução ID `32581901695` (2026-08-22T15:30:26Z): `in_progress`
+  - Execução ID `32581771277` (2026-08-22T15:27:56Z): `cancelled`
   - Execução ID `32581285453` (2026-08-22T15:18:11Z): `success`
   - Execução ID `32581104449` (2026-08-22T15:14:38Z): `failure`
 
