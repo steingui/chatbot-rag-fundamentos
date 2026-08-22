@@ -233,7 +233,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
     // Atualiza o título da sessão se for a primeira pergunta
     const userMessageCount = currentSession.messages.filter(m => m.role === 'user').length;
     if (userMessageCount === 0) {
-      const newLabel = query.length > 25 ? `${query.substring(0, 25)}...` : query;
+      const newLabel = query;
       const updated = [...get().sessions];
       updated[capturedIdx] = { ...updated[capturedIdx], label: newLabel };
       set({ sessions: updated });
