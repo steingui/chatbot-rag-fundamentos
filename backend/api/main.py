@@ -55,6 +55,24 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
 app.add_middleware(SecurityHeadersMiddleware)
 
 
+# SEC-005: Validação de Origin para endpoints POST (mitiga abuso direto da API)
+class OriginCheckMiddleware(BaseHTTPMiddleware):
+    async def dispatch(self, request, call_next):
+        if request.method == "POST":
+            origin = request.headers.get("origin", "")
+            referer = request.headers.get("referer", "")
+            is_trusted = any(
+                origin.startswith(o) or referer.startswith(o) for o in ALLOWED_ORIGINS
+            )
+            if not is_trusted and origin:
+                logging.warning(f"SEC-005: Origin não confiável bloqueado: {origin}")
+                from starlette.responses import JSONResponse
+                return JSONResponse(status_code=403, content={"detail": "Origin não autorizado."})
+        return await call_next(request)
+
+app.add_middleware(OriginCheckMiddleware)
+
+
 class ChatRequest(BaseModel):
     session_id: Optional[str] = Field(default="default_session", description="ID da sessão do usuário")
     query: str
