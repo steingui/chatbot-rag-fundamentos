@@ -8,6 +8,7 @@ on:
 
 env:
   FORCE_JAVASCRIPT_ACTIONS_NODE_VERSION: node24
+  NODE_OPTIONS: "--no-warnings"
 
 jobs:
   ingest-camara:

@@ -2,9 +2,13 @@ name: Ingestão Semanal - TSE (Bens e Financiamentos)
 
 on:
   schedule:
-    # Roda diariamente às 03:00 UTC
-    - cron: '0 3 * * *'
+    # Roda semanalmente às 03:00 UTC (Segunda-feira)
+    - cron: '0 3 * * 1'
   workflow_dispatch:
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_NODE_VERSION: node24
+  NODE_OPTIONS: "--no-warnings"
 
 jobs:
   ingest-tse:

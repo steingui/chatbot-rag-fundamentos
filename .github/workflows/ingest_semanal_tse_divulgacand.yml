@@ -5,6 +5,10 @@ on:
     - cron: '0 2 * * 0' # Executa semanalmente aos domingos às 02:00 UTC
   workflow_dispatch:
 
+env:
+  FORCE_JAVASCRIPT_ACTIONS_NODE_VERSION: node24
+  NODE_OPTIONS: "--no-warnings"
+
 jobs:
   ingest-tse-divulgacand:
     runs-on: ubuntu-latest

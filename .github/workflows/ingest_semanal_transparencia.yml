@@ -6,6 +6,10 @@ on:
     - cron: '0 3 * * 2'
   workflow_dispatch:
 
+env:
+  FORCE_JAVASCRIPT_ACTIONS_NODE_VERSION: node24
+  NODE_OPTIONS: "--no-warnings"
+
 jobs:
   ingest-transparencia:
     runs-on: ubuntu-latest

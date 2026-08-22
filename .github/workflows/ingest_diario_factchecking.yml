@@ -5,6 +5,10 @@ on:
     - cron: '0 5 * * *' # Executa diariamente às 05:00 UTC
   workflow_dispatch:
 
+env:
+  FORCE_JAVASCRIPT_ACTIONS_NODE_VERSION: node24
+  NODE_OPTIONS: "--no-warnings"
+
 jobs:
   ingest-factchecking:
     runs-on: ubuntu-latest
