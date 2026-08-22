@@ -21,7 +21,7 @@ CHUNK_OVERLAP = 200
 
 
 def carregar_documentos_diretorio(docs_path: Path) -> list:
-    """Carrega PDFs e Markdown de um diretório."""
+    """Carrega PDFs e Markdown de um diretório, excluindo relatórios de saúde internos de CI/CD."""
     if not docs_path.exists():
         docs_path.mkdir(parents=True, exist_ok=True)
         logging.warning(f"Diretório '{docs_path}' criado. Adicione documentos antes de ingerir.")
@@ -30,7 +30,9 @@ def carregar_documentos_diretorio(docs_path: Path) -> list:
     pdf_loader = PyPDFDirectoryLoader(str(docs_path))
     md_loader = DirectoryLoader(str(docs_path), glob="**/*.md", loader_cls=TextLoader)
     
-    return pdf_loader.load() + md_loader.load()
+    docs = pdf_loader.load() + md_loader.load()
+    # Filtra relatórios operacionais de CI/CD para manter a base política limpa para os usuários finais
+    return [doc for doc in docs if not doc.metadata.get("source", "").endswith("pipeline_health_report.md")]
 
 
 def generate_deterministic_id(doc, idx: int) -> str:
