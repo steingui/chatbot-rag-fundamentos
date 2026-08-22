@@ -43,7 +43,7 @@ def init_components():
     bm25_encoder = FastBM25Encoder()
 
     from langchain_pinecone import PineconeRerank
-    from langchain.retrievers import ContextualCompressionRetriever
+    from langchain_classic.retrievers import ContextualCompressionRetriever
 
     base_retriever = PineconeHybridSearchRetriever(
         embeddings=embeddings,
