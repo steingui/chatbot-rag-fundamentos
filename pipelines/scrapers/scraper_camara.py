@@ -4,6 +4,9 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
+from requests.adapters import HTTPAdapter
+from urllib3.util import Retry
+
 # Configuração Básica
 logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
 
@@ -12,15 +15,31 @@ DOCS_DIR = Path("data/docs")
 DEFAULT_ITEMS = 50
 MAX_WORKERS = 5
 
+def _get_resilient_session() -> requests.Session:
+    session = requests.Session()
+    retries = Retry(
+        total=3,
+        backoff_factor=1,
+        status_forcelist=[429, 500, 502, 503, 504],
+        raise_on_status=False
+    )
+    adapter = HTTPAdapter(max_retries=retries)
+    session.mount("https://", adapter)
+    session.mount("http://", adapter)
+    return session
+
+_session = _get_resilient_session()
+
 
 def fetch_data(endpoint: str, params: Optional[Dict[str, Any]] = None) -> List[Dict[str, Any]]:
     """Faz a requisição para a API da Câmara e retorna a lista de dados."""
     url = f"{BASE_URL}/{endpoint}"
     headers = {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+        "Accept": "application/json"
     }
     try:
-        response = requests.get(url, headers=headers, params=params, timeout=30)
+        response = _session.get(url, headers=headers, params=params, timeout=(10, 30))
         response.raise_for_status()
         return response.json().get("dados", [])
     except requests.RequestException as e:
@@ -31,8 +50,11 @@ def fetch_data(endpoint: str, params: Optional[Dict[str, Any]] = None) -> List[D
 def fetch_proposicao_ementa(uri_proposicao: str) -> str:
     """Busca a ementa de uma proposição através de sua URI na API da Câmara."""
     try:
-        headers = {"User-Agent": "Mozilla/5.0"}
-        response = requests.get(uri_proposicao, headers=headers, timeout=30)
+        headers = {
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+            "Accept": "application/json"
+        }
+        response = _session.get(uri_proposicao, headers=headers, timeout=(10, 30))
         response.raise_for_status()
         dados = response.json().get("dados", {})
         return dados.get("ementa") or "Ementa indisponível."
