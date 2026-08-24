@@ -28,8 +28,16 @@ class FastBM25Encoder:
             
         return {"indices": indices, "values": values}
 
-    def encode_queries(self, text: str):
-        return self._encode(text)
+    def encode_queries(self, text):
+        if isinstance(text, str):
+            return self._encode(text)
+        elif isinstance(text, (list, tuple)) or hasattr(text, "__iter__"):
+            return [self._encode(t) for t in text]
+        return self._encode(str(text))
 
-    def encode_documents(self, text: str):
-        return self._encode(text)
+    def encode_documents(self, text):
+        if isinstance(text, str):
+            return self._encode(text)
+        elif isinstance(text, (list, tuple)) or hasattr(text, "__iter__"):
+            return [self._encode(t) for t in text]
+        return self._encode(str(text))
