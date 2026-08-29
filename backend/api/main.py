@@ -75,10 +75,9 @@ app.add_middleware(OriginCheckMiddleware)
 
 # SEC-009: Allowlist de modelos para prevenir cache poisoning
 ALLOWED_MODELS = {
-    "nvidia/nemotron-3-nano-30b-a3b:free",
     "meta-llama/llama-3.3-70b-instruct:free",
     "deepseek/deepseek-r1:free",
-    "google/gemini-2.0-flash-exp:free",
+    "google/gemini-2.0-flash-lite-preview:free",
     "qwen/qwen-2.5-72b-instruct:free",
 }
 
