@@ -68,7 +68,7 @@ def init_components():
 
     # LLM Padrão + Fallbacks para contornar Rate Limit (HTTP 429) no OpenRouter Free Tier
     primary_llm = ChatOpenAI(
-        model="meta-llama/llama-3.3-70b-instruct:free",
+        model="google/gemma-4-31b-it:free",
         openai_api_key=api_key,
         openai_api_base=OPENROUTER_BASE,
         max_retries=3,
@@ -76,7 +76,7 @@ def init_components():
     )
 
     fallback_1 = ChatOpenAI(
-        model="qwen/qwen-2.5-72b-instruct:free",
+        model="nvidia/nemotron-3.5-lightning:free",
         openai_api_key=api_key,
         openai_api_base=OPENROUTER_BASE,
         max_retries=3,
@@ -84,7 +84,7 @@ def init_components():
     )
 
     fallback_2 = ChatOpenAI(
-        model="deepseek/deepseek-r1:free",
+        model="minimax/minimax-m3:free",
         openai_api_key=api_key,
         openai_api_base=OPENROUTER_BASE,
         max_retries=3,
