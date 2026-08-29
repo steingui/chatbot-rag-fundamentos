@@ -27,8 +27,9 @@ def fetch_rss_feeds() -> None:
     """Baixa feeds RSS de agências de checagem e salva como Markdown."""
     for feed in RSS_FEEDS:
         logging.info(f"Buscando feed RSS: {feed['nome']} ({feed['url']})")
+        headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"}
         try:
-            response = requests.get(feed['url'], timeout=30)
+            response = requests.get(feed['url'], headers=headers, timeout=30)
             response.raise_for_status()
             
             root = ET.fromstring(response.content)
