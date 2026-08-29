@@ -8,10 +8,10 @@ export const SUGGESTION_API_URL = API_URL.replace(/\/chat$/, '/suggestions');
 export const MAX_SESSIONS = 5;
 
 export const FREE_MODELS = [
-  { id: 'meta-llama/llama-3.3-70b-instruct:free', label: 'llama-3.3-70b · free' },
-  { id: 'deepseek/deepseek-r1:free', label: 'deepseek-r1 · free' },
-  { id: 'google/gemini-2.0-flash-lite-preview:free', label: 'gemini-2.0-flash-lite · free' },
-  { id: 'qwen/qwen-2.5-72b-instruct:free', label: 'qwen-2.5-72b · free' }
+  { id: 'google/gemma-4-31b-it:free', label: 'gemma-4-31b · free' },
+  { id: 'nvidia/nemotron-3.5-lightning:free', label: 'nemotron-3.5-lightning · free' },
+  { id: 'minimax/minimax-m3:free', label: 'minimax-m3 · free' },
+  { id: 'nvidia/nemotron-3-super-120b-a12b:free', label: 'nemotron-3-super-120b · free' }
 ];
 
 export type SuggestionItem = {
