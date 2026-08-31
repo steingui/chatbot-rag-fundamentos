@@ -10,3 +10,4 @@ data/docs/*.md
 node_modules/
 dist/
 .codegraph/
+LINKEDIN_POST_ARTICLE.md
