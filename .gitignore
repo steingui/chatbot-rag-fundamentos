@@ -9,3 +9,4 @@ data/docs/*.md
 *.db
 node_modules/
 dist/
+.codegraph/

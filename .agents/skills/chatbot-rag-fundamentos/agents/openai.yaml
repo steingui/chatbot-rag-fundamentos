@@ -1,0 +1,8 @@
+display_name: "Chatbot RAG Fundamentos"
+short_description: "Chatbot político com RAG, FastAPI, React/Vite e pipelines de ingestão legislativa automatizados."
+default_prompt: |
+  Leia AGENTS.md na raiz do repositório antes de qualquer ação.
+  Consulte .llm/ somente sob demanda, conforme a tabela em AGENTS.md § 5.
+  Trate requirements.txt, package.json, Dockerfile e .github/workflows/ como fonte de verdade.
+  Priorize segurança: sanitize inputs, nunca exponha secrets, valide toda entrada.
+  Rode testes (pytest tests/ -q / npm run test) antes e depois de alterações.
