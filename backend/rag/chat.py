@@ -65,33 +65,43 @@ def init_components():
     )
 
     api_key = os.environ.get("OPENROUTER_API_KEY", "")
+    google_key = os.environ.get("GEMINI_API_KEY") or os.environ.get("GOOGLE_API_KEY")
 
-    # LLM Padrão + Fallbacks para contornar Rate Limit (HTTP 429) no OpenRouter Free Tier
-    primary_llm = ChatOpenAI(
-        model="google/gemma-4-31b-it:free",
-        openai_api_key=api_key,
-        openai_api_base=OPENROUTER_BASE,
-        max_retries=3,
-        temperature=0.2
-    )
+    fallbacks = [
+        ChatOpenAI(
+            model="google/gemma-4-31b-it:free",
+            openai_api_key=api_key,
+            openai_api_base=OPENROUTER_BASE,
+            max_retries=3,
+            temperature=0.2
+        ),
+        ChatOpenAI(
+            model="nvidia/nemotron-3.5-lightning:free",
+            openai_api_key=api_key,
+            openai_api_base=OPENROUTER_BASE,
+            max_retries=3,
+            temperature=0.2
+        )
+    ]
 
-    fallback_1 = ChatOpenAI(
-        model="nvidia/nemotron-3.5-lightning:free",
-        openai_api_key=api_key,
-        openai_api_base=OPENROUTER_BASE,
-        max_retries=3,
-        temperature=0.2
-    )
-
-    fallback_2 = ChatOpenAI(
-        model="minimax/minimax-m3:free",
-        openai_api_key=api_key,
-        openai_api_base=OPENROUTER_BASE,
-        max_retries=3,
-        temperature=0.2
-    )
-
-    _llm = primary_llm.with_fallbacks([fallback_1, fallback_2])
+    if google_key:
+        try:
+            from langchain_google_genai import ChatGoogleGenerativeAI
+            logging.info("Utilizando Google Gemini nativo (gemini-2.0-flash / gemini-1.5-flash)...")
+            primary_llm = ChatGoogleGenerativeAI(
+                model="gemini-2.0-flash",
+                google_api_key=google_key,
+                temperature=0.2,
+                max_retries=3
+            )
+            _llm = primary_llm.with_fallbacks(fallbacks)
+        except Exception as e:
+            logging.warning(f"Falha ao carregar Gemini nativo, utilizando OpenRouter fallback: {e}")
+            primary_llm = fallbacks[0]
+            _llm = primary_llm.with_fallbacks(fallbacks[1:])
+    else:
+        primary_llm = fallbacks[0]
+        _llm = primary_llm.with_fallbacks(fallbacks[1:])
 
 
 def _clean_url(url: str) -> str:
