@@ -11,3 +11,10 @@ node_modules/
 dist/
 .codegraph/
 LINKEDIN_POST_ARTICLE.md
+
+# Secrets & Credentials
+firebase-service-account.json
+google-services.json
+GoogleService-Info.plist
+*.plist
+*.pem
