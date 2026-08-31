@@ -1,12 +1,15 @@
 import { useEffect, useRef } from 'react';
 import { Send, Loader2 } from 'lucide-react';
 import { useChatStore } from './store/useChatStore';
-import { SessionSidebar } from './components/SessionSidebar';
-import { ChatHeader } from './components/ChatHeader';
-import { MessageList } from './components/MessageList';
-import { SuggestionGrid } from './components/SuggestionGrid';
-import { IntroModal } from './components/IntroModal';
+import {
+  SessionSidebar,
+  ChatHeader,
+  MessageList,
+  SuggestionGrid,
+  IntroModal
+} from './components';
 import './App.css';
+
 
 export default function App() {
   const {
