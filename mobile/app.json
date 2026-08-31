@@ -1,0 +1,28 @@
+{
+  "expo": {
+    "name": "RAG Político",
+    "slug": "rag-politico",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "dark",
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.guisteink.ragpolitico",
+      "googleServicesFile": "../GoogleService-Info.plist"
+    },
+    "android": {
+      "package": "com.guisteink.ragpolitico",
+      "adaptiveIcon": {
+        "backgroundColor": "#0F172A",
+        "foregroundImage": "./assets/android-icon-foreground.png",
+        "backgroundImage": "./assets/android-icon-background.png",
+        "monochromeImage": "./assets/android-icon-monochrome.png"
+      }
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    }
+  }
+}
+
