@@ -119,10 +119,6 @@ def init_components():
         _llm = fallbacks[0].with_fallbacks(fallbacks[1:]) if len(fallbacks) > 1 else fallbacks[0]
     else:
         raise ValueError("Nenhuma chave de API configurada (GEMINI_API_KEY ou OPENROUTER_API_KEY)")
-            _llm = primary_llm.with_fallbacks(fallbacks[1:])
-    else:
-        primary_llm = fallbacks[0]
-        _llm = primary_llm.with_fallbacks(fallbacks[1:])
 
 
 def _clean_url(url: str) -> str:
