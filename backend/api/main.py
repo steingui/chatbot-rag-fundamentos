@@ -32,7 +32,7 @@ app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
 # SEC-001: CORS restrito a domínios conhecidos
-ALLOWED_ORIGINS = os.environ.get("ALLOWED_ORIGINS", "https://chatbot-rag-front-xnm0.onrender.com,http://localhost:5173").split(",")
+ALLOWED_ORIGINS = os.environ.get("ALLOWED_ORIGINS", "https://rag-eleicoes.web.app,https://rag-eleicoes.firebaseapp.app,http://localhost:5173").split(",")
 
 app.add_middleware(
     CORSMiddleware,
@@ -131,7 +131,7 @@ def ensure_initialized():
 
 @app.get("/")
 def read_root():
-    return {"status": "ok", "message": "API RAG rodando no Render"}
+    return {"status": "ok", "message": "API RAG rodando no Cloud Run"}
 
 
 def parse_source_name(raw_source: str) -> SourceObject:

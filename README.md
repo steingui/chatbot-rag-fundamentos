@@ -13,10 +13,10 @@ A Inteligência Artificial é impulsionada pelo **Google Gemma 4 (31B)** via Ope
 
 ## 🚀 Como Testar a API em Produção
 
-O backend (FastAPI) está hospedado no Render, com a base vetorial sempre atualizada. Teste via `curl`:
+O backend (FastAPI) está hospedado no Google Cloud Run, e o frontend no Firebase Hosting. Teste a API via `curl`:
 
 ```bash
-curl -X POST "https://chatbot-rag-api-q2k5.onrender.com/chat" \
+curl -X POST "https://chatbot-rag-api-1043919586992.southamerica-east1.run.app/chat" \
      -H "Content-Type: application/json" \
      -d '{"query": "Resuma a PEC 45/2019 e diga se é verdade que ela aumenta imposto sobre cestas básicas."}'
 ```

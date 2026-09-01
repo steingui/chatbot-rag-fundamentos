@@ -2,7 +2,7 @@ import { create } from 'zustand';
 import { parse } from 'marked';
 import DOMPurify from 'dompurify';
 
-export const API_URL = import.meta.env.VITE_API_URL || 'https://chatbot-rag-api-q2k5.onrender.com/chat';
+export const API_URL = import.meta.env.VITE_API_URL || 'https://chatbot-rag-api-1043919586992.southamerica-east1.run.app/chat';
 export const STREAM_API_URL = API_URL.endsWith('/chat') ? `${API_URL}/stream` : `${API_URL}/chat/stream`;
 export const SUGGESTION_API_URL = API_URL.replace(/\/chat$/, '/suggestions');
 export const MAX_SESSIONS = 5;
