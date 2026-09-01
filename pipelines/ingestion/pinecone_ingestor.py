@@ -32,7 +32,7 @@ def carregar_documentos_diretorio(docs_path: Path) -> list:
         return []
 
     pdf_loader = PyPDFDirectoryLoader(str(docs_path))
-    md_loader = DirectoryLoader(str(docs_path), glob="**/*.md", loader_cls=TextLoader)
+    md_loader = DirectoryLoader(str(docs_path), glob="**/*.md", loader_cls=TextLoader, loader_kwargs={"encoding": "utf-8"})
     
     docs = pdf_loader.load() + md_loader.load()
     # Filtra relatórios operacionais de CI/CD para manter a base política limpa para os usuários finais
