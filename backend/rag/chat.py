@@ -255,8 +255,21 @@ def get_rag_chain(session_id: str = "default", model_name: str = None):
     if _llm is None:
         init_components()
 
-    # Se um modelo específico for solicitado via frontend, instancia com fallbacks ativos
     if model_name:
+        google_key = os.environ.get("GEMINI_API_KEY") or os.environ.get("GOOGLE_API_KEY")
+        if (model_name.startswith("gemini") or "gemini" in model_name) and google_key:
+            try:
+                from langchain_google_genai import ChatGoogleGenerativeAI
+                custom_llm = ChatGoogleGenerativeAI(
+                    model=model_name,
+                    google_api_key=google_key,
+                    temperature=0.2,
+                    max_retries=3
+                ).with_fallbacks([_llm])
+                return MultiSourceAgentChain(custom_llm, session_id)
+            except Exception as e:
+                logging.warning(f"Falha ao instanciar Gemini {model_name} nativo: {e}")
+
         api_key = os.environ.get("OPENROUTER_API_KEY", "")
         custom_llm = ChatOpenAI(
             model=model_name,

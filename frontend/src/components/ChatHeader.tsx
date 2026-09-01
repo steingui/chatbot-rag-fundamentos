@@ -27,7 +27,7 @@ export const ChatHeader: React.FC = () => {
               PAINEL DE CONSULTA LEGISLATIVA
             </h1>
           </div>
-          <p className="text-xs text-neutral-400 truncate max-w-lg font-medium">
+          <p className="text-xs text-neutral-500 font-medium max-w-3xl leading-snug break-words">
             {displayLabel}
           </p>
         </div>
