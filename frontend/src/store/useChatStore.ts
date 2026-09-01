@@ -87,6 +87,8 @@ interface ChatState {
   isSidebarOpen: boolean;
   fontSize: number;
   
+  abortController: AbortController | null;
+
   // Actions
   setInput: (input: string) => void;
   setSelectedModel: (model: string) => void;
@@ -103,6 +105,8 @@ interface ChatState {
   setShowSuggestions: (show: boolean) => void;
   fetchSuggestions: () => Promise<void>;
   sendMessageStream: (queryText: string) => Promise<void>;
+  stopStream: () => void;
+  editLastPrompt: () => void;
 }
 
 const LOCAL_STORAGE_KEY = 'rag_chat_sessions_v1';
@@ -146,6 +150,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
   isLoading: false,
   showSuggestions: true,
   isSidebarOpen: true,
+  abortController: null,
   suggestions: [
     { prompt: 'Quais doadores do TSE possuem contratos milionários com a União?' },
     { prompt: 'Quais parlamentares mais mudaram de voto em pautas ambientais?' },
@@ -158,6 +163,39 @@ export const useChatStore = create<ChatState>((set, get) => ({
   setShowSuggestions: (showSuggestions) => set({ showSuggestions }),
   toggleSidebar: () => set((state) => ({ isSidebarOpen: !state.isSidebarOpen })),
   setActiveIdx: (activeIdx) => set({ activeIdx }),
+
+  stopStream: () => {
+    const { abortController } = get();
+    if (abortController) {
+      abortController.abort();
+    }
+    set({ abortController: null, isLoading: false });
+  },
+
+  editLastPrompt: () => {
+    const { activeIdx, sessions } = get();
+    const currentSession = sessions[activeIdx];
+    if (!currentSession || currentSession.messages.length < 2) return;
+
+    // Localiza a última mensagem do usuário (do fim para o início)
+    const reversed = [...currentSession.messages].reverse();
+    const userMsgIndexInReversed = reversed.findIndex(m => m.role === 'user');
+    if (userMsgIndexInReversed === -1) return;
+
+    const actualUserMsgIndex = currentSession.messages.length - 1 - userMsgIndexInReversed;
+    const lastUserMsg = currentSession.messages[actualUserMsgIndex];
+
+    // Remove do histórico a mensagem do usuário e quaisquer mensagens posteriores (bot)
+    const remainingMessages = currentSession.messages.slice(0, actualUserMsgIndex);
+    const updated = [...sessions];
+    updated[activeIdx] = { ...updated[activeIdx], messages: remainingMessages };
+
+    set({
+      input: lastUserMsg.content,
+      sessions: updated
+    });
+    savePersistedSessions(updated);
+  },
 
   addSession: () => {
     const { sessions } = get();
@@ -296,7 +334,8 @@ export const useChatStore = create<ChatState>((set, get) => ({
     const currentSession = sessions[capturedIdx];
     if (!currentSession) return;
 
-    set({ isLoading: true, input: '' });
+    const controller = new AbortController();
+    set({ isLoading: true, input: '', abortController: controller });
 
     // Atualiza o título da sessão se for a primeira pergunta
     const userMessageCount = currentSession.messages.filter(m => m.role === 'user').length;
@@ -339,6 +378,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
       const res = await fetch(STREAM_API_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        signal: controller.signal,
         body: JSON.stringify({
           session_id: currentSession.id,
           query,
@@ -418,7 +458,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
       set({ sessions: updatedSessions });
       savePersistedSessions(updatedSessions);
     } finally {
-      set({ isLoading: false });
+      set({ isLoading: false, abortController: null });
       fetchSuggestions();
     }
   }

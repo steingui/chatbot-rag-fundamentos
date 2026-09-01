@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react';
-import { Send, Loader2, Command } from 'lucide-react';
+import { Send, Command, Square, RotateCcw } from 'lucide-react';
 import { useChatStore } from './store/useChatStore';
 import {
   SessionSidebar,
@@ -16,11 +16,17 @@ export default function App() {
     isLoading,
     fontSize,
     isSidebarOpen,
+    sessions,
+    activeIdx,
     fetchSuggestions,
-    sendMessageStream
+    sendMessageStream,
+    stopStream,
+    editLastPrompt
   } = useChatStore();
 
   const inputRef = useRef<HTMLInputElement>(null);
+  const currentSession = sessions[activeIdx];
+  const hasMessages = currentSession?.messages?.some(m => m.role === 'user');
 
   useEffect(() => {
     fetchSuggestions();
@@ -47,7 +53,7 @@ export default function App() {
         <SuggestionGrid />
         <MessageList />
 
-        <footer className="p-4 bg-[#F4F4F6] border-t border-neutral-200/60 flex justify-center shrink-0">
+        <footer className="p-4 bg-[#F4F4F6] border-t border-neutral-200/60 flex flex-col items-center gap-2 shrink-0">
           <form
             onSubmit={handleSubmit}
             className="bg-white border border-neutral-200/90 focus-within:border-emerald-500 focus-within:ring-2 focus-within:ring-emerald-500/20 rounded-2xl shadow-md p-2 flex items-center gap-3 w-full max-w-4xl transition-all"
@@ -66,18 +72,40 @@ export default function App() {
               disabled={isLoading}
             />
 
-            <button
-              type="submit"
-              disabled={!input.trim() || isLoading}
-              className="bg-emerald-500 hover:bg-emerald-600 disabled:opacity-40 text-neutral-900 font-bold p-3 rounded-xl transition-all shadow-sm flex items-center justify-center cursor-pointer shrink-0"
-              title="Enviar pergunta"
-            >
-              {isLoading ? (
-                <Loader2 size={16} className="animate-spin text-neutral-900" />
-              ) : (
+            {!isLoading && hasMessages && (
+              <button
+                type="button"
+                onClick={() => {
+                  editLastPrompt();
+                  inputRef.current?.focus();
+                }}
+                className="p-2.5 rounded-xl text-neutral-500 hover:text-neutral-900 hover:bg-neutral-100 transition-all cursor-pointer border border-neutral-200/60 flex items-center gap-1.5 text-xs font-semibold shrink-0"
+                title="Editar e refazer o último prompt"
+              >
+                <RotateCcw size={14} />
+                <span className="hidden sm:inline">Refazer último</span>
+              </button>
+            )}
+
+            {isLoading ? (
+              <button
+                type="button"
+                onClick={stopStream}
+                className="bg-red-500 hover:bg-red-600 text-white font-bold p-3 rounded-xl transition-all shadow-sm flex items-center justify-center cursor-pointer shrink-0 animate-pulse"
+                title="Pausar / Interromper resposta"
+              >
+                <Square size={16} fill="currentColor" />
+              </button>
+            ) : (
+              <button
+                type="submit"
+                disabled={!input.trim()}
+                className="bg-emerald-500 hover:bg-emerald-600 disabled:opacity-40 text-neutral-900 font-bold p-3 rounded-xl transition-all shadow-sm flex items-center justify-center cursor-pointer shrink-0"
+                title="Enviar pergunta"
+              >
                 <Send size={16} />
-              )}
-            </button>
+              </button>
+            )}
           </form>
         </footer>
       </main>
