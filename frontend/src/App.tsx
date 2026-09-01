@@ -15,6 +15,7 @@ export default function App() {
     setInput,
     isLoading,
     fontSize,
+    isSidebarOpen,
     fetchSuggestions,
     sendMessageStream
   } = useChatStore();
@@ -39,7 +40,7 @@ export default function App() {
   return (
     <div className="flex h-screen w-screen bg-[#F4F4F6] text-neutral-900 font-sans overflow-hidden">
       <IntroModal />
-      <SessionSidebar />
+      {isSidebarOpen && <SessionSidebar />}
 
       <main className="flex-1 flex flex-col h-full bg-[#F4F4F6] overflow-hidden min-w-0">
         <ChatHeader />
