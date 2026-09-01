@@ -12,8 +12,8 @@
 | Python runtime | `.python-version` |
 | Dependências backend | `requirements.txt`, `requirements-api.txt` |
 | Dependências frontend | `frontend/package.json` |
-| Build & deploy | `Dockerfile`, `render.yaml`, `start.sh` |
-| CI/CD | `.github/workflows/*.yml` |
+| Build & deploy | `Dockerfile`, `cloudbuild.yaml`, `firebase.json` |
+| CI/CD | `cloudbuild.yaml`, `.github/workflows/*.yml` |
 | Env vars esperadas | `.env.example` |
 | Lint frontend | `frontend/eslint.config.js` |
 | TypeScript config | `frontend/tsconfig*.json` |
@@ -60,7 +60,7 @@ como fonte de verdade.
 |--------|------------|
 | Backend | Python 3.11 · FastAPI · Uvicorn · LangChain · Pinecone |
 | Frontend | React 18 · TypeScript · Vite · Zustand · Vitest |
-| Infra | Docker (multi-stage) · Render (API + static) · GitHub Actions |
+| Infra | Docker · GCP Cloud Run (API) · Firebase Hosting (Static) · Cloud Build |
 | LLMs | OpenRouter (multi-provider) · Google AI (Gemini) |
 | Vector DB | Pinecone (hybrid search: dense + BM25 sparse) |
 

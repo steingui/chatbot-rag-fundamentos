@@ -18,3 +18,4 @@ google-services.json
 GoogleService-Info.plist
 *.plist
 *.pem
+.firebase/
