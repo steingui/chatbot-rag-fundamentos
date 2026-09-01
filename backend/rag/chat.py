@@ -66,38 +66,59 @@ def init_components():
 
     api_key = os.environ.get("OPENROUTER_API_KEY", "")
     google_key = os.environ.get("GEMINI_API_KEY") or os.environ.get("GOOGLE_API_KEY")
+    api_key = os.environ.get("OPENROUTER_API_KEY", "")
 
-    fallbacks = [
-        ChatOpenAI(
-            model="google/gemma-4-31b-it:free",
-            openai_api_key=api_key,
-            openai_api_base=OPENROUTER_BASE,
-            max_retries=3,
-            temperature=0.2
-        ),
-        ChatOpenAI(
-            model="nvidia/nemotron-3.5-lightning:free",
-            openai_api_key=api_key,
-            openai_api_base=OPENROUTER_BASE,
-            max_retries=3,
-            temperature=0.2
-        )
-    ]
+    fallbacks = []
+    if google_key:
+        try:
+            from langchain_google_genai import ChatGoogleGenerativeAI
+            fallbacks.append(
+                ChatGoogleGenerativeAI(
+                    model="gemini-1.5-flash",
+                    google_api_key=google_key,
+                    temperature=0.2,
+                    max_retries=3
+                )
+            )
+        except Exception as e:
+            logging.warning(f"Falha ao criar fallback Gemini 1.5: {e}")
+
+    if api_key:
+        fallbacks.extend([
+            ChatOpenAI(
+                model="google/gemma-4-31b-it:free",
+                openai_api_key=api_key,
+                openai_api_base=OPENROUTER_BASE,
+                max_retries=3,
+                temperature=0.2
+            ),
+            ChatOpenAI(
+                model="nvidia/nemotron-3.5-lightning:free",
+                openai_api_key=api_key,
+                openai_api_base=OPENROUTER_BASE,
+                max_retries=3,
+                temperature=0.2
+            )
+        ])
 
     if google_key:
         try:
             from langchain_google_genai import ChatGoogleGenerativeAI
-            logging.info("Utilizando Google Gemini nativo (gemini-2.0-flash / gemini-1.5-flash)...")
+            logging.info("Utilizando Google Gemini nativo (gemini-1.5-flash)...")
             primary_llm = ChatGoogleGenerativeAI(
-                model="gemini-2.0-flash",
+                model="gemini-1.5-flash",
                 google_api_key=google_key,
                 temperature=0.2,
                 max_retries=3
             )
-            _llm = primary_llm.with_fallbacks(fallbacks)
+            _llm = primary_llm.with_fallbacks(fallbacks) if fallbacks else primary_llm
         except Exception as e:
-            logging.warning(f"Falha ao carregar Gemini nativo, utilizando OpenRouter fallback: {e}")
-            primary_llm = fallbacks[0]
+            logging.warning(f"Falha ao carregar Gemini nativo: {e}")
+            _llm = fallbacks[0] if fallbacks else None
+    elif fallbacks:
+        _llm = fallbacks[0].with_fallbacks(fallbacks[1:]) if len(fallbacks) > 1 else fallbacks[0]
+    else:
+        raise ValueError("Nenhuma chave de API configurada (GEMINI_API_KEY ou OPENROUTER_API_KEY)")
             _llm = primary_llm.with_fallbacks(fallbacks[1:])
     else:
         primary_llm = fallbacks[0]
@@ -260,12 +281,19 @@ def get_rag_chain(session_id: str = "default", model_name: str = None):
         if (model_name.startswith("gemini") or "gemini" in model_name) and google_key:
             try:
                 from langchain_google_genai import ChatGoogleGenerativeAI
-                custom_llm = ChatGoogleGenerativeAI(
+                gemini_fallback = ChatGoogleGenerativeAI(
+                    model="gemini-1.5-flash",
+                    google_api_key=google_key,
+                    temperature=0.2,
+                    max_retries=3
+                )
+                primary_custom = ChatGoogleGenerativeAI(
                     model=model_name,
                     google_api_key=google_key,
                     temperature=0.2,
                     max_retries=3
-                ).with_fallbacks([_llm])
+                )
+                custom_llm = primary_custom.with_fallbacks([gemini_fallback, _llm]) if _llm else primary_custom.with_fallbacks([gemini_fallback])
                 return MultiSourceAgentChain(custom_llm, session_id)
             except Exception as e:
                 logging.warning(f"Falha ao instanciar Gemini {model_name} nativo: {e}")
