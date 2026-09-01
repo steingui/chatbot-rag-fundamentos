@@ -1,6 +1,6 @@
 import React, { useRef, useEffect } from 'react';
 import { useVirtualizer } from '@tanstack/react-virtual';
-import { Loader2 } from 'lucide-react';
+import { Loader2, User, Sparkles } from 'lucide-react';
 import { useChatStore, formatMarkdown, formatTime } from '../store/useChatStore';
 import { SourceBadges } from './SourceBadges';
 
@@ -10,16 +10,15 @@ export const MessageList: React.FC = () => {
   const messages = currentSession?.messages || [];
 
   const getBotAuthorLabel = (modelId: string) => {
-    if (!modelId) return 'llm@rag_eleicoes';
-    if (modelId.includes('deepseek')) return 'deepseek_r1@rag_eleicoes';
-    if (modelId.includes('nemotron')) return 'nemotron_30b@rag_eleicoes';
-    if (modelId.includes('llama')) return 'llama_70b@rag_eleicoes';
-    if (modelId.includes('gemini')) return 'gemini_flash@rag_eleicoes';
-    if (modelId.includes('qwen')) return 'qwen_72b@rag_eleicoes';
+    if (!modelId) return 'RAG Assistant';
+    if (modelId.includes('deepseek')) return 'DeepSeek R1';
+    if (modelId.includes('nemotron')) return 'Nemotron 3.5';
+    if (modelId.includes('llama')) return 'Llama 3.3 70B';
+    if (modelId.includes('gemini')) return 'Gemini 3.7 Flash';
+    if (modelId.includes('gemma')) return 'Gemma 4 31B';
     
-    const name = modelId.split('/')[1] || modelId.split('/')[0] || 'llm';
-    const clean = name.split(':')[0].replace(/[^a-zA-Z0-9]/g, '_').toLowerCase();
-    return `${clean}@rag_eleicoes`;
+    const name = modelId.split('/')[1] || modelId.split('/')[0] || 'LLM';
+    return name.split(':')[0].replace(/[-_]/g, ' ');
   };
 
   const parentRef = useRef<HTMLDivElement>(null);
@@ -30,7 +29,7 @@ export const MessageList: React.FC = () => {
   const virtualizer = useVirtualizer({
     count: messages.length,
     getScrollElement: () => parentRef.current,
-    estimateSize: () => 120, // estimativa em pixels por mensagem
+    estimateSize: () => 140,
     overscan: 5
   });
 
@@ -40,18 +39,13 @@ export const MessageList: React.FC = () => {
     setIsAutoScrollEnabled(isBottom);
     
     const prev = prevScrollInfo.current;
-    // Ignorar eventos disparados por redimensionamento ou novas mensagens
     if (scrollHeight === prev.scrollHeight) {
       const prevDistanceFromBottom = prev.scrollHeight - prev.clientHeight - prev.scrollTop;
       const currentDistanceFromBottom = scrollHeight - clientHeight - scrollTop;
       
-      // Ocultar sugestões ao rolar para baixo, mostrar ao rolar para cima
-      // Usar a distância até o fim evita loops de layout quando o clientHeight muda
       if (currentDistanceFromBottom < prevDistanceFromBottom - 5) {
-        // Rolou para baixo
         setShowSuggestions(false);
       } else if (currentDistanceFromBottom > prevDistanceFromBottom + 5) {
-        // Rolou para cima
         setShowSuggestions(true);
       }
     }
@@ -59,7 +53,6 @@ export const MessageList: React.FC = () => {
     prevScrollInfo.current = { scrollTop, scrollHeight, clientHeight };
   };
 
-  // Auto-scroll condicional: sempre rola em nova mensagem, ou se o usuário estiver no fim
   useEffect(() => {
     const isNewMessage = messages.length > prevMessagesLength.current;
     prevMessagesLength.current = messages.length;
@@ -72,7 +65,7 @@ export const MessageList: React.FC = () => {
   }, [messages.length, messages[messages.length - 1]?.content, virtualizer, isAutoScrollEnabled]);
 
   return (
-    <div className="messages-area" ref={parentRef} onScroll={handleScroll}>
+    <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-4" ref={parentRef} onScroll={handleScroll}>
       <div
         style={{
           height: `${virtualizer.getTotalSize()}px`,
@@ -83,6 +76,7 @@ export const MessageList: React.FC = () => {
         {virtualizer.getVirtualItems().map((virtualItem) => {
           const msg = messages[virtualItem.index];
           if (!msg) return null;
+          const isUser = msg.role === 'user';
 
           return (
             <div
@@ -96,37 +90,57 @@ export const MessageList: React.FC = () => {
                 width: '100%',
                 transform: `translateY(${virtualItem.start}px)`
               }}
-              className={`message-wrapper ${msg.role}`}
+              className={`pb-4 flex ${isUser ? 'justify-end' : 'justify-start'}`}
             >
-              <div className={`message-bubble ${msg.role}`}>
-                <div className="msg-header">
-                  {msg.role === 'user' ? (
-                    <span className="msg-author user-author">
-                      you@{currentSession?.id ? currentSession.id.replace(/^session-/, '').slice(0, 8) : 'usr'}:~$
-                    </span>
-                  ) : (
-                    <div className="bot-header-title">
-                      <span className="bot-bolt">⚡</span>
-                      <span className="bot-author">{getBotAuthorLabel(selectedModel)}</span>
+              {isUser ? (
+                /* User Card */
+                <div className="bg-neutral-900 text-white rounded-2xl rounded-tr-xs p-4 shadow-sm max-w-2xl w-full space-y-2">
+                  <div className="flex items-center justify-between border-b border-neutral-800 pb-2">
+                    <div className="flex items-center gap-2">
+                      <div className="h-6 w-6 rounded-full bg-emerald-500 text-neutral-900 font-bold text-xs flex items-center justify-center">
+                        <User size={12} />
+                      </div>
+                      <span className="text-xs font-semibold text-neutral-200">Você</span>
                     </div>
-                  )}
-                  <span className="msg-time">{formatTime(new Date(msg.timestamp))}</span>
-                </div>
-
-                {msg.role === 'bot' && !msg.content && isLoading ? (
-                  <div className="typing-indicator">
-                    <Loader2 size={14} className="spin-icon" />
-                    <span>Gerando síntese legislativa...</span>
+                    <span className="text-[10px] font-mono text-neutral-400">{formatTime(new Date(msg.timestamp))}</span>
                   </div>
-                ) : (
-                  <div
-                    className="msg-content bot-text"
-                    dangerouslySetInnerHTML={{ __html: formatMarkdown(msg.content) }}
-                  />
-                )}
+                  <div className="text-sm font-medium text-neutral-100 leading-relaxed whitespace-pre-wrap">
+                    {msg.content}
+                  </div>
+                </div>
+              ) : (
+                /* Bot Card */
+                <div className="bg-white text-neutral-900 border border-neutral-200/80 rounded-2xl rounded-tl-xs p-5 shadow-sm max-w-3xl w-full space-y-3">
+                  <div className="flex items-center justify-between border-b border-neutral-100 pb-2.5">
+                    <div className="flex items-center gap-2">
+                      <div className="h-7 w-7 rounded-xl bg-emerald-500 text-neutral-900 font-bold text-xs flex items-center justify-center shadow-2xs">
+                        <Sparkles size={14} />
+                      </div>
+                      <div>
+                        <span className="text-xs font-bold text-neutral-900 block leading-tight">
+                          {getBotAuthorLabel(selectedModel)}
+                        </span>
+                        <span className="text-[10px] text-neutral-400 font-medium">Resposta Baseada em Dados Oficiais</span>
+                      </div>
+                    </div>
+                    <span className="text-[10px] font-mono text-neutral-400">{formatTime(new Date(msg.timestamp))}</span>
+                  </div>
 
-                {msg.role === 'bot' && <SourceBadges sources={msg.sources} />}
-              </div>
+                  {!msg.content && isLoading ? (
+                    <div className="flex items-center gap-2 text-xs font-semibold text-neutral-500 py-3">
+                      <Loader2 size={16} className="animate-spin text-emerald-600" />
+                      <span>Consultando bases legislativas e gerando resposta...</span>
+                    </div>
+                  ) : (
+                    <div
+                      className="prose prose-neutral max-w-none text-sm text-neutral-800 leading-relaxed font-normal space-y-2 [&_ul]:list-disc [&_ul]:pl-4 [&_ol]:list-decimal [&_ol]:pl-4 [&_p]:mb-2 [&_h3]:font-bold [&_h3]:text-base [&_code]:bg-neutral-100 [&_code]:px-1.5 [&_code]:py-0.5 [&_code]:rounded-md [&_code]:text-xs [&_code]:font-mono"
+                      dangerouslySetInnerHTML={{ __html: formatMarkdown(msg.content) }}
+                    />
+                  )}
+
+                  <SourceBadges sources={msg.sources} />
+                </div>
+              )}
             </div>
           );
         })}

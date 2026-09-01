@@ -1,4 +1,5 @@
 import React from 'react';
+import { Sparkles } from 'lucide-react';
 import { useChatStore } from '../store/useChatStore';
 
 export const SuggestionGrid: React.FC = () => {
@@ -7,17 +8,25 @@ export const SuggestionGrid: React.FC = () => {
   if (!suggestions || suggestions.length === 0) return null;
 
   return (
-    <div className={`suggestions-container ${showSuggestions ? '' : 'hidden-suggestions'}`}>
-      <span className="suggestions-header-label">SUGESTÕES POPULARES:</span>
-      <div className="suggestions-horizontal-grid">
+    <div
+      className={`px-6 py-2.5 bg-neutral-100/60 border-b border-neutral-200/60 flex items-center gap-3 transition-all duration-300 ${
+        showSuggestions ? 'opacity-100 max-h-16' : 'opacity-0 max-h-0 overflow-hidden py-0 border-none'
+      }`}
+    >
+      <div className="flex items-center gap-1.5 shrink-0 text-neutral-400">
+        <Sparkles size={13} className="text-emerald-500" />
+        <span className="text-[10px] font-bold uppercase tracking-wider">Sugestões:</span>
+      </div>
+
+      <div className="flex items-center gap-2 overflow-x-auto no-scrollbar py-0.5">
         {suggestions.slice(0, 8).map((sug, i) => (
           <button
             key={i}
-            className="suggestion-card-item"
             onClick={() => sendMessageStream(sug.prompt)}
             disabled={isLoading}
+            className="whitespace-nowrap rounded-full bg-white hover:bg-neutral-900 hover:text-white border border-neutral-200/90 text-neutral-700 text-xs px-3.5 py-1 font-semibold transition-all shadow-2xs disabled:opacity-40 cursor-pointer shrink-0"
           >
-            <span className="suggestion-card-text">{sug.prompt}</span>
+            {sug.prompt}
           </button>
         ))}
       </div>
