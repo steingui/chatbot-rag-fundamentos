@@ -109,14 +109,22 @@ docker build -t chatbot-rag .
 docker run -p 10000:10000 --env-file .env chatbot-rag
 ```
 
-### Otimização de Contexto para Agentes
+### Otimização de Contexto e Atalhos de Sessão
 ```bash
 # Atualizar / verificar o índice do CodeGraph
 codegraph sync .
 
+# Consultar logs do backend Cloud Run (ex: últimos 30 minutos)
+./scripts/fetch_logs.sh 30
+
 # Empacotar repositório em arquivo único para LLMs via web
 repomix
 ```
+
+### Slash Commands da Sessão
+- `/init`: Mapear dependências do workspace ativo.
+- `/usage`: Exibir status do workspace e estimativa de tokens.
+- `/logs <minutos>`: Executar busca de logs do backend Cloud Run dos últimos X minutos (`./scripts/fetch_logs.sh <minutos>`).
 
 
 ---
