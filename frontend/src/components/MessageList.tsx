@@ -94,17 +94,17 @@ export const MessageList: React.FC = () => {
             >
               {isUser ? (
                 /* User Card */
-                <div className="bg-neutral-900 text-white rounded-2xl rounded-tr-xs p-4 shadow-sm max-w-2xl w-full space-y-2">
-                  <div className="flex items-center justify-between border-b border-neutral-800 pb-2">
+                <div className="bg-emerald-50/70 border border-emerald-200/80 text-neutral-900 rounded-2xl rounded-tr-xs p-4 shadow-2xs max-w-2xl w-full space-y-2">
+                  <div className="flex items-center justify-between border-b border-emerald-200/50 pb-2">
                     <div className="flex items-center gap-2">
-                      <div className="h-6 w-6 rounded-full bg-emerald-500 text-neutral-900 font-bold text-xs flex items-center justify-center">
+                      <div className="h-6 w-6 rounded-full bg-emerald-600 text-white font-bold text-xs flex items-center justify-center shadow-2xs">
                         <User size={12} />
                       </div>
-                      <span className="text-xs font-semibold text-neutral-200">Você</span>
+                      <span className="text-xs font-bold text-emerald-950">Você</span>
                     </div>
-                    <span className="text-[10px] font-mono text-neutral-400">{formatTime(new Date(msg.timestamp))}</span>
+                    <span className="text-[10px] font-mono text-emerald-800/60">{formatTime(new Date(msg.timestamp))}</span>
                   </div>
-                  <div className="text-sm font-medium text-neutral-100 leading-relaxed whitespace-pre-wrap">
+                  <div className="text-sm font-medium text-neutral-800 leading-relaxed whitespace-pre-wrap">
                     {msg.content}
                   </div>
                 </div>
