@@ -9,8 +9,8 @@ export const SuggestionGrid: React.FC = () => {
 
   return (
     <div
-      className={`px-6 py-2.5 bg-neutral-100/60 border-b border-neutral-200/60 flex items-center gap-3 transition-all duration-300 ${
-        showSuggestions ? 'opacity-100 max-h-16' : 'opacity-0 max-h-0 overflow-hidden py-0 border-none'
+      className={`px-4 sm:px-6 py-2.5 bg-neutral-100/60 border-b border-neutral-200/60 flex flex-wrap items-center gap-2.5 transition-all duration-300 ${
+        showSuggestions ? 'opacity-100' : 'opacity-0 max-h-0 overflow-hidden py-0 border-none'
       }`}
     >
       <div className="flex items-center gap-1.5 shrink-0 text-neutral-400">
@@ -18,13 +18,13 @@ export const SuggestionGrid: React.FC = () => {
         <span className="text-[10px] font-bold uppercase tracking-wider">Sugestões:</span>
       </div>
 
-      <div className="flex items-center gap-2 overflow-x-auto no-scrollbar py-0.5">
-        {suggestions.slice(0, 8).map((sug, i) => (
+      <div className="flex flex-wrap items-center gap-2 flex-1">
+        {suggestions.slice(0, 4).map((sug, i) => (
           <button
             key={i}
             onClick={() => sendMessageStream(sug.prompt)}
             disabled={isLoading}
-            className="whitespace-nowrap rounded-full bg-white hover:bg-neutral-900 hover:text-white border border-neutral-200/90 text-neutral-700 text-xs px-3.5 py-1 font-semibold transition-all shadow-2xs disabled:opacity-40 cursor-pointer shrink-0"
+            className="rounded-full bg-white hover:bg-neutral-900 hover:text-white border border-neutral-200/90 text-neutral-700 text-xs px-3.5 py-1 font-semibold transition-all shadow-2xs disabled:opacity-40 cursor-pointer text-left"
           >
             {sug.prompt}
           </button>

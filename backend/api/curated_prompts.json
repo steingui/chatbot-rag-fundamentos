@@ -1,10 +1,8 @@
 [
-    "Qual é a correlação entre as empresas que mais doaram no TSE e os maiores contratos no Portal da Transparência?",
-    "Liste os parlamentares que mais mudaram de voto em pautas ambientais nos últimos 4 anos.",
-    "Quais são as emendas parlamentares mais atípicas pagas no último mês?",
-    "Quais senadores mais utilizaram a cota parlamentar (CEAPS) nos últimos 6 meses?",
-    "Houve alguma ligação entre as votações recentes de desoneração fiscal e o plano de governo eleito?",
-    "Quais propostas na Câmara dos Deputados mais divergem dos dados de execução orçamentária do Portal da Transparência?",
-    "O que diz a base de fact-checking sobre fraudes eleitorais recentes e as falas na CPI das urnas?",
-    "Há casos recentes de empresas recém-criadas recebendo grandes repasses da União via CGU?"
+  "Quais doadores do TSE possuem contratos milionários com a União?",
+  "Quais parlamentares mais mudaram de voto em pautas ambientais?",
+  "Quais emendas parlamentares atípicas foram pagas este mês?",
+  "Quais senadores mais gastaram a cota parlamentar (CEAPS)?",
+  "Quais deputados mais faltaram em votações no Plenário?",
+  "Quais repasses da CGU foram para empresas recém-criadas?"
 ]

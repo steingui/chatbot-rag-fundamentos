@@ -147,10 +147,10 @@ export const useChatStore = create<ChatState>((set, get) => ({
   showSuggestions: true,
   isSidebarOpen: true,
   suggestions: [
-    { prompt: 'Qual é a correlação entre as empresas que mais doaram no TSE e os maiores contratos no Portal da Transparência?' },
-    { prompt: 'Liste os parlamentares que mais mudaram de voto em pautas ambientais nos últimos 4 anos.' },
-    { prompt: 'Quais são as emendas parlamentares mais atípicas pagas no último mês?' },
-    { prompt: 'Quais senadores mais utilizaram a cota parlamentar (CEAPS) nos últimos 6 meses?' },
+    { prompt: 'Quais doadores do TSE possuem contratos milionários com a União?' },
+    { prompt: 'Quais parlamentares mais mudaram de voto em pautas ambientais?' },
+    { prompt: 'Quais emendas parlamentares atípicas foram pagas este mês?' },
+    { prompt: 'Quais senadores mais gastaram a cota parlamentar (CEAPS)?' },
   ],
 
   setInput: (input) => set({ input }),
