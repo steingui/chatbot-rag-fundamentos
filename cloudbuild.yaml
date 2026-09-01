@@ -1,0 +1,66 @@
+steps:
+  # Build da imagem Docker
+  - name: 'gcr.io/cloud-builders/docker'
+    args:
+      - 'build'
+      - '-t'
+      - 'southamerica-east1-docker.pkg.dev/$PROJECT_ID/chatbot-rag/api:$COMMIT_SHA'
+      - '-t'
+      - 'southamerica-east1-docker.pkg.dev/$PROJECT_ID/chatbot-rag/api:latest'
+      - '.'
+
+  # Push para Artifact Registry
+  - name: 'gcr.io/cloud-builders/docker'
+    args:
+      - 'push'
+      - '--all-tags'
+      - 'southamerica-east1-docker.pkg.dev/$PROJECT_ID/chatbot-rag/api'
+
+  # Deploy no Cloud Run
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    entrypoint: gcloud
+    args:
+      - 'run'
+      - 'deploy'
+      - 'chatbot-rag-api'
+      - '--image=southamerica-east1-docker.pkg.dev/$PROJECT_ID/chatbot-rag/api:$COMMIT_SHA'
+      - '--region=southamerica-east1'
+      - '--platform=managed'
+      - '--allow-unauthenticated'
+      - '--min-instances=0'
+      - '--max-instances=3'
+      - '--memory=1Gi'
+      - '--cpu=1'
+      - '--timeout=300'
+      - '--set-secrets=PINECONE_API_KEY=PINECONE_API_KEY:latest,PINECONE_INDEX_NAME=PINECONE_INDEX_NAME:latest,OPENROUTER_API_KEY=OPENROUTER_API_KEY:latest,HF_TOKEN=HF_TOKEN:latest,GOOGLE_API_KEY=GOOGLE_API_KEY:latest'
+      - '--port=10000'
+
+  # Deploy frontend no Firebase Hosting
+  - name: 'node:22'
+    entrypoint: bash
+    args:
+      - '-c'
+      - |
+        cd frontend
+        npm ci
+        VITE_API_URL=https://chatbot-rag-api-1043919586992.southamerica-east1.run.app npm run build
+
+  - name: 'node:22'
+    entrypoint: bash
+    args:
+      - '-c'
+      - |
+        npm install -g firebase-tools
+        cd frontend
+        firebase deploy --only hosting --project=$PROJECT_ID --token=${_FIREBASE_TOKEN} --non-interactive
+
+images:
+  - 'southamerica-east1-docker.pkg.dev/$PROJECT_ID/chatbot-rag/api:$COMMIT_SHA'
+  - 'southamerica-east1-docker.pkg.dev/$PROJECT_ID/chatbot-rag/api:latest'
+
+substitutions:
+  _FIREBASE_TOKEN: ''
+
+options:
+  logging: CLOUD_LOGGING_ONLY
+  machineType: 'E2_HIGHCPU_8'
