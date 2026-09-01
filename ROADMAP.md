@@ -1,6 +1,7 @@
 # 🗺️ Roadmap do Projeto (Próximos Passos e Melhorias)
 
-A arquitetura base de Ingestão Multi-Fonte (Câmara, Senado, TSE, CGU), o Vector DB idempotente (Pinecone), o Backend ReAct Agent e o Frontend estão **funcionais e em produção**. As sugestões dinâmicas (UX) também foram implementadas.
+A arquitetura base de Ingestão Multi-Fonte (Câmara, Senado, TSE, CGU), o Vector DB idempotente (Pinecone), o Backend ReAct Agent (GCP Cloud Run), o Frontend v2 com Tailwind CSS + Elera UI (Firebase Hosting) e a infraestrutura Mobile (React Native + Expo) estão funcionais. As sugestões dinâmicas (UX) e o histórico de sessões foram aprimorados.
+
 
 Este documento foca exclusivamente nas melhorias pendentes, priorizando a mitigação de alucinações e o amadurecimento da IA.
 

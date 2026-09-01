@@ -21,7 +21,7 @@
 ---
 
 ## 3. Teste Sequencial de Conversa (End-to-End)
-- **Endpoint:** `POST https://chatbot-rag-api-q2k5.onrender.com/chat/stream`
+- **Endpoint:** `POST https://chatbot-rag-api-1043919586992.southamerica-east1.run.app/chat/stream`
 - **Segurança (SEC-005):** Validação de Origin/CORS OK.
 
 ### Sequência de Teste Executada:

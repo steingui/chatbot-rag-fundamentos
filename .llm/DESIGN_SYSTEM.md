@@ -1,131 +1,43 @@
-# Design System — RAG Político
+# Design System v2 — RAG Político
 
 ## Identidade Visual
 
-**Conceito**: Interface de terminal hacker — fundo escuro, tipografia monospace,
-acentos neon verdes, estética que remete a linha de comando.
+**Conceito**: Design System moderno inspirado no **Elera UI / shadcn/ui** — superfícies claras off-white, cards brancos elevados com sombras sutis, tipografia elegante e elementos em formato de pílula (*pill buttons*).
 
-**Fonte primária**: `JetBrains Mono` (Google Fonts), fallbacks: `Fira Code`, `Cascadia Code`, `monospace`.
+**Fonte primária**: `Plus Jakarta Sans` (Google Fonts), fallbacks: `system-ui`, `-apple-system`, `sans-serif`.
+**Fonte para código**: `JetBrains Mono` (Google Fonts).
 
-**Filosofia**: Minimalista e funcional. Sem decorações supérfluas, animações sutis, informação densa.
+**Filosofia**: Limpo, profissional, acessível e responsivo. Foco em legibilidade e hierarquia visual clara.
 
-## Tokens CSS (`theme/tokens.css`)
+## Tokens & Paleta de Cores (`tailwind.config.js`)
 
-```css
-:root {
-  /* Palette */
-  --bg:          #0b0c0e;     /* Fundo principal (quase preto azulado) */
-  --surface:     #111215;     /* Superfícies elevadas (sidebar, header) */
-  --surface-2:   #16181d;     /* Superfícies secundárias (inputs, cards) */
-  --border:      #23262d;     /* Bordas padrão */
-  --border-hi:   #343842;     /* Bordas enfatizadas */
-  --text:        #e6e8ec;     /* Texto primário */
-  --muted:       #6b7280;     /* Texto secundário / labels */
-  --accent:      #00ff88;     /* Verde neon principal (CTAs, ativo, user prompt) */
-  --accent-dim:  rgba(0,255,136,0.1);   /* Background de accent sutil */
-  --accent-glow: rgba(0,255,136,0.08);  /* Glow/shadow de accent */
-  --gold:        #ffbd2e;     /* Dourado (bot header, badges de contagem) */
-  --gold-dim:    rgba(255,189,46,0.12); /* Background gold sutil */
-  --red:         #ff5f57;     /* Vermelho (ações destrutivas) */
-  --red-dim:     rgba(255,95,87,0.12);  /* Background red sutil */
-  --green:       #28ca41;     /* Verde status (dot online) */
+| Token | Hex / Classe | Descrição / Uso |
+|-------|--------------|-----------------|
+| `surface.bg` | `#F4F4F6` / `bg-[#F4F4F6]` | Fundo principal da aplicação e sidebar |
+| `surface.card` | `#FFFFFF` / `bg-white` | Cards de mensagens do assistente, modais e sidebar items |
+| `accent.emerald` | `#52C443` / `bg-emerald-500` | Botões primários, ícone do assistente, badges e destaques |
+| `neutral.dark` | `#171717` / `bg-neutral-900` | Cards de mensagens do usuário, botões de ação e títulos |
+| `border.default` | `#E5E5E5` / `border-neutral-200` | Bordas sutis dos cards e divisores |
+| `text.primary` | `#171717` / `text-neutral-900` | Títulos e texto principal |
+| `text.muted` | `#737373` / `text-neutral-500` | Subtítulos, timestamps e dados de suporte |
 
-  /* Typography */
-  --font-family: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', monospace;
+## Convenções de Componentes
 
-  /* Radii */
-  --radius-sm: 4px;
-  --radius-md: 6px;
-  --radius-lg: 8px;
+### 1. Header (`ChatHeader.tsx`)
+- Pílula de status do sistema: `bg-white/80 backdrop-blur-md rounded-full shadow-xs border border-neutral-200/80`.
+- Seletor de modelos: Dropdown integrado com indicador visual de status ativo (`emerald-500`).
 
-  /* Transitions */
-  --transition: all 0.15s ease;
-}
-```
+### 2. Mensagens (`MessageList.tsx`)
+- **Usuário**: Card escuro `bg-neutral-900 text-white rounded-2xl rounded-tr-xs p-4 shadow-sm max-w-2xl ml-auto`.
+- **Assistente**: Card branco `bg-white text-neutral-900 border border-neutral-200/80 rounded-2xl rounded-tl-xs p-5 shadow-sm max-w-3xl`.
+- **Fontes (SourceBadges)**: Chips categorizados em tons pastel (Câmara: azul, Senado: verde, TSE: roxo, FactCheck: amarelo).
 
-## Tokens TypeScript (`theme/tokens.ts`)
+### 3. Sugestões (`SuggestionGrid.tsx`)
+- Faixa horizontal com scroll oculta `no-scrollbar flex gap-2 overflow-x-auto`.
+- Botões de sugestão estilo pílula `bg-white hover:bg-neutral-100 border border-neutral-200 rounded-full px-4 py-2 text-xs font-semibold text-neutral-700 shadow-2xs`.
 
-Mesmos valores em formato tipado (`as const`) para uso programático em componentes
-caso necessário. Exporta `tokens` e `ThemeTokens` type.
+### 4. Input (`App.tsx`)
+- Container flutuante arredondado `bg-white border border-neutral-200/90 focus-within:border-emerald-500 focus-within:ring-2 focus-within:ring-emerald-500/20 rounded-2xl shadow-md p-2`.
 
-## Convenções de Cor por Contexto
-
-| Contexto | Cor | Variável |
-|----------|-----|----------|
-| Prompt do usuário (header) | Verde neon | `--accent` |
-| Header do bot | Dourado | `--gold` (#ffbd2e) |
-| Badge de contagem (sugestões) | Dourado sobre fundo dim | `--gold` / `--gold-dim` |
-| Botão destrutivo (Limpar Sessão) | Vermelho | `--red` |
-| Sessão ativa (sidebar) | Verde com borda accent | `--accent` + `--accent-dim` bg |
-| Status online (footer dot) | Verde brilhante com pulse | `--green` |
-| Texto de timestamp | Muted | `--muted` |
-| Source chips (RAG) | Verde sobre accent-dim | `--accent` bg/border |
-| Source chips (sem link) | Muted sobre surface-2 | `--muted` bg |
-
-## Elementos Visuais Chave
-
-### Brand (Sidebar)
-```
-[>_] rag_politico v1.0
-```
-- `>_` em caixa accent com borda accent (simula cursor de terminal)
-- Nome em bold, versão em muted alinhada à direita
-
-### Prompt do Usuário
-```
-you@rag:~$
-```
-- Cor: `--accent` (#00ff88)
-- Simula prompt de terminal Unix
-
-### Header do Bot
-```
-⚡ ASSISTENTE (RAG)
-```
-- ⚡ e texto em `--gold` (#ffbd2e)
-- Caps com letter-spacing
-
-### Sessão Ativa
-```
-▢ Nome da sessão
-```
-- `▢` para ativa, `◯` para inativa
-- Background: `rgba(0, 255, 136, 0.08)` com borda accent
-
-### Input
-```
-> [input field]  [send icon]
-```
-- Prefixo `>` em accent
-- Caret color: accent
-- Focus: borda accent com glow sutil
-
-## Layout
-
-```
-┌─── 240px ────┬──── flex: 1 ──────────────────────────┐
-│              │  HEADER (ChatHeader + ModelSelector)   │
-│   SIDEBAR    │  SUGGESTIONS (SuggestionGrid)          │
-│  (sessions)  │  MESSAGES (MessageList, scroll)        │
-│              │  INPUT (footer form)                   │
-└──────────────┴───────────────────────────────────────-┘
-```
-
-- Sidebar: `width: 240px`, `flex-shrink: 0`
-- Chat panel: `flex: 1`
-- Responsivo: sidebar oculta em `max-width: 680px`
-
-## Animações
-
-| Elemento | Animação | Duração |
-|----------|----------|---------|
-| Status dot (footer) | `pulse` (opacity 1→0.4→1) | 2s infinite |
-| Send button (loading) | `spin` (rotate 360°) | 1s linear infinite |
-| Hover/focus transitions | `all 0.15s ease` | 150ms |
-
-## Scrollbar
-
-```css
-::-webkit-scrollbar { width: 4px; }
-::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
-```
+## Modais (`IntroModal.tsx`)
+- Card modal centralizado `bg-white rounded-3xl border border-neutral-200 shadow-2xl p-8 max-w-2xl` com fundo desfocado (`backdrop-blur-xs`).

@@ -2,25 +2,24 @@
 
 ## Visão Geral
 
-Monorepo com 3 camadas: **Backend Python** (FastAPI), **Frontend React** (Vite), **Pipelines de Ingestão** (scrapers + Pinecone).
-Deploy via Render (Docker para API, static site para frontend).
+Monorepo com 3 camadas: **Backend Python** (FastAPI no GCP Cloud Run), **Frontend React** (Vite + Tailwind CSS no Firebase Hosting), **Pipelines de Ingestão** (scrapers + Pinecone Vector DB).
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
-│                        RENDER (Cloud)                           │
+│                     INFRAESTRUTURA GCP                          │
 │  ┌──────────────────┐           ┌────────────────────────────┐  │
-│  │ chatbot-rag-front│           │ chatbot-rag-api            │  │
-│  │ (Static Site)    │──HTTP────▶│ (Docker · FastAPI · :10000)│  │
-│  │ Vite + React     │           │                            │  │
+│  │ Firebase Hosting │           │ GCP Cloud Run              │  │
+│  │ (Frontend v2)    │──HTTP────▶│ (FastAPI Container :10000) │  │
+│  │ React + Tailwind │           │                            │  │
 │  └──────────────────┘           └─────────┬──────────────────┘  │
 └─────────────────────────────────────────────┼────────────────────┘
                                               │
-                     ┌────────────────────────┼──────────────────┐
-                     │                        │                  │
-              ┌──────▼──────┐  ┌──────────────▼───┐  ┌──────────▼───┐
-              │  Pinecone   │  │  OpenRouter API   │  │   DuckDuckGo │
-              │ (rag-funds) │  │ (LLM Free Tier)   │  │   (DDGS)     │
-              └─────────────┘  └───────────────────┘  └──────────────┘
+                      ┌───────────────────────┼──────────────────┐
+                      │                       │                  │
+               ┌──────▼──────┐  ┌─────────────▼───┐  ┌──────────▼───┐
+               │  Pinecone   │  │  OpenRouter API │  │   DuckDuckGo │
+               │ (rag-funds) │  │ (LLM Free Tier) │  │   (DDGS)     │
+               └─────────────┘  └─────────────────┘  └──────────────┘
 ```
 
 ## Camadas do Backend
@@ -54,77 +53,32 @@ backend/
 7. `global_rag_cache.set()` — armazena resposta completa
 8. `record_query()` em background — atualiza SQLite analytics
 
-### LLM Strategy (Multi-Provider Fallback)
-
-```python
-primary  = nvidia/nemotron-3-nano-30b-a3b:free
-fallback1 = meta-llama/llama-3.3-70b-instruct:free
-fallback2 = deepseek/deepseek-r1:free
-```
-
-Cadeia via `primary.with_fallbacks([fallback1, fallback2])`.
-O modelo pode ser sobrescrito pelo frontend via campo `model` no payload.
-
-## Camada Frontend
+## Camada Frontend (v2)
 
 ```
 frontend/src/
 ├── App.tsx               # Layout root: Sidebar + ChatPanel + InputForm
-├── App.css               # Stylesheet principal (todas as classes CSS)
+├── index.css             # Diretivas do Tailwind CSS v3 e fontes
 ├── store/
 │   └── useChatStore.ts   # Zustand store: sessions, streaming SSE, persistência
 ├── components/
-│   ├── SessionSidebar.tsx  # Sidebar com sessões, resumir, limpar
-│   ├── ChatHeader.tsx      # Header com título, model selector, badge Pinecone
+│   ├── SessionSidebar.tsx  # Sidebar com sessões, resumir, fonte e botões arredondados
+│   ├── ChatHeader.tsx      # Header com pílulas de status e model selector
 │   ├── MessageList.tsx     # Lista virtualizada de mensagens (TanStack Virtual)
-│   ├── ModelSelector.tsx   # Dropdown de modelos free-tier
-│   ├── SuggestionGrid.tsx  # Grid de sugestões populares com badges de contagem
-│   └── SourceBadges.tsx    # Chips de fontes com links validados
-└── theme/
-    ├── tokens.css         # CSS custom properties (design tokens)
-    └── tokens.ts          # TypeScript design tokens tipados
+│   ├── ModelSelector.tsx   # Dropdown de modelos free-tier em pílula
+│   ├── SuggestionGrid.tsx  # Faixa horizontal de sugestões populares em pílulas
+│   ├── SourceBadges.tsx    # Chips de fontes em tons pastel por categoria
+│   └── IntroModal.tsx      # Modal de transparência e introdução ao RAG
+└── lib/
+    └── utils.ts           # Utilitários de fusão de classes (clsx + tailwind-merge)
 ```
-
-## Pipelines de Ingestão (CI/CD)
-
-```
-pipelines/
-├── scrapers/
-│   ├── scraper_camara.py         # Votações da Câmara dos Deputados
-│   ├── scraper_senado.py         # Matérias e discursos do Senado Federal
-│   ├── scraper_tse_bens.py       # Declarações de bens (TSE DivulgaCand)
-│   ├── scraper_tse_pdfs.py       # Planos de governo em PDF
-│   ├── scraper_transparencia.py  # Portal da Transparência (CGU)
-│   └── scraper_rss.py            # Feeds RSS de fact-checking
-└── ingestion/
-    └── pinecone_ingestor.py      # Embedding (HF all-MiniLM-L6-v2) + upsert Pinecone
-```
-
-Triggers via GitHub Actions:
-- `ingest_diario_camara.yml` — diário
-- `ingest_diario_senado.yml` — diário
-- `ingest_semanal_tse.yml` — semanal
-- `ingest_semanal_transparencia.yml` — semanal
-- `ingest_mensal_pdfs.yml` — mensal
 
 ## Infraestrutura
 
-| Componente | Tecnologia | Plano |
-|-----------|-----------|-------|
-| API Backend | Render Web Service (Docker) | Free |
-| Frontend | Render Static Site (Vite build) | Free |
-| Vector DB | Pinecone (index: `rag-fundamentos`) | Free |
-| LLMs | OpenRouter (modelos :free) | Free |
-| Embeddings | HuggingFace Inference (all-MiniLM-L6-v2) | Free |
-| CI/CD | GitHub Actions (cron schedules) | Free |
-| Analytics | SQLite embedded (analytics.db) | Local |
-
-## Variáveis de Ambiente
-
-| Variável | Onde | Descrição |
-|----------|------|-----------|
-| `PINECONE_API_KEY` | Render/CI | Chave da API Pinecone |
-| `PINECONE_INDEX_NAME` | Render | Nome do index (`rag-fundamentos`) |
-| `OPENROUTER_API_KEY` | Render | Chave OpenRouter para LLMs |
-| `HF_TOKEN` | Render/CI | Token HuggingFace para embeddings |
-| `VITE_API_URL` | Frontend build | URL base da API (default: produção Render) |
+| Componente | Tecnologia | Plataforma / Endpoint |
+|-----------|-----------|-----------------------|
+| API Backend | FastAPI (Python 3.11) | GCP Cloud Run (`southamerica-east1`) |
+| Frontend | React + Tailwind CSS v3 | Firebase Hosting (`chatbot-rag-fundamentos`) |
+| CI/CD & Build | Cloud Build | Trigger automático na `main` (`cloudbuild.yaml`) |
+| Vector DB | Pinecone (index: `rag-fundamentos`) | Pinecone Serverless |
+| LLMs | OpenRouter (modelos :free) | Gemma 4, Llama 3.3, DeepSeek R1, Nemotron |

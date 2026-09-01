@@ -33,4 +33,5 @@ curl -X POST "https://chatbot-rag-api-1043919586992.southamerica-east1.run.app/c
    > `"Quais as propostas da candidata Maria Exemplo para o Meio Ambiente?"`
 
 ---
-*Status do Projeto: Fase 2 (RAG e Dados) Concluída. Próximo passo: Desenvolvimento do Frontend.*
+*Status do Projeto: Fase 3 Concluída (RAG Ingestion + GCP Cloud Run API + Firebase Hosting + Frontend UI v2 Tailwind & Elera UI).*
+
