@@ -93,34 +93,34 @@ export const MessageList: React.FC = () => {
               className={`pb-4 flex ${isUser ? 'justify-end' : 'justify-start'}`}
             >
               {isUser ? (
-                /* User Card - Sleek High-Contrast Dark Card */
-                <div className="bg-neutral-900 text-white border border-neutral-800 rounded-2xl rounded-tr-xs p-4 shadow-md max-w-2xl w-full space-y-2.5">
-                  <div className="flex items-center justify-between border-b border-neutral-800/80 pb-2">
+                /* User Card - Apple Dark Liquid Glass Bubble */
+                <div className="apple-glass-dark text-white rounded-[22px] rounded-tr-[4px] p-4 sm:p-5 shadow-xl max-w-2xl w-full space-y-2.5 apple-spring hover:scale-[1.005]">
+                  <div className="flex items-center justify-between border-b border-white/10 pb-2">
                     <div className="flex items-center gap-2">
-                      <div className="h-6 w-6 rounded-full bg-emerald-500 text-neutral-950 font-black text-xs flex items-center justify-center shadow-2xs">
+                      <div className="h-6 w-6 rounded-full bg-emerald-500 text-neutral-950 font-black text-xs flex items-center justify-center shadow-md">
                         <User size={13} />
                       </div>
-                      <span className="text-xs font-bold text-emerald-400 tracking-wide uppercase">Você</span>
+                      <span className="text-xs font-bold text-emerald-400 tracking-tight uppercase">Você</span>
                     </div>
-                    <span className="text-[11px] font-mono text-neutral-400">{formatTime(new Date(msg.timestamp))}</span>
+                    <span className="text-[11px] font-mono text-neutral-400 font-medium">{formatTime(new Date(msg.timestamp))}</span>
                   </div>
-                  <div className="text-sm font-medium text-neutral-100 leading-relaxed whitespace-pre-wrap">
+                  <div className="text-sm font-medium text-neutral-100 leading-relaxed whitespace-pre-wrap tracking-tight">
                     {msg.content}
                   </div>
                 </div>
               ) : (
-                /* Bot Card - Clean Modern High-Contrast Light Card */
-                <div className="bg-white text-neutral-900 border border-neutral-200/90 rounded-2xl rounded-tl-xs p-5 shadow-sm max-w-3xl w-full space-y-3.5">
-                  <div className="flex items-center justify-between border-b border-neutral-100 pb-2.5">
+                /* Bot Card - Apple Translucent Liquid Glass Surface */
+                <div className="apple-glass text-neutral-900 border border-black/[0.08] rounded-[22px] rounded-tl-[4px] p-5 sm:p-6 shadow-md max-w-3xl w-full space-y-3.5 apple-spring">
+                  <div className="flex items-center justify-between border-b border-black/[0.06] pb-3">
                     <div className="flex items-center gap-2.5">
-                      <div className="h-7 w-7 rounded-xl bg-emerald-500 text-neutral-950 font-black text-xs flex items-center justify-center shadow-2xs">
+                      <div className="h-7 w-7 rounded-xl bg-gradient-to-tr from-emerald-600 to-emerald-400 text-neutral-950 font-black text-xs flex items-center justify-center shadow-sm">
                         <Sparkles size={15} />
                       </div>
                       <div>
-                        <span className="text-xs font-extrabold text-neutral-900 block leading-tight">
+                        <span className="text-xs font-extrabold text-neutral-950 block leading-tight tracking-tight">
                           {getBotAuthorLabel(selectedModel)}
                         </span>
-                        <span className="text-[11px] text-neutral-500 font-semibold">Resposta Baseada em Dados Oficiais</span>
+                        <span className="text-[11px] text-neutral-500 font-semibold tracking-tight">Resposta Baseada em Dados Oficiais</span>
                       </div>
                     </div>
                     <span className="text-[11px] font-mono text-neutral-500 font-medium">{formatTime(new Date(msg.timestamp))}</span>
@@ -133,7 +133,7 @@ export const MessageList: React.FC = () => {
                     </div>
                   ) : (
                     <div
-                      className="prose prose-neutral max-w-none text-sm text-neutral-800 leading-relaxed font-normal space-y-2.5 [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:list-decimal [&_ol]:pl-5 [&_p]:mb-2.5 [&_h3]:font-bold [&_h3]:text-base [&_h3]:text-neutral-900 [&_code]:bg-neutral-100 [&_code]:text-emerald-800 [&_code]:px-1.5 [&_code]:py-0.5 [&_code]:rounded-md [&_code]:text-xs [&_code]:font-mono [&_code]:font-semibold"
+                      className="prose prose-neutral max-w-none text-sm text-neutral-800 leading-relaxed font-normal space-y-2.5 [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:list-decimal [&_ol]:pl-5 [&_p]:mb-2.5 [&_h3]:font-bold [&_h3]:text-base [&_h3]:text-neutral-950 [&_code]:bg-neutral-100/80 [&_code]:text-emerald-900 [&_code]:px-1.5 [&_code]:py-0.5 [&_code]:rounded-md [&_code]:text-xs [&_code]:font-mono [&_code]:font-semibold"
                       dangerouslySetInnerHTML={{ __html: formatMarkdown(msg.content) }}
                     />
                   )}

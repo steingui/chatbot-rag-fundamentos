@@ -48,24 +48,24 @@ export default function App() {
       <IntroModal />
       {isSidebarOpen && <SessionSidebar />}
 
-      <main className="flex-1 flex flex-col h-full bg-[#F4F4F6] overflow-hidden min-w-0">
+      <main className="flex-1 flex flex-col h-full bg-[#F2F2F7] overflow-hidden min-w-0">
         <ChatHeader />
         <SuggestionGrid />
         <MessageList />
 
-        <footer className="p-4 bg-neutral-100/90 border-t border-neutral-200/90 flex flex-col items-center gap-2 shrink-0">
+        <footer className="p-4 sm:p-5 bg-transparent flex flex-col items-center gap-2 shrink-0">
           <form
             onSubmit={handleSubmit}
-            className="bg-white border border-neutral-300 focus-within:border-emerald-500 focus-within:ring-2 focus-within:ring-emerald-500/30 rounded-2xl shadow-md p-2 flex items-center gap-3 w-full max-w-4xl transition-all"
+            className="apple-dock focus-within:border-emerald-500/80 focus-within:ring-4 focus-within:ring-emerald-500/20 rounded-3xl p-2 sm:p-2.5 flex items-center gap-3 w-full max-w-4xl apple-spring"
           >
-            <div className="flex items-center justify-center pl-2 text-neutral-500">
+            <div className="flex items-center justify-center pl-3 text-neutral-500">
               <Command size={18} />
             </div>
             
             <input
               ref={inputRef}
               type="text"
-              className="flex-1 bg-transparent text-sm font-semibold text-neutral-900 placeholder:text-neutral-500 focus:outline-none py-2"
+              className="flex-1 bg-transparent text-sm font-semibold text-neutral-950 placeholder:text-neutral-500 focus:outline-none py-2 tracking-tight"
               placeholder="Pergunte sobre PECs, projetos de lei, votações, TSE ou checagens de fatos..."
               value={input}
               onChange={(e) => setInput(e.target.value)}
@@ -79,11 +79,11 @@ export default function App() {
                   editLastPrompt();
                   inputRef.current?.focus();
                 }}
-                className="p-2.5 rounded-xl text-neutral-700 hover:text-neutral-950 hover:bg-neutral-100 transition-all cursor-pointer border border-neutral-200 flex items-center gap-1.5 text-xs font-bold shrink-0"
+                className="p-2.5 rounded-2xl text-neutral-700 hover:text-neutral-950 hover:bg-white/80 apple-spring cursor-pointer border border-black/[0.08] flex items-center gap-1.5 text-xs font-bold shrink-0 active:scale-95 shadow-2xs"
                 title="Editar e refazer o último prompt"
               >
                 <RotateCcw size={14} />
-                <span className="hidden sm:inline">Refazer último</span>
+                <span className="hidden sm:inline tracking-tight">Refazer último</span>
               </button>
             )}
 
@@ -91,7 +91,7 @@ export default function App() {
               <button
                 type="button"
                 onClick={stopStream}
-                className="bg-rose-600 hover:bg-rose-700 text-white font-extrabold p-3 rounded-xl transition-all shadow-sm flex items-center justify-center cursor-pointer shrink-0 animate-pulse"
+                className="bg-rose-600 hover:bg-rose-700 text-white font-extrabold p-3 rounded-2xl apple-spring shadow-md flex items-center justify-center cursor-pointer shrink-0 animate-pulse active:scale-95"
                 title="Pausar / Interromper resposta"
               >
                 <Square size={16} fill="currentColor" />
@@ -100,7 +100,7 @@ export default function App() {
               <button
                 type="submit"
                 disabled={!input.trim()}
-                className="bg-emerald-500 hover:bg-emerald-600 disabled:opacity-40 text-neutral-950 font-black p-3 rounded-xl transition-all shadow-sm flex items-center justify-center cursor-pointer shrink-0"
+                className="bg-gradient-to-tr from-emerald-600 to-emerald-400 hover:brightness-105 disabled:opacity-40 text-neutral-950 font-black p-3 rounded-2xl apple-spring shadow-md flex items-center justify-center cursor-pointer shrink-0 active:scale-95"
                 title="Enviar pergunta"
               >
                 <Send size={16} className="stroke-[2.5]" />
