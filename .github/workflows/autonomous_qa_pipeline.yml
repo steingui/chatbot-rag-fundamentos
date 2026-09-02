@@ -24,6 +24,16 @@ jobs:
           python -m pip install --upgrade pip
           if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
 
+      - name: Step 0A - Unit & Business Rule Tests (Pytest)
+        run: |
+          PYTHONPATH=. pytest tests/ -q
+
+      - name: Step 0B - Executar Agente Testador de RAG-AI (Personas & Security)
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          PYTHONPATH=. python3 scripts/agent_rag_tester.py
+
       - name: Step 1 - Triage (Agente Engenheiro)
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

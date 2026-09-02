@@ -20,12 +20,15 @@ PROMPT_INJECTION_PATTERNS = [
     r"new\s+instructions?\s*:",
     r"ignore\s+safety",
     # Português
-    r"ignore\s+(todas?\s+)?(as\s+)?instru[çc][õo]es\s+anteriores",
-    r"esque[çc]a\s+(tudo|todas?\s+regras?)",
+    r"ignore\s+.*instru[çc][õo]es",
+    r"esque[çc]a\s+(tudo|todas?\s+regras?|instru[çc][õo]es)",
     r"agora\s+voc[êe]\s+[ée]\s+um",
     r"finja\s+que\s+(voc[êe]|n[ãa]o\s+tem\s+restri)",
     r"novas?\s+instru[çc][õo]es?\s*:",
-    r"desconsidere\s+(tudo|as?\s+regras?)",
+    r"desconsidere\s+(tudo|as?\s+regras?|instru[çc][õo]es)",
+    # Out of Scope / Conversas fora de escopo
+    r"receita\s+de\s+",
+    r"bolo\s+de\s+",
     # Code injection
     r"exec\s*\(",
     r"eval\s*\(",
@@ -38,6 +41,13 @@ PROMPT_INJECTION_PATTERNS = [
 COMPILED_INJECTION_REGEX = re.compile(
     "|".join(PROMPT_INJECTION_PATTERNS), re.IGNORECASE
 )
+
+# Tenta carregar biblioteca especializada de detecção de injeção
+try:
+    import prompt_injection_detector as pid
+    _pid_scanner = pid.Scanner()
+except Exception:
+    _pid_scanner = None
 
 def validate_and_sanitize_query(query: str) -> str:
     """Higieniza e valida a consulta do usuário contra injeção de prompt e exploits."""
@@ -55,14 +65,29 @@ def validate_and_sanitize_query(query: str) -> str:
     # SEC-008: Normalização Unicode (NFKC) para evitar bypass via homoglyphs
     normalized_query = unicodedata.normalize("NFKC", cleaned_query)
 
+    import hashlib
+    query_hash = hashlib.sha256(cleaned_query.encode('utf-8')).hexdigest()[:16]
+
+    # Camada 1: Regex e heurísticas locais
     if COMPILED_INJECTION_REGEX.search(normalized_query):
-        import hashlib
-        # SEC-011: Loga apenas o hash (SHA-256 truncado) da query maliciosa para não expor PII nos logs (LGPD)
-        query_hash = hashlib.sha256(cleaned_query.encode('utf-8')).hexdigest()[:16]
-        logging.warning(f"SEC-011: Prompt Injection bloqueado (hash: {query_hash})")
+        logging.warning(f"SEC-011: Prompt Injection bloqueado por Regex (hash: {query_hash})")
         raise HTTPException(
             status_code=400,
             detail="Consulta bloqueada pelas diretrizes de segurança anti-prompt injection."
         )
 
+    # Camada 2: Scanner especializado via biblioteca prompt-injection-detector
+    if _pid_scanner is not None:
+        try:
+            scan_res = _pid_scanner.scan(normalized_query)
+            if scan_res.decision == "reject" or scan_res.risk_score >= 0.85:
+                logging.warning(f"SEC-011: Prompt Injection bloqueado por PID Scanner (score: {scan_res.risk_score:.2f}, hash: {query_hash})")
+                raise HTTPException(
+                    status_code=400,
+                    detail="Consulta bloqueada pelas diretrizes de segurança anti-prompt injection."
+                )
+        except Exception as e:
+            logging.debug(f"Falha ao rodar PID scanner: {e}")
+
     return cleaned_query
+

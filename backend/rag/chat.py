@@ -74,7 +74,7 @@ def init_components():
             from langchain_google_genai import ChatGoogleGenerativeAI
             fallbacks.append(
                 ChatGoogleGenerativeAI(
-                    model="gemini-1.5-flash",
+                    model="gemini-2.0-flash",
                     google_api_key=google_key,
                     temperature=0.2,
                     max_retries=3
@@ -104,9 +104,9 @@ def init_components():
     if google_key:
         try:
             from langchain_google_genai import ChatGoogleGenerativeAI
-            logging.info("Utilizando Google Gemini nativo (gemini-1.5-flash)...")
+            logging.info("Utilizando Google Gemini nativo (gemini-2.0-flash)...")
             primary_llm = ChatGoogleGenerativeAI(
-                model="gemini-1.5-flash",
+                model="gemini-2.0-flash",
                 google_api_key=google_key,
                 temperature=0.2,
                 max_retries=3
@@ -278,7 +278,7 @@ def get_rag_chain(session_id: str = "default", model_name: str = None):
             try:
                 from langchain_google_genai import ChatGoogleGenerativeAI
                 gemini_fallback = ChatGoogleGenerativeAI(
-                    model="gemini-1.5-flash",
+                    model="gemini-2.0-flash",
                     google_api_key=google_key,
                     temperature=0.2,
                     max_retries=3
