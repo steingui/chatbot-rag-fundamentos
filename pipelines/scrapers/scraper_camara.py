@@ -31,8 +31,16 @@ def _get_resilient_session() -> requests.Session:
 _session = _get_resilient_session()
 
 
+from tenacity import retry, stop_after_attempt, wait_random_exponential, retry_if_exception_type
+
+@retry(
+    stop=stop_after_attempt(3),
+    wait=wait_random_exponential(min=1, max=10),
+    retry=retry_if_exception_type(requests.RequestException),
+    reraise=False
+)
 def fetch_data(endpoint: str, params: Optional[Dict[str, Any]] = None) -> List[Dict[str, Any]]:
-    """Faz a requisição para a API da Câmara e retorna a lista de dados."""
+    """Faz a requisição para a API da Câmara e retorna a lista de dados com retries resilientes."""
     url = f"{BASE_URL}/{endpoint}"
     headers = {
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
@@ -47,8 +55,14 @@ def fetch_data(endpoint: str, params: Optional[Dict[str, Any]] = None) -> List[D
         return []
 
 
+@retry(
+    stop=stop_after_attempt(3),
+    wait=wait_random_exponential(min=1, max=5),
+    retry=retry_if_exception_type(requests.RequestException),
+    reraise=False
+)
 def fetch_proposicao_ementa(uri_proposicao: str) -> str:
-    """Busca a ementa de uma proposição através de sua URI na API da Câmara."""
+    """Busca a ementa de uma proposição através de sua URI na API da Câmara com retries resilientes."""
     try:
         headers = {
             "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
@@ -61,6 +75,7 @@ def fetch_proposicao_ementa(uri_proposicao: str) -> str:
     except requests.RequestException as e:
         logging.warning(f"Aviso: Falha ao buscar a proposição na URI {uri_proposicao}: {e}")
         return "Ementa indisponível (Erro na API)."
+
 
 
 def get_recent_votacoes(limit: int = DEFAULT_ITEMS) -> List[Dict[str, Any]]:

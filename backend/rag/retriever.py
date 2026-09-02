@@ -1,10 +1,12 @@
+import re
 import logging
+import unicodedata
 from typing import List, Dict, Any
 from langchain_core.documents import Document
 from rank_bm25 import BM25Okapi
 
 class HybridRetriever:
-    """Retriever Híbrido integrando busca vetorial densa (Pinecone) e lexical esparsa (BM25) com RRF."""
+    """Retriever Híbrido otimizado integrando busca vetorial densa (Pinecone) e lexical esparsa (BM25) com RRF."""
 
     def __init__(self, dense_retriever: Any, documents: List[Document] = None, k_dense: int = 4, k_bm25: int = 4, rrf_k: int = 60):
         self.dense_retriever = dense_retriever
@@ -17,16 +19,24 @@ class HybridRetriever:
         if self.documents:
             self._build_bm25_index(self.documents)
 
+    def _tokenize(self, text: str) -> List[str]:
+        # Normalização de acentos e separação por palavras
+        nfkd_form = unicodedata.normalize('NFKD', text.lower())
+        only_ascii = "".join([c for c in nfkd_form if not unicodedata.combining(c)])
+        return re.findall(r'\w+', only_ascii)
+
     def _build_bm25_index(self, documents: List[Document]):
         self.documents = documents
-        corpus = [doc.page_content.lower().split() for doc in documents]
+        corpus = [self._tokenize(doc.page_content) for doc in documents]
         if corpus:
             self.bm25_model = BM25Okapi(corpus)
 
     def _get_bm25_top_k(self, query: str, top_k: int = 4) -> List[Document]:
         if not self.bm25_model or not self.documents:
             return []
-        tokenized_query = query.lower().split()
+        tokenized_query = self._tokenize(query)
+        if not tokenized_query:
+            return []
         scores = self.bm25_model.get_scores(tokenized_query)
         top_indices = sorted(range(len(scores)), key=lambda i: scores[i], reverse=True)[:top_k]
         return [self.documents[i] for i in top_indices if scores[i] > 0]
@@ -35,11 +45,13 @@ class HybridRetriever:
         doc_scores: Dict[str, float] = {}
         doc_map: Dict[str, Document] = {}
 
-        for docs in results_list:
+        for list_idx, docs in enumerate(results_list):
+            # Atribui peso ligeiramente maior (1.2) para resultados densos se disponíveis
+            weight = 1.2 if list_idx == 0 else 1.0
             for rank, doc in enumerate(docs):
                 doc_key = doc.page_content.strip()
                 doc_map[doc_key] = doc
-                score = 1.0 / (self.rrf_k + rank + 1)
+                score = weight * (1.0 / (self.rrf_k + rank + 1))
                 doc_scores[doc_key] = doc_scores.get(doc_key, 0.0) + score
 
         sorted_keys = sorted(doc_scores.keys(), key=lambda k: doc_scores[k], reverse=True)[:top_n]

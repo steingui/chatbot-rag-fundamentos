@@ -75,6 +75,30 @@ export function formatTime(date: Date): string {
   return date.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
 }
 
+const GUEST_ID_KEY = 'rag_guest_id_v1';
+const GUEST_PROMPTS_KEY = 'rag_guest_prompts_v1';
+
+const getOrCreateGuestId = (): string => {
+  try {
+    let id = localStorage.getItem(GUEST_ID_KEY);
+    if (!id) {
+      id = `guest_${typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).substring(2, 9)}`;
+      localStorage.setItem(GUEST_ID_KEY, id);
+    }
+    return id;
+  } catch {
+    return `guest_tmp_${Math.random().toString(36).substring(2, 9)}`;
+  }
+};
+
+const getPersistedGuestPrompts = (): number => {
+  try {
+    return Number(localStorage.getItem(GUEST_PROMPTS_KEY) || 0);
+  } catch {
+    return 0;
+  }
+};
+
 interface ChatState {
   sessions: Session[];
   activeIdx: number;
@@ -85,6 +109,8 @@ interface ChatState {
   showSuggestions: boolean;
   isSidebarOpen: boolean;
   fontSize: number;
+  guestId: string;
+  guestPromptCount: number;
   
   abortController: AbortController | null;
 
@@ -106,6 +132,8 @@ interface ChatState {
   sendMessageStream: (queryText: string) => Promise<void>;
   stopStream: () => void;
   editLastPrompt: () => void;
+  incrementGuestPrompts: () => void;
+  resetGuestPrompts: () => void;
 }
 
 const LOCAL_STORAGE_KEY = 'rag_chat_sessions_v1';
@@ -117,9 +145,9 @@ const loadPersistedSessions = (): Session[] | null => {
     const raw = localStorage.getItem(LOCAL_STORAGE_KEY);
     if (!raw) return null;
     const parsed = JSON.parse(raw);
-    return parsed.map((s: any) => {
-      const messages = (s.messages || []).map((m: any) => ({ ...m, timestamp: new Date(m.timestamp) }));
-      const firstUserMsg = messages.find((m: any) => m.role === 'user');
+    return parsed.map((s: Session) => {
+      const messages = (s.messages || []).map((m: Message) => ({ ...m, timestamp: new Date(m.timestamp) }));
+      const firstUserMsg = messages.find((m: Message) => m.role === 'user');
       const label = firstUserMsg ? firstUserMsg.content : (s.label || '').replace(/\.\.\.$/, '');
       return {
         ...s,
@@ -128,7 +156,8 @@ const loadPersistedSessions = (): Session[] | null => {
         messages
       };
     });
-  } catch {
+  } catch (e) {
+    console.warn('Erro ao carregar sessoes do localStorage:', e);
     return null;
   }
 };
@@ -150,12 +179,33 @@ export const useChatStore = create<ChatState>((set, get) => ({
   showSuggestions: true,
   isSidebarOpen: true,
   abortController: null,
+  guestId: getOrCreateGuestId(),
+  guestPromptCount: getPersistedGuestPrompts(),
   suggestions: [
     { prompt: 'Quais doadores do TSE possuem contratos milionários com a União?' },
     { prompt: 'Quais parlamentares mais mudaram de voto em pautas ambientais?' },
     { prompt: 'Quais emendas parlamentares atípicas foram pagas este mês?' },
     { prompt: 'Quais senadores mais gastaram a cota parlamentar (CEAPS)?' },
   ],
+
+  incrementGuestPrompts: () => {
+    const next = get().guestPromptCount + 1;
+    set({ guestPromptCount: next });
+    try {
+      localStorage.setItem(GUEST_PROMPTS_KEY, String(next));
+    } catch (e) {
+      console.warn('Erro ao salvar guest_prompts:', e);
+    }
+  },
+
+  resetGuestPrompts: () => {
+    set({ guestPromptCount: 0 });
+    try {
+      localStorage.setItem(GUEST_PROMPTS_KEY, '0');
+    } catch (e) {
+      console.warn('Erro ao resetar guest_prompts:', e);
+    }
+  },
 
   setInput: (input) => set({ input }),
   setSelectedModel: (selectedModel) => set({ selectedModel }),
@@ -268,7 +318,11 @@ export const useChatStore = create<ChatState>((set, get) => ({
     if (current >= 20) return;
     const next = Math.min(20, current + 1);
     set({ fontSize: next });
-    try { localStorage.setItem('rag_chat_fontsize', String(next)); } catch {}
+    try {
+      localStorage.setItem('rag_chat_fontsize', String(next));
+    } catch (e) {
+      console.warn('Erro ao salvar fontsize:', e);
+    }
   },
 
   decreaseFontSize: () => {
@@ -276,12 +330,20 @@ export const useChatStore = create<ChatState>((set, get) => ({
     if (current <= 11) return;
     const next = Math.max(11, current - 1);
     set({ fontSize: next });
-    try { localStorage.setItem('rag_chat_fontsize', String(next)); } catch {}
+    try {
+      localStorage.setItem('rag_chat_fontsize', String(next));
+    } catch (e) {
+      console.warn('Erro ao salvar fontsize:', e);
+    }
   },
 
   resetFontSize: () => {
     set({ fontSize: 14 });
-    try { localStorage.setItem('rag_chat_fontsize', '14'); } catch {}
+    try {
+      localStorage.setItem('rag_chat_fontsize', '14');
+    } catch (e) {
+      console.warn('Erro ao resetar fontsize:', e);
+    }
   },
 
   setSuggestions: (suggestions) => set({ suggestions }),
@@ -324,10 +386,13 @@ export const useChatStore = create<ChatState>((set, get) => ({
 
   sendMessageStream: async (queryText: string) => {
     const query = queryText.trim();
-    const { isLoading, activeIdx, sessions, selectedModel, fetchSuggestions } = get();
+    const { isLoading, activeIdx, sessions, selectedModel, fetchSuggestions, incrementGuestPrompts } = get();
 
     // Proteção Anti-Spam & Trava Concorrente Estrita
     if (!query || isLoading) return;
+
+    // Incrementar estatística Guest-First
+    incrementGuestPrompts();
 
     const capturedIdx = activeIdx;
     const currentSession = sessions[capturedIdx];

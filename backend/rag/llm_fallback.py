@@ -12,7 +12,7 @@ DEFAULT_MODELS_FALLBACK_ORDER = [
 ]
 
 class DynamicFallbackLLMManager:
-    """Gerenciador dinâmico de resiliência e fallback entre múltiplos provedores/modelos de LLM."""
+    """Gerenciador dinâmico de resiliência e fallback entre múltiplos provedores/modelos de LLM usando LangChain with_fallbacks."""
 
     def __init__(self, primary_model: Optional[str] = None):
         self.api_key = os.environ.get("OPENROUTER_API_KEY", "")
@@ -29,18 +29,26 @@ class DynamicFallbackLLMManager:
             temperature=0.2
         )
 
+    def get_resilient_chain(self) -> Any:
+        primary = self.get_llm_instance(self.primary_model)
+        fallbacks = [self.get_llm_instance(m) for m in self.fallback_models]
+        return primary.with_fallbacks(fallbacks)
+
     def invoke_with_fallback(self, prompt_input: Any) -> Any:
-        models_to_try = [self.primary_model] + self.fallback_models
-        last_exception = None
+        resilient_chain = self.get_resilient_chain()
+        try:
+            logging.info(f"Executando cadeia resiliente com modelo primário: {self.primary_model}")
+            return resilient_chain.invoke(prompt_input)
+        except Exception as e:
+            logging.warning(f"Cadeia resiliente com fallbacks automáticos falhou: {e}. Executando tentativa direta individual...")
+            # Fallback manual em caso de erro estrutural nas exceções
+            models_to_try = [self.primary_model] + self.fallback_models
+            last_exception = e
+            for model_name in models_to_try:
+                try:
+                    llm = self.get_llm_instance(model_name)
+                    return llm.invoke(prompt_input)
+                except Exception as ex:
+                    last_exception = ex
+            raise RuntimeError(f"Todos os provedores de LLM falharam: {last_exception}")
 
-        for model_name in models_to_try:
-            try:
-                logging.info(f"Tentando invocação de LLM com modelo: {model_name}")
-                llm = self.get_llm_instance(model_name)
-                res = llm.invoke(prompt_input)
-                return res
-            except Exception as e:
-                logging.warning(f"Falha ao invocar LLM no modelo {model_name}: {e}. Acionando fallback...")
-                last_exception = e
-
-        raise RuntimeError(f"Todos os provedores de LLM falharam: {last_exception}")
