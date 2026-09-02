@@ -5,10 +5,9 @@ from langchain_openai import ChatOpenAI
 from langchain_core.language_models import BaseChatModel
 
 DEFAULT_MODELS_FALLBACK_ORDER = [
-    "nvidia/nemotron-3-nano-30b-a3b:free",
     "meta-llama/llama-3.3-70b-instruct:free",
     "deepseek/deepseek-r1-distill-llama-70b:free",
-    "google/gemini-2.0-flash-lite-preview-02-05:free"
+    "qwen/qwen-2.5-coder-32b-instruct:free"
 ]
 
 class DynamicFallbackLLMManager:

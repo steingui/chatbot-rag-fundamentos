@@ -86,14 +86,14 @@ def init_components():
     if api_key:
         fallbacks.extend([
             ChatOpenAI(
-                model="google/gemma-4-31b-it:free",
+                model="meta-llama/llama-3.3-70b-instruct:free",
                 openai_api_key=api_key,
                 openai_api_base=OPENROUTER_BASE,
                 max_retries=3,
                 temperature=0.2
             ),
             ChatOpenAI(
-                model="nvidia/nemotron-3.5-lightning:free",
+                model="deepseek/deepseek-r1-distill-llama-70b:free",
                 openai_api_key=api_key,
                 openai_api_base=OPENROUTER_BASE,
                 max_retries=3,
