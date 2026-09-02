@@ -37,8 +37,8 @@ def test_cache_business_rules():
     cache = RAGQueryCache(ttl_seconds=300, max_size=2)
 
     # Chaves normalizadas (espacos e caixa alta) devem bater no mesmo registro
-    cache.set("   QUAIS AS LEIS DA  SAUDE?  ", {"answer": "Lei 8080", "sources": []}, model_name="gemini-2.0-flash")
-    cached = cache.get("quais as leis da saude?", model_name="gemini-2.0-flash")
+    cache.set("   QUAIS AS LEIS DA  SAUDE?  ", {"answer": "Lei 8080", "sources": []}, model_name="gemini-3.6-flash")
+    cached = cache.get("quais as leis da saude?", model_name="gemini-3.6-flash")
 
     assert cached is not None
     assert cached["answer"] == "Lei 8080"
@@ -48,7 +48,7 @@ def test_cache_business_rules():
     cache.set("query 3", {"answer": "ans 3", "sources": []})
 
     # "quais as leis da saude?" deve ter sido removido por ser o mais antigo
-    assert cache.get("quais as leis da saude?", model_name="gemini-2.0-flash") is None
+    assert cache.get("quais as leis da saude?", model_name="gemini-3.6-flash") is None
     assert cache.get("query 3") is not None
 
 def test_hybrid_retriever_rrf_scoring():
