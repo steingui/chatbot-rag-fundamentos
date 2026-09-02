@@ -72,7 +72,7 @@ def init_components():
     if google_key:
         try:
             from langchain_google_genai import ChatGoogleGenerativeAI
-            gemini_candidates = ["gemini-2.0-flash", "gemini-1.5-flash-001", "gemini-1.5-pro-001", "gemini-1.5-flash-8b"]
+            gemini_candidates = ["gemini-3.6-flash", "gemini-flash-latest", "gemini-3.5-flash", "gemini-pro-latest"]
             for m in gemini_candidates:
                 try:
                     fallbacks.append(
@@ -278,7 +278,7 @@ def get_rag_chain(session_id: str = "default", model_name: str = None):
                 from langchain_google_genai import ChatGoogleGenerativeAI
                 gemini_fallbacks = [
                     ChatGoogleGenerativeAI(model=m, google_api_key=google_key, temperature=0.2, max_retries=2)
-                    for m in ["gemini-2.0-flash", "gemini-1.5-flash-001", "gemini-1.5-pro-001"]
+                    for m in ["gemini-3.6-flash", "gemini-flash-latest", "gemini-3.5-flash", "gemini-pro-latest"]
                     if m != model_name
                 ]
                 primary_custom = ChatGoogleGenerativeAI(

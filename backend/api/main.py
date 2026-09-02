@@ -76,12 +76,10 @@ app.add_middleware(OriginCheckMiddleware)
 
 # SEC-009: Allowlist de modelos para prevenir cache poisoning
 ALLOWED_MODELS = {
-    "gemini-2.0-flash",
-    "gemini-1.5-flash-001",
-    "gemini-1.5-flash-002",
-    "gemini-1.5-flash",
-    "gemini-1.5-pro-001",
-    "gemini-1.5-pro-002",
+    "gemini-3.6-flash",
+    "gemini-flash-latest",
+    "gemini-3.5-flash",
+    "gemini-pro-latest",
     "meta-llama/llama-3.3-70b-instruct:free",
     "deepseek/deepseek-r1-distill-llama-70b:free",
     "qwen/qwen-2.5-coder-32b-instruct:free"
