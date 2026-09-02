@@ -3,7 +3,7 @@ name: Autonomous QA Multi-Agent Pipeline
 on:
   workflow_dispatch:
   schedule:
-    - cron: '0 3 * * 1' # Toda segunda-feira às 03:00 UTC
+    - cron: '0 3 * * *' # Todos os dias às 03:00 UTC
 
 jobs:
   orchestrate-agents:
