@@ -72,16 +72,21 @@ def init_components():
     if google_key:
         try:
             from langchain_google_genai import ChatGoogleGenerativeAI
-            fallbacks.append(
-                ChatGoogleGenerativeAI(
-                    model="gemini-1.5-flash",
-                    google_api_key=google_key,
-                    temperature=0.2,
-                    max_retries=3
-                )
-            )
+            gemini_candidates = ["gemini-1.5-flash-002", "gemini-2.5-flash", "gemini-1.5-pro-002", "gemini-1.5-flash"]
+            for m in gemini_candidates:
+                try:
+                    fallbacks.append(
+                        ChatGoogleGenerativeAI(
+                            model=m,
+                            google_api_key=google_key,
+                            temperature=0.2,
+                            max_retries=2
+                        )
+                    )
+                except Exception:
+                    pass
         except Exception as e:
-            logging.warning(f"Falha ao criar fallback Gemini 1.5: {e}")
+            logging.warning(f"Falha ao criar fallbacks Gemini: {e}")
 
     if api_key:
         fallbacks.extend([
@@ -89,29 +94,23 @@ def init_components():
                 model="meta-llama/llama-3.3-70b-instruct:free",
                 openai_api_key=api_key,
                 openai_api_base=OPENROUTER_BASE,
-                max_retries=3,
+                max_retries=2,
                 temperature=0.2
             ),
             ChatOpenAI(
                 model="deepseek/deepseek-r1-distill-llama-70b:free",
                 openai_api_key=api_key,
                 openai_api_base=OPENROUTER_BASE,
-                max_retries=3,
+                max_retries=2,
                 temperature=0.2
             )
         ])
 
-    if google_key:
+    if google_key and fallbacks:
         try:
-            from langchain_google_genai import ChatGoogleGenerativeAI
-            logging.info("Utilizando Google Gemini nativo (gemini-1.5-flash)...")
-            primary_llm = ChatGoogleGenerativeAI(
-                model="gemini-1.5-flash",
-                google_api_key=google_key,
-                temperature=0.2,
-                max_retries=3
-            )
-            _llm = primary_llm.with_fallbacks(fallbacks) if fallbacks else primary_llm
+            primary_llm = fallbacks[0]
+            rest_fallbacks = fallbacks[1:]
+            _llm = primary_llm.with_fallbacks(rest_fallbacks) if rest_fallbacks else primary_llm
         except Exception as e:
             logging.warning(f"Falha ao carregar Gemini nativo: {e}")
             _llm = fallbacks[0] if fallbacks else None
@@ -278,18 +277,19 @@ def get_rag_chain(session_id: str = "default", model_name: str = None):
             try:
                 from langchain_google_genai import ChatGoogleGenerativeAI
                 gemini_fallback = ChatGoogleGenerativeAI(
-                    model="gemini-1.5-flash",
+                    model="gemini-1.5-flash-002",
                     google_api_key=google_key,
                     temperature=0.2,
-                    max_retries=3
+                    max_retries=2
                 )
                 primary_custom = ChatGoogleGenerativeAI(
                     model=model_name,
                     google_api_key=google_key,
                     temperature=0.2,
-                    max_retries=3
+                    max_retries=2
                 )
-                custom_llm = primary_custom.with_fallbacks([gemini_fallback, _llm]) if _llm else primary_custom.with_fallbacks([gemini_fallback])
+                fallback_list = [gemini_fallback, _llm] if _llm else [gemini_fallback]
+                custom_llm = primary_custom.with_fallbacks(fallback_list)
                 return MultiSourceAgentChain(custom_llm, session_id)
             except Exception as e:
                 logging.warning(f"Falha ao instanciar Gemini {model_name} nativo: {e}")
