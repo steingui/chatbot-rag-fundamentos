@@ -1,0 +1,49 @@
+name: Autonomous QA Multi-Agent Pipeline
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '0 3 * * 1' # Toda segunda-feira às 03:00 UTC
+
+jobs:
+  orchestrate-agents:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install Dependencies
+        run: |
+          python -m pip install --upgrade pip
+          if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+
+      - name: Step 1 - Triage (Agente Engenheiro)
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          python3 scripts/agent_triage.py
+
+      - name: Step 2 - Worker Pool (Fix Engine & PRs)
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          python3 scripts/agent_pool.py
+
+      - name: Step 3 - Auto Code Reviewer
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          python3 scripts/agent_reviewer.py
+
+      - name: Step 4 - Relatório de Observabilidade
+        run: |
+          echo "### 📊 Relatório da Rodada de QA Autônomo" >> $GITHUB_STEP_SUMMARY
+          echo "- **Data**: $(date -u)" >> $GITHUB_STEP_SUMMARY
+          echo "- **Pipeline Status**: Sucesso" >> $GITHUB_STEP_SUMMARY
