@@ -10,11 +10,11 @@ export const ChatHeader: React.FC = () => {
   const displayLabel = firstUserMsg ? firstUserMsg.content : (currentSession?.label || `Sessão ${activeIdx + 1}`).replace(/\.\.\.$/, '');
 
   return (
-    <header className="bg-white/80 backdrop-blur-md border-b border-neutral-200/80 px-4 sm:px-6 py-3 flex flex-wrap items-center justify-between gap-4 shadow-2xs z-10 shrink-0">
+    <header className="bg-white/90 backdrop-blur-md border-b border-neutral-200/90 px-4 sm:px-6 py-3 flex flex-wrap items-center justify-between gap-4 shadow-2xs z-10 shrink-0">
       <div className="flex items-center gap-3 min-w-0">
         <button
           onClick={toggleSidebar}
-          className="p-2 rounded-xl text-neutral-500 hover:text-neutral-900 hover:bg-neutral-100 transition-all cursor-pointer border border-neutral-200/60"
+          className="p-2 rounded-xl text-neutral-600 hover:text-neutral-900 hover:bg-neutral-100 transition-all cursor-pointer border border-neutral-200"
           title={isSidebarOpen ? 'Recolher menu lateral' : 'Expandir menu lateral'}
         >
           {isSidebarOpen ? <PanelLeftClose size={18} /> : <PanelLeft size={18} />}
@@ -22,12 +22,12 @@ export const ChatHeader: React.FC = () => {
 
         <div className="flex flex-col gap-0.5 min-w-0">
           <div className="flex items-center gap-2">
-            <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
-            <h1 className="text-sm sm:text-base font-extrabold text-neutral-900 tracking-tight uppercase">
+            <span className="h-2.5 w-2.5 rounded-full bg-emerald-500 animate-pulse shrink-0" />
+            <h1 className="text-sm sm:text-base font-black text-neutral-900 tracking-tight uppercase">
               PAINEL DE CONSULTA LEGISLATIVA
             </h1>
           </div>
-          <p className="text-xs text-neutral-500 font-medium max-w-3xl leading-snug break-words">
+          <p className="text-xs text-neutral-600 font-semibold max-w-3xl leading-snug break-words">
             {displayLabel}
           </p>
         </div>
@@ -36,10 +36,10 @@ export const ChatHeader: React.FC = () => {
       <div className="flex items-center gap-3">
         <ModelSelector />
         
-        <div className="hidden sm:inline-flex items-center gap-2 bg-neutral-100 border border-neutral-200/80 text-neutral-700 text-xs font-semibold px-3 py-1.5 rounded-full">
-          <span className="text-neutral-500 font-mono text-[10px]">rag-fundamentos</span>
-          <span className="inline-flex items-center gap-1 text-emerald-700 font-bold">
-            <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+        <div className="hidden sm:inline-flex items-center gap-2 bg-neutral-100 border border-neutral-200 text-neutral-800 text-xs font-extrabold px-3 py-1.5 rounded-full shadow-2xs">
+          <span className="text-neutral-500 font-mono text-[11px]">rag-fundamentos</span>
+          <span className="inline-flex items-center gap-1.5 text-emerald-800 font-black">
+            <span className="h-2 w-2 rounded-full bg-emerald-500" />
             ONLINE
           </span>
         </div>

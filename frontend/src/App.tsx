@@ -53,19 +53,19 @@ export default function App() {
         <SuggestionGrid />
         <MessageList />
 
-        <footer className="p-4 bg-[#F4F4F6] border-t border-neutral-200/60 flex flex-col items-center gap-2 shrink-0">
+        <footer className="p-4 bg-neutral-100/90 border-t border-neutral-200/90 flex flex-col items-center gap-2 shrink-0">
           <form
             onSubmit={handleSubmit}
-            className="bg-white border border-neutral-200/90 focus-within:border-emerald-500 focus-within:ring-2 focus-within:ring-emerald-500/20 rounded-2xl shadow-md p-2 flex items-center gap-3 w-full max-w-4xl transition-all"
+            className="bg-white border border-neutral-300 focus-within:border-emerald-500 focus-within:ring-2 focus-within:ring-emerald-500/30 rounded-2xl shadow-md p-2 flex items-center gap-3 w-full max-w-4xl transition-all"
           >
-            <div className="flex items-center justify-center pl-2 text-neutral-400">
-              <Command size={16} />
+            <div className="flex items-center justify-center pl-2 text-neutral-500">
+              <Command size={18} />
             </div>
             
             <input
               ref={inputRef}
               type="text"
-              className="flex-1 bg-transparent text-sm font-medium text-neutral-900 placeholder:text-neutral-400 focus:outline-none py-2"
+              className="flex-1 bg-transparent text-sm font-semibold text-neutral-900 placeholder:text-neutral-500 focus:outline-none py-2"
               placeholder="Pergunte sobre PECs, projetos de lei, votações, TSE ou checagens de fatos..."
               value={input}
               onChange={(e) => setInput(e.target.value)}
@@ -79,7 +79,7 @@ export default function App() {
                   editLastPrompt();
                   inputRef.current?.focus();
                 }}
-                className="p-2.5 rounded-xl text-neutral-500 hover:text-neutral-900 hover:bg-neutral-100 transition-all cursor-pointer border border-neutral-200/60 flex items-center gap-1.5 text-xs font-semibold shrink-0"
+                className="p-2.5 rounded-xl text-neutral-700 hover:text-neutral-950 hover:bg-neutral-100 transition-all cursor-pointer border border-neutral-200 flex items-center gap-1.5 text-xs font-bold shrink-0"
                 title="Editar e refazer o último prompt"
               >
                 <RotateCcw size={14} />
@@ -91,7 +91,7 @@ export default function App() {
               <button
                 type="button"
                 onClick={stopStream}
-                className="bg-red-500 hover:bg-red-600 text-white font-bold p-3 rounded-xl transition-all shadow-sm flex items-center justify-center cursor-pointer shrink-0 animate-pulse"
+                className="bg-rose-600 hover:bg-rose-700 text-white font-extrabold p-3 rounded-xl transition-all shadow-sm flex items-center justify-center cursor-pointer shrink-0 animate-pulse"
                 title="Pausar / Interromper resposta"
               >
                 <Square size={16} fill="currentColor" />
@@ -100,10 +100,10 @@ export default function App() {
               <button
                 type="submit"
                 disabled={!input.trim()}
-                className="bg-emerald-500 hover:bg-emerald-600 disabled:opacity-40 text-neutral-900 font-bold p-3 rounded-xl transition-all shadow-sm flex items-center justify-center cursor-pointer shrink-0"
+                className="bg-emerald-500 hover:bg-emerald-600 disabled:opacity-40 text-neutral-950 font-black p-3 rounded-xl transition-all shadow-sm flex items-center justify-center cursor-pointer shrink-0"
                 title="Enviar pergunta"
               >
-                <Send size={16} />
+                <Send size={16} className="stroke-[2.5]" />
               </button>
             )}
           </form>

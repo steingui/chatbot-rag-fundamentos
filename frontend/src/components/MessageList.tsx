@@ -93,47 +93,47 @@ export const MessageList: React.FC = () => {
               className={`pb-4 flex ${isUser ? 'justify-end' : 'justify-start'}`}
             >
               {isUser ? (
-                /* User Card */
-                <div className="bg-emerald-50/70 border border-emerald-200/80 text-neutral-900 rounded-2xl rounded-tr-xs p-4 shadow-2xs max-w-2xl w-full space-y-2">
-                  <div className="flex items-center justify-between border-b border-emerald-200/50 pb-2">
+                /* User Card - Sleek High-Contrast Dark Card */
+                <div className="bg-neutral-900 text-white border border-neutral-800 rounded-2xl rounded-tr-xs p-4 shadow-md max-w-2xl w-full space-y-2.5">
+                  <div className="flex items-center justify-between border-b border-neutral-800/80 pb-2">
                     <div className="flex items-center gap-2">
-                      <div className="h-6 w-6 rounded-full bg-emerald-600 text-white font-bold text-xs flex items-center justify-center shadow-2xs">
-                        <User size={12} />
+                      <div className="h-6 w-6 rounded-full bg-emerald-500 text-neutral-950 font-black text-xs flex items-center justify-center shadow-2xs">
+                        <User size={13} />
                       </div>
-                      <span className="text-xs font-bold text-emerald-950">Você</span>
+                      <span className="text-xs font-bold text-emerald-400 tracking-wide uppercase">Você</span>
                     </div>
-                    <span className="text-[10px] font-mono text-emerald-800/60">{formatTime(new Date(msg.timestamp))}</span>
+                    <span className="text-[11px] font-mono text-neutral-400">{formatTime(new Date(msg.timestamp))}</span>
                   </div>
-                  <div className="text-sm font-medium text-neutral-800 leading-relaxed whitespace-pre-wrap">
+                  <div className="text-sm font-medium text-neutral-100 leading-relaxed whitespace-pre-wrap">
                     {msg.content}
                   </div>
                 </div>
               ) : (
-                /* Bot Card */
-                <div className="bg-white text-neutral-900 border border-neutral-200/80 rounded-2xl rounded-tl-xs p-5 shadow-sm max-w-3xl w-full space-y-3">
+                /* Bot Card - Clean Modern High-Contrast Light Card */
+                <div className="bg-white text-neutral-900 border border-neutral-200/90 rounded-2xl rounded-tl-xs p-5 shadow-sm max-w-3xl w-full space-y-3.5">
                   <div className="flex items-center justify-between border-b border-neutral-100 pb-2.5">
-                    <div className="flex items-center gap-2">
-                      <div className="h-7 w-7 rounded-xl bg-emerald-500 text-neutral-900 font-bold text-xs flex items-center justify-center shadow-2xs">
-                        <Sparkles size={14} />
+                    <div className="flex items-center gap-2.5">
+                      <div className="h-7 w-7 rounded-xl bg-emerald-500 text-neutral-950 font-black text-xs flex items-center justify-center shadow-2xs">
+                        <Sparkles size={15} />
                       </div>
                       <div>
-                        <span className="text-xs font-bold text-neutral-900 block leading-tight">
+                        <span className="text-xs font-extrabold text-neutral-900 block leading-tight">
                           {getBotAuthorLabel(selectedModel)}
                         </span>
-                        <span className="text-[10px] text-neutral-400 font-medium">Resposta Baseada em Dados Oficiais</span>
+                        <span className="text-[11px] text-neutral-500 font-semibold">Resposta Baseada em Dados Oficiais</span>
                       </div>
                     </div>
-                    <span className="text-[10px] font-mono text-neutral-400">{formatTime(new Date(msg.timestamp))}</span>
+                    <span className="text-[11px] font-mono text-neutral-500 font-medium">{formatTime(new Date(msg.timestamp))}</span>
                   </div>
 
                   {!msg.content && isLoading ? (
-                    <div className="flex items-center gap-2 text-xs font-semibold text-neutral-500 py-3">
+                    <div className="flex items-center gap-2.5 text-xs font-bold text-neutral-600 py-3">
                       <Loader2 size={16} className="animate-spin text-emerald-600" />
                       <span>Consultando bases legislativas e gerando resposta...</span>
                     </div>
                   ) : (
                     <div
-                      className="prose prose-neutral max-w-none text-sm text-neutral-800 leading-relaxed font-normal space-y-2 [&_ul]:list-disc [&_ul]:pl-4 [&_ol]:list-decimal [&_ol]:pl-4 [&_p]:mb-2 [&_h3]:font-bold [&_h3]:text-base [&_code]:bg-neutral-100 [&_code]:px-1.5 [&_code]:py-0.5 [&_code]:rounded-md [&_code]:text-xs [&_code]:font-mono"
+                      className="prose prose-neutral max-w-none text-sm text-neutral-800 leading-relaxed font-normal space-y-2.5 [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:list-decimal [&_ol]:pl-5 [&_p]:mb-2.5 [&_h3]:font-bold [&_h3]:text-base [&_h3]:text-neutral-900 [&_code]:bg-neutral-100 [&_code]:text-emerald-800 [&_code]:px-1.5 [&_code]:py-0.5 [&_code]:rounded-md [&_code]:text-xs [&_code]:font-mono [&_code]:font-semibold"
                       dangerouslySetInnerHTML={{ __html: formatMarkdown(msg.content) }}
                     />
                   )}
