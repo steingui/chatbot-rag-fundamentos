@@ -295,13 +295,23 @@ def get_rag_chain(session_id: str = "default", model_name: str = None):
                 logging.warning(f"Falha ao instanciar Gemini {model_name} nativo: {e}")
 
         api_key = os.environ.get("OPENROUTER_API_KEY", "")
-        custom_llm = ChatOpenAI(
-            model=model_name,
-            openai_api_key=api_key,
-            openai_api_base=OPENROUTER_BASE,
-            max_retries=3,
-            temperature=0.2
-        ).with_fallbacks([_llm])
+        openrouter_model = f"google/{model_name}" if (model_name.startswith("gemini") and "/" not in model_name) else model_name
+        if _llm:
+            custom_llm = ChatOpenAI(
+                model=openrouter_model,
+                openai_api_key=api_key or "sk-dummy",
+                openai_api_base=OPENROUTER_BASE,
+                max_retries=2,
+                temperature=0.2
+            ).with_fallbacks([_llm])
+        else:
+            custom_llm = ChatOpenAI(
+                model=openrouter_model,
+                openai_api_key=api_key or "sk-dummy",
+                openai_api_base=OPENROUTER_BASE,
+                max_retries=2,
+                temperature=0.2
+            )
         return MultiSourceAgentChain(custom_llm, session_id)
 
     if session_id in _session_agents:
