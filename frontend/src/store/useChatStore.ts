@@ -8,8 +8,10 @@ export const SUGGESTION_API_URL = API_URL.replace(/\/chat$/, '/suggestions');
 export const MAX_SESSIONS = 5;
 
 export const FREE_MODELS = [
+  { id: 'gemini-3.7-flash', label: 'gemini-3.7-flash · google' },
   { id: 'gemini-3.6-flash', label: 'gemini-3.6-flash · google' },
   { id: 'gemini-flash-latest', label: 'gemini-flash-latest · google' },
+  { id: 'gemini-2.5-flash', label: 'gemini-2.5-flash · google' },
   { id: 'meta-llama/llama-3.3-70b-instruct:free', label: 'llama-3.3-70b · free' },
   { id: 'deepseek/deepseek-r1-distill-llama-70b:free', label: 'deepseek-r1-70b · free' }
 ];

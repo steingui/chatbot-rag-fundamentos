@@ -72,7 +72,7 @@ def init_components():
     if google_key:
         try:
             from langchain_google_genai import ChatGoogleGenerativeAI
-            gemini_candidates = ["gemini-3.6-flash", "gemini-flash-latest", "gemini-3.5-flash", "gemini-pro-latest"]
+            gemini_candidates = ["gemini-3.7-flash", "gemini-3.6-flash", "gemini-flash-latest", "gemini-3.5-flash", "gemini-pro-latest", "gemini-2.5-flash"]
             for m in gemini_candidates:
                 try:
                     fallbacks.append(
@@ -168,6 +168,23 @@ def _buscar_noticias_web(query: str, session_id: str = "default") -> tuple[str, 
         return "Notícias recentes da web indisponíveis no momento.", []
 
 
+def _extract_text(content_obj) -> str:
+    """Extrai texto de respostas que podem vir como string ou lista de blocos (LangChain Gemini 3.x/2.5)."""
+    if isinstance(content_obj, str):
+        return content_obj
+    if isinstance(content_obj, list):
+        parts = []
+        for item in content_obj:
+            if isinstance(item, dict):
+                parts.append(item.get("text", ""))
+            elif isinstance(item, str):
+                parts.append(item)
+            else:
+                parts.append(str(item))
+        return "".join(parts)
+    return str(content_obj) if content_obj is not None else ""
+
+
 class MultiSourceAgentChain:
     def __init__(self, llm, session_id: str):
         self.llm = llm
@@ -217,7 +234,8 @@ Resposta:"""
 
         try:
             res = self.llm.invoke(prompt_text)
-            answer = res.content if hasattr(res, 'content') else str(res)
+            raw_content = res.content if hasattr(res, 'content') else str(res)
+            answer = _extract_text(raw_content)
         except Exception as e:
             logging.error(f"Erro ao chamar LLM: {e}")
             answer = "Não foi possível gerar a resposta no momento devido a instabilidade temporária no serviço de LLM."
@@ -258,7 +276,8 @@ Resposta:"""
 
         try:
             for chunk in self.llm.stream(prompt_text):
-                text = chunk.content if hasattr(chunk, 'content') else str(chunk)
+                raw_chunk = chunk.content if hasattr(chunk, 'content') else str(chunk)
+                text = _extract_text(raw_chunk)
                 if text:
                     yield {"type": "token", "token": text}
         except Exception as e:
@@ -278,7 +297,7 @@ def get_rag_chain(session_id: str = "default", model_name: str = None):
                 from langchain_google_genai import ChatGoogleGenerativeAI
                 gemini_fallbacks = [
                     ChatGoogleGenerativeAI(model=m, google_api_key=google_key, temperature=0.2, max_retries=2)
-                    for m in ["gemini-3.6-flash", "gemini-flash-latest", "gemini-3.5-flash", "gemini-pro-latest"]
+                    for m in ["gemini-3.7-flash", "gemini-3.6-flash", "gemini-flash-latest", "gemini-3.5-flash", "gemini-pro-latest", "gemini-2.5-flash"]
                     if m != model_name
                 ]
                 primary_custom = ChatGoogleGenerativeAI(
