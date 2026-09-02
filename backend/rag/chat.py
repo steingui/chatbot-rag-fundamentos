@@ -72,7 +72,7 @@ def init_components():
     if google_key:
         try:
             from langchain_google_genai import ChatGoogleGenerativeAI
-            gemini_candidates = ["gemini-1.5-flash-002", "gemini-2.5-flash", "gemini-1.5-pro-002", "gemini-1.5-flash"]
+            gemini_candidates = ["gemini-2.5-flash", "gemini-1.5-flash-latest", "gemini-1.5-pro-latest", "gemini-1.5-flash-8b"]
             for m in gemini_candidates:
                 try:
                     fallbacks.append(
@@ -276,19 +276,18 @@ def get_rag_chain(session_id: str = "default", model_name: str = None):
         if (model_name.startswith("gemini") or "gemini" in model_name) and google_key:
             try:
                 from langchain_google_genai import ChatGoogleGenerativeAI
-                gemini_fallback = ChatGoogleGenerativeAI(
-                    model="gemini-1.5-flash-002",
-                    google_api_key=google_key,
-                    temperature=0.2,
-                    max_retries=2
-                )
+                gemini_fallbacks = [
+                    ChatGoogleGenerativeAI(model=m, google_api_key=google_key, temperature=0.2, max_retries=2)
+                    for m in ["gemini-2.5-flash", "gemini-1.5-flash-latest", "gemini-1.5-pro-latest"]
+                    if m != model_name
+                ]
                 primary_custom = ChatGoogleGenerativeAI(
                     model=model_name,
                     google_api_key=google_key,
                     temperature=0.2,
                     max_retries=2
                 )
-                fallback_list = [gemini_fallback, _llm] if _llm else [gemini_fallback]
+                fallback_list = gemini_fallbacks + ([_llm] if _llm else [])
                 custom_llm = primary_custom.with_fallbacks(fallback_list)
                 return MultiSourceAgentChain(custom_llm, session_id)
             except Exception as e:
