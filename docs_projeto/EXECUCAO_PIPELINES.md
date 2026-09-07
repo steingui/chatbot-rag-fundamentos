@@ -60,16 +60,22 @@ As execuções de Produção estão configuradas no **GitHub Actions** na pasta 
 
 - `ingest_diario_camara.yml` (Diário - a cada 2h)
 - `ingest_diario_senado.yml` (Diário - às 01h UTC)
+- `ingest_diario_factchecking.yml` (Diário - às 04h UTC)
+- `ingest_diario_queridodiario.yml` (Diário - às 05h UTC)
 - `ingest_semanal_transparencia.yml` (Semanal - Terças às 03h UTC)
 - `ingest_semanal_tse.yml` (Semanal - Segundas às 02h UTC)
+- `ingest_semanal_tse_divulgacand.yml` (Semanal - Quartas às 02h UTC)
 - `ingest_mensal_pdfs.yml` (Mensal - Dia 1º de cada mês)
+- `autonomous_qa_pipeline.yml` (Diário - às 03h UTC / QA Multi-Agente)
+- `generate_dynamic_prompts.yml` (Semanal - Domingos às 06h UTC)
 
 **Para disparar as actions manualmente pelo terminal:**
 ```bash
-gh workflow run ingest_diario_camara.yml
+gh workflow run autonomous_qa_pipeline.yml
 ```
 
 **Para acompanhar os logs da execução em tempo real:**
 ```bash
 gh run watch
 ```
+

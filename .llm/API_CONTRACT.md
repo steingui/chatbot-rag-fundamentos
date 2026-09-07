@@ -1,6 +1,6 @@
 # Contrato da API — RAG Político
 
-Base URL de produção: `https://chatbot-rag-api-q2k5.onrender.com`
+Base URL de produção: `https://chatbot-rag-api-1043919586992.southamerica-east1.run.app`
 
 ## Endpoints
 
@@ -12,7 +12,7 @@ Health check.
 
 **Response** `200`:
 ```json
-{ "status": "ok", "message": "API RAG rodando no Render" }
+{ "status": "ok", "message": "API RAG rodando no Cloud Run" }
 ```
 
 ---
