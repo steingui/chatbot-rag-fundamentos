@@ -10,13 +10,13 @@
 
 ---
 
-## 2. Validação de Modelos LLM (OpenRouter)
-- **Erros Solucionados:** Eliminação de HTTP 404 causados por modelos descontinuados (`nemotron-3-nano:free`, `gemini-2.0-flash-exp:free`).
-- **Modelos Gratuitos Validados em Tempo Real (API OpenRouter):**
-  1. `google/gemma-4-31b-it:free` (Modelo Principal)
-  2. `nvidia/nemotron-3.5-lightning:free` (Fallback 1)
-  3. `minimax/minimax-m3:free` (Fallback 2)
-  4. `nvidia/nemotron-3-super-120b-a12b:free` (Alternativo)
+## 2. Validação de Modelos LLM (Google Gemini & OpenRouter)
+- **Modelos Gratuitos e Pro Validados (API Google AI / OpenRouter):**
+  1. `gemini-3.7-flash` (Modelo Principal)
+  2. `gemini-3.6-flash` (Fallback Primário)
+  3. `gemini-2.5-flash` / `gemini-flash-latest` (Fallback Secundário)
+  4. `meta-llama/llama-3.3-70b-instruct:free` (OpenRouter Fallback)
+  5. `deepseek/deepseek-r1-distill-llama-70b:free` (OpenRouter Fallback)
 
 ---
 

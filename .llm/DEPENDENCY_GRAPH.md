@@ -22,6 +22,9 @@
 | `ddgs` | latest | Wrapper DDGS alternativo |
 | `slowapi` | latest | Rate limiting por IP |
 | `rank-bm25` | latest | BM25Okapi para retrieval lexical |
+| `pytest-asyncio` | latest | Suporte a suítes de testes assíncronos no pytest |
+| `firebase-admin` | latest | SDK Admin do Firebase para autenticação e Firestore |
+| `google-cloud-firestore` | latest | Cliente GCP Firestore para dados no NoSQL |
 
 ### Grafo de Imports Internos
 
@@ -29,8 +32,11 @@
 backend/api/main.py
 ├── backend.rag.chat          → init_components, get_rag_chain
 ├── backend.rag.cache         → global_rag_cache
+├── backend.rag.llm_fallback  → get_fallback_manager
 ├── backend.api.analytics     → get_top_suggestions, record_query
-└── backend.api.guardrails    → validate_and_sanitize_query
+├── backend.api.guardrails    → validate_and_sanitize_query
+├── backend.api.auth          → get_optional_current_user
+└── backend.api.firestore_db  → save_chat_turn, get_chat_history
 
 backend/rag/chat.py
 ├── langchain_pinecone        → PineconeVectorStore
@@ -42,6 +48,9 @@ backend/rag/chat.py
 backend/rag/retriever.py
 ├── langchain_core.documents  → Document
 └── rank_bm25                 → BM25Okapi
+
+backend/rag/llm_fallback.py
+└── langchain_google_genai / langchain_openai → ChatGoogleGenerativeAI, ChatOpenAI
 
 backend/rag/cache.py
 └── (sem dependências externas, apenas stdlib)

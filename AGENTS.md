@@ -38,7 +38,7 @@ como fonte de verdade.
 ```
 .
 ├── backend/
-│   ├── api/          # FastAPI — main.py, guardrails.py, analytics.py
+│   ├── api/          # FastAPI — main.py, guardrails.py, analytics.py, auth.py, firestore_db.py
 │   ├── rag/          # LangChain + Pinecone — chat.py, retriever.py, llm_fallback.py, cache.py
 │   └── workers/      # Workers de ingestão assíncrona
 ├── frontend/         # React + Vite + TypeScript + Zustand

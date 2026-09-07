@@ -38,11 +38,12 @@ type Session = {
 ```typescript
 MAX_SESSIONS = 5
 FREE_MODELS = [
-  'nvidia/nemotron-3-nano-30b-a3b:free',
+  'gemini-3.7-flash',
+  'gemini-3.6-flash',
+  'gemini-flash-latest',
+  'gemini-2.5-flash',
   'meta-llama/llama-3.3-70b-instruct:free',
-  'deepseek/deepseek-r1:free',
-  'google/gemini-2.0-flash-exp:free',
-  'qwen/qwen-2.5-72b-instruct:free'
+  'deepseek/deepseek-r1-distill-llama-70b:free'
 ]
 ```
 

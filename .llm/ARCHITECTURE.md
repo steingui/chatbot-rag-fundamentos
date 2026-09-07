@@ -29,10 +29,13 @@ backend/
 ├── api/
 │   ├── main.py           # FastAPI app, rotas /chat, /chat/stream, /suggestions
 │   ├── analytics.py      # SQLite: registro e canonização de queries populares
-│   └── guardrails.py     # Validação anti-injection, sanitização, limites
+│   ├── guardrails.py     # Validação anti-injection, sanitização, limites
+│   ├── auth.py           # Validação opcional de JWT do Firebase Auth
+│   └── firestore_db.py   # Persistência opcional de histórico de chat no Firestore
 ├── rag/
 │   ├── chat.py           # MultiSourceAgentChain: orquestra Pinecone + DDGS + LLM
 │   ├── retriever.py      # HybridRetriever: Dense (Pinecone) + BM25 com RRF
+│   ├── llm_fallback.py   # DynamicFallbackLLMManager: alternância dinâmica de LLMs
 │   └── cache.py          # RAGQueryCache: cache em memória com TTL e eviction LRU
 └── workers/
     └── ingestion_worker.py  # Worker assíncrono para ingestão batch no Pinecone
@@ -81,4 +84,4 @@ frontend/src/
 | Frontend | React + Tailwind CSS v3 | Firebase Hosting (`chatbot-rag-fundamentos`) |
 | CI/CD & Build | Cloud Build | Trigger automático na `main` (`cloudbuild.yaml`) |
 | Vector DB | Pinecone (index: `rag-fundamentos`) | Pinecone Serverless |
-| LLMs | OpenRouter (modelos :free) | Gemma 4, Llama 3.3, DeepSeek R1, Nemotron |
+| LLMs | Google AI & OpenRouter | Gemini 3.7 Flash, Gemini 3.6 Flash, Llama 3.3, DeepSeek R1 |
