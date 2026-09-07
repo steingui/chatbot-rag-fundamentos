@@ -15,7 +15,7 @@ from unittest.mock import patch, MagicMock
 def test_chat_endpoint_allows_anonymous():
     mock_chain = MagicMock()
     mock_chain.invoke.return_value = {"answer": "Resposta de teste", "sources": []}
-    with patch("backend.api.main.get_rag_chain", return_value=mock_chain):
+    with patch("backend.api.main.ensure_initialized"), patch("backend.api.main.get_rag_chain", return_value=mock_chain):
         response = client.post("/chat", json={"query": "Qual o limite orçamentário?", "session_id": "test_anon"})
         assert response.status_code == 200
         assert "answer" in response.json()
