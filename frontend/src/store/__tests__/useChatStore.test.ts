@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import {
   formatMarkdown,
   makeSession,
@@ -7,6 +7,11 @@ import {
   promptsRemainingInBatch,
   useChatStore
 } from '../useChatStore';
+import { getIdToken } from '../../lib/firebaseAuth';
+
+vi.mock('../../lib/firebaseAuth', () => ({
+  getIdToken: vi.fn()
+}));
 
 describe('useChatStore utilities & security', () => {
   it('cria uma sessão válida com estado inicial', () => {
@@ -90,5 +95,59 @@ describe('MON-602 contador de prompts / rewarded ads', () => {
     useChatStore.setState({ guestPromptCount: 3, adLocked: true, isLoading: false });
     await useChatStore.getState().sendMessageStream('bloqueado?');
     expect(useChatStore.getState().guestPromptCount).toBe(3);
+  });
+});
+
+describe('Via B: Authorization Bearer (Firebase Auth)', () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+    vi.mocked(getIdToken).mockResolvedValue(null);
+  });
+
+  it('envia Authorization Bearer no stream quando idToken existe', async () => {
+    vi.mocked(getIdToken).mockResolvedValue('token-abc');
+    const fetchMock = vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response('ok', { status: 200 }));
+
+    useChatStore.setState({ isLoading: false, adLocked: false, guestPromptCount: 0 });
+    await useChatStore.getState().sendMessageStream('qual o status?');
+
+    expect(fetchMock).toHaveBeenCalled();
+    const streamCall = fetchMock.mock.calls.find(([, init]) =>
+      typeof init?.body === 'string' && init.body.includes('qual o status?')
+    );
+    expect(streamCall).toBeDefined();
+    expect((streamCall?.[1] as RequestInit).headers).toMatchObject({
+      Authorization: 'Bearer token-abc'
+    });
+  });
+
+  it('envia Authorization Bearer no fallback quando idToken existe', async () => {
+    vi.mocked(getIdToken).mockResolvedValue('token-abc');
+    const fetchMock = vi.spyOn(globalThis, 'fetch')
+      .mockResolvedValueOnce(new Response(null, { status: 404 }))
+      .mockResolvedValueOnce(new Response(JSON.stringify({ answer: 'ok', sources: [] }), { status: 200 }));
+
+    useChatStore.setState({ isLoading: false, adLocked: false, guestPromptCount: 0 });
+    await useChatStore.getState().sendMessageStream('pergunta fallback');
+
+    const fallbackCall = fetchMock.mock.calls[1];
+    expect(fallbackCall).toBeDefined();
+    expect((fallbackCall[1] as RequestInit).headers).toMatchObject({
+      Authorization: 'Bearer token-abc'
+    });
+  });
+
+  it('NÃO envia Authorization quando não há idToken', async () => {
+    vi.mocked(getIdToken).mockResolvedValue(null);
+    const fetchMock = vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response('ok', { status: 200 }));
+
+    useChatStore.setState({ isLoading: false, adLocked: false, guestPromptCount: 0 });
+    await useChatStore.getState().sendMessageStream('sem token');
+
+    const streamCall = fetchMock.mock.calls.find(([, init]) =>
+      typeof init?.body === 'string' && init.body.includes('sem token')
+    );
+    expect(streamCall).toBeDefined();
+    expect((streamCall?.[1] as RequestInit).headers).not.toMatchObject({ Authorization: expect.any(String) });
   });
 });

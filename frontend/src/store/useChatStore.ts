@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { parse } from 'marked';
 import DOMPurify from 'dompurify';
+import { getIdToken } from '../lib/firebaseAuth';
 
 export const API_URL = import.meta.env.VITE_API_URL || 'https://chatbot-rag-api-1043919586992.southamerica-east1.run.app/api/v1/chat';
 export const STREAM_API_URL = API_URL.endsWith('/chat') ? `${API_URL}/stream` : `${API_URL}/chat/stream`;
@@ -383,7 +384,10 @@ export const useChatStore = create<ChatState>((set, get) => ({
     }
 
     try {
-      const res = await fetch(SUGGESTION_API_URL);
+      const token = await getIdToken();
+      const headers: Record<string, string> = {};
+      if (token) headers.Authorization = `Bearer ${token}`;
+      const res = await fetch(SUGGESTION_API_URL, { headers });
       if (res.ok) {
         const data = await res.json();
         if (data.suggestions && data.suggestions.length > 0) {
@@ -458,9 +462,13 @@ export const useChatStore = create<ChatState>((set, get) => ({
     let accumulatedSources: Source[] = [];
 
     try {
+      const token = await getIdToken();
+      const authHeaders: Record<string, string> = { 'Content-Type': 'application/json' };
+      if (token) authHeaders.Authorization = `Bearer ${token}`;
+
       const res = await fetch(STREAM_API_URL, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: authHeaders,
         signal: controller.signal,
         body: JSON.stringify({
           session_id: currentSession.id,
@@ -473,7 +481,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
         // Fallback HTTP POST /chat tradicional
         const fallbackRes = await fetch(API_URL, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: authHeaders,
           body: JSON.stringify({ session_id: currentSession.id, query, model: selectedModel })
         });
         if (!fallbackRes.ok) throw new Error(`HTTP ${fallbackRes.status}`);
