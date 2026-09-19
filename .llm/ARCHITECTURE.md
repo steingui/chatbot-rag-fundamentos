@@ -34,6 +34,7 @@ backend/
 │   └── firestore_db.py   # Persistência opcional de histórico de chat no Firestore
 ├── rag/
 │   ├── chat.py           # MultiSourceAgentChain: orquestra Pinecone + DDGS + LLM
+│   ├── context_window.py # RAG-109: janela de contexto dinâmica por contagem exata de tokens
 │   ├── retriever.py      # HybridRetriever: Dense (Pinecone) + BM25 com RRF
 │   ├── llm_fallback.py   # DynamicFallbackLLMManager: alternância dinâmica de LLMs
 │   └── cache.py          # RAGQueryCache: cache em memória com TTL e eviction LRU
@@ -50,7 +51,7 @@ backend/
 5. `chain.stream()` →
    a. `_retriever.invoke(query)` → busca vetorial (Pinecone VectorStore)
    b. `_buscar_noticias_web(query)` → DDGS text + news fallback (região BR)
-   c. Monta prompt de síntese com 2 blocos de contexto (interno + web)
+   c. `_build_synthesis_prompt()` → prompt de síntese hierárquica (histórico recente podado por tokens exatos + base factual interna = primário; web = secundário)
    d. `llm.stream(prompt)` → gera tokens incrementais
 6. SSE events: `{type: "sources", sources: [...]}` → `{type: "token", token: "..."}` → `[DONE]`
 7. `global_rag_cache.set()` — armazena resposta completa

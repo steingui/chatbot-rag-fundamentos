@@ -7,20 +7,27 @@ Sistema de consulta pública sobre legislação brasileira, combinando dados ofi
 
 ## Invariantes Fundamentais
 
-### 1. Síntese Multi-Fonte (Regra Central)
+### 1. Síntese Hierárquica Multi-Fonte (Regra Central)
 
-Toda resposta **DEVE** sintetizar informações de duas fontes:
-- **Base Interna** (Pinecone): dados legislativos, votações, declarações de bens, checagens
-- **Web Recente** (DuckDuckGo): notícias atuais sobre o tema
+Toda resposta **DEVE** sintetizar duas fontes respeitando uma **hierarquia de confiança**:
 
-Se ambas as fontes contêm dados, a resposta é um **merge coeso**, não duas seções separadas.
+1. **FONTE PRIMÁRIA — Base Interna** (Pinecone): dados legislativos, votações, declarações
+   de bens, checagens. É a verdade factual canônica; nomes, listas, valores, votações e
+   datas devem ser ancorados aqui.
+2. **FONTE SECUNDÁRIA — Web Recente** (DuckDuckGo): notícias atuais usadas apenas como
+   complemento de recência/contexto. NUNCA substitui, contradiz ou sobrescreve a base interna.
+
+O contexto factual interno é **isolado** dos resultados web secundários: em conflito,
+prevalece sempre a Base Interna (a divergência é sinalizada). Se a Base Interna não trouxer
+dados, a web é usada explicitamente como informação secundária não verificada.
 
 ### 2. Anti-Alucinação
 
 > Se perguntado sobre nomes, listas ou valores específicos e não houver comprovação exata
-> nas fontes, NUNCA invente dados. Diga explicitamente o que foi encontrado.
+> na Base Interna, NUNCA invente dados. Diga explicitamente o que foi encontrado.
 
-Essa regra está hardcoded no prompt de síntese em `chat.py` (linhas 183-200, 143-160).
+Essa regra está hardcoded no prompt de síntese hierárquica, centralizado no helper
+`_build_synthesis_prompt()` em `backend/rag/chat.py` (usado por `invoke()` e `stream()`).
 
 ### 3. Rastreabilidade de Fontes
 

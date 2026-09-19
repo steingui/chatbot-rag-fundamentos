@@ -16,8 +16,8 @@
 ### 1.2 Qualidade de Contexto & Reranking
 - [x] **[RAG-106]** Integrar Pinecone Hybrid Search (Vetor + BM25 léxico) para termos exatos e nomes de parlamentares.
 - [x] **[RAG-107]** Configurar `bge-reranker-v2-m3` nativo no Pinecone para ordenação de relevância pós-recuperação.
-- [ ] **[RAG-108]** Ajustar prompt de síntese hierárquica isolando contexto factual interno de resultados web secundários.
-- [ ] **[RAG-109]** Implementar janela de contexto dinâmico baseada em contagem exata de tokens para evitar perda de histórico recente.
+- [x] **[RAG-108]** Ajustar prompt de síntese hierárquica isolando contexto factual interno de resultados web secundários.
+- [x] **[RAG-109]** Implementar janela de contexto dinâmico baseada em contagem exata de tokens para evitar perda de histórico recente.
 
 ### 1.3 Avaliação & Benchmark
 - [ ] **[RAG-110]** Criar script de benchmark `eval_merge.py` com conjunto de teste de perguntas complexas para medir taxa de alucinação.

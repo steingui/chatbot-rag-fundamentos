@@ -43,7 +43,11 @@ backend/rag/chat.py
 ├── langchain_huggingface     → HuggingFaceEndpointEmbeddings
 ├── langchain_openai          → ChatOpenAI
 ├── langchain_core.documents  → Document
+├── backend.rag.context_window → build_context_window, count_tokens, format_history, max_input_tokens_for_model
 └── ddgs                      → DDGS (busca web)
+
+backend/rag/context_window.py
+└── tiktoken                  → contagem exata de tokens (fallback: proxy determinístico)
 
 backend/rag/retriever.py
 ├── langchain_core.documents  → Document
