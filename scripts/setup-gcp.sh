@@ -73,7 +73,7 @@ gcloud run deploy "${SERVICE_NAME}" \
   --image="southamerica-east1-docker.pkg.dev/${PROJECT_ID}/${REPO_NAME}/api:initial" \
   --region="${REGION}" \
   --platform=managed \
-  --no-allow-unauthenticated \
+  --allow-unauthenticated \
   --min-instances=0 \
   --max-instances=3 \
   --memory=1Gi \

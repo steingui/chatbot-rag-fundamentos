@@ -81,17 +81,23 @@ def test_chat_endpoint_accepts_valid_bearer_token():
     assert "answer" in response.json()
 
 
-def test_cloudbuild_does_not_allow_unauthenticated():
+def test_cloudbuild_allows_unauthenticated_invocation():
+    """Cloud Run precisa aceitar chamadas sem credencial IAM, pois o frontend
+    autentica via Firebase Auth (ID token) — incompatível com o IAM do Cloud Run.
+    A autenticação real é aplicada na camada de aplicação via get_required_user
+    (coberta pelos testes de 401 acima)."""
     content = (ROOT / "cloudbuild.yaml").read_text(encoding="utf-8")
-    assert "--allow-unauthenticated" not in content, (
-        "cloudbuild.yaml ainda publica a API sem autenticação no Cloud Run."
+    assert "--allow-unauthenticated" in content, (
+        "cloudbuild.yaml deve permitir invocação sem credencial IAM no Cloud Run; "
+        "a autenticação Firebase é feita na aplicação (get_required_user)."
     )
 
 
-def test_setup_gcp_does_not_allow_unauthenticated():
+def test_setup_gcp_allows_unauthenticated_invocation():
     content = (ROOT / "scripts" / "setup-gcp.sh").read_text(encoding="utf-8")
-    assert "--allow-unauthenticated" not in content, (
-        "scripts/setup-gcp.sh ainda publica a API sem autenticação no Cloud Run."
+    assert "--allow-unauthenticated" in content, (
+        "scripts/setup-gcp.sh deve permitir invocação sem credencial IAM no Cloud Run; "
+        "a autenticação Firebase é feita na aplicação (get_required_user)."
     )
 
 

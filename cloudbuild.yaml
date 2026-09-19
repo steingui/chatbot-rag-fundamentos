@@ -26,7 +26,7 @@ steps:
       - '--image=southamerica-east1-docker.pkg.dev/$PROJECT_ID/chatbot-rag/api:$COMMIT_SHA'
       - '--region=southamerica-east1'
       - '--platform=managed'
-      - '--no-allow-unauthenticated'
+      - '--allow-unauthenticated'
       - '--min-instances=0'
       - '--max-instances=3'
       - '--memory=1Gi'
