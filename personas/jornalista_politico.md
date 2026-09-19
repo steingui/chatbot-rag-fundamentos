@@ -23,3 +23,5 @@
 
 ## Template de Prompt Tipico
 > "Quais foram os votos do senador [Nome] em projetos sobre transparência pública nos últimos 2 anos? Apresente os links oficiais das votações."
+> "Qual a fonte oficial dos gastos de cota parlamentar do deputado [Nome]? Quero o link direto do Portal da Transparência."
+> "Cruze o discurso do deputado [Nome] com o histórico de votações nominais e aponte contradições, citando a fonte de cada afirmação."

@@ -2,9 +2,10 @@
 
 Garante que o `scripts/agent_rag_tester.py`:
   - lê as personas de `personas/*.md` (sem suítes hardcoded);
+  - extrai MÚLTIPLAS iterações (prompts) por persona;
   - mapeia cada slug para a expectativa correta;
-  - exercita o endpoint `POST /api/v1/chat` de ponta a ponta
-    (rota → guardrails → cadeia RAG);
+  - exercita o endpoint `POST /api/v1/chat` de ponta a ponta,
+    com todas as iterações da persona na MESMA sessão (multi-turn);
   - e que o workflow executa 1 job por persona.
 """
 
@@ -19,6 +20,8 @@ PERSONA_SLUGS = [
     "pesquisador_academico",
 ]
 
+MIN_ITERATIONS = 2
+
 
 def test_personas_directory_has_four_personas():
     from scripts.agent_rag_tester import load_personas
@@ -28,12 +31,17 @@ def test_personas_directory_has_four_personas():
     assert slugs == set(PERSONA_SLUGS)
 
 
-def test_load_personas_extracts_prompt_from_markdown():
+def test_load_personas_extracts_multiple_prompts_from_markdown():
     from scripts.agent_rag_tester import load_personas
 
     personas = {p["slug"]: p for p in load_personas(str(ROOT / "personas"))}
     for slug in PERSONA_SLUGS:
-        assert personas[slug]["prompt"].strip(), f"prompt vazio para {slug}"
+        prompts = personas[slug]["prompts"]
+        assert len(prompts) >= MIN_ITERATIONS, (
+            f"{slug} deve ter pelo menos {MIN_ITERATIONS} iterações, "
+            f"mas tem {len(prompts)}"
+        )
+        assert all(p.strip() for p in prompts), f"prompt vazio em {slug}"
 
 
 def test_persona_expectation_mapping():
@@ -55,6 +63,7 @@ def test_adversarial_persona_blocked_via_endpoint():
     result = run_persona("qa_adversarial")
     assert result["ok"] is True
     assert result["status"] == 400
+    assert result["iterations"] >= MIN_ITERATIONS
 
 
 def test_jornalista_persona_returns_sources_via_endpoint():
@@ -64,6 +73,7 @@ def test_jornalista_persona_returns_sources_via_endpoint():
     assert result["ok"] is True
     assert result["status"] == 200
     assert result["sources"]
+    assert result["iterations"] >= MIN_ITERATIONS
 
 
 def test_workflow_has_one_job_per_persona():

@@ -23,3 +23,5 @@
 
 ## Template de Prompt Tipico
 > "O que o deputado [Nome] fez de bom para a saúde pública no último ano? Me explica de forma simples."
+> "Esse tal de projeto de lei sobre educação mudou alguma coisa no meu dia a dia? Fala como se eu não entendesse de política."
+> "Quanto o meu imposto vai aumentar se aprovarem essa reforma? Explica sem complicação."

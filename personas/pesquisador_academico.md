@@ -23,3 +23,5 @@
 
 ## Template de Prompt Tipico
 > "Liste os parlamentares que mais mudaram de voto em pautas ambientais nos últimos 4 anos. A resposta deve ser completa e não conter reticências (...)."
+> "Monte a série histórica de disciplina partidária por bancada entre 2022 e 2026, sem omitir nenhum partido e sem cortar a lista."
+> "Compare os padrões de voto entre as bancadas do Nordeste e do Sul em pautas econômicas. Resposta integral, sem reticências."

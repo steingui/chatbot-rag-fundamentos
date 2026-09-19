@@ -6,15 +6,16 @@ Agente de QA para testes E2E do RAG por persona.
 Cada persona de `personas/*.md` é lida do disco (nada hardcoded) e exercitada
 contra o endpoint `POST /api/v1/chat` com a cadeia RAG e o Firebase mockados,
 preservando o fluxo real: rota → guardrails → parse_source_name → contrato da
-resposta. Uma issue de QA é aberta por falha detectada (ou apenas simulada em
---dry-run).
+resposta. Cada persona possui MÚLTIPLAS iterações (prompts) executadas na MESMA
+sessão (multi-turn). Uma issue de QA é aberta por falha detectada (ou apenas
+simulada em --dry-run).
 """
 
 import argparse
 import os
 import subprocess
 import sys
-from typing import Dict, List, Optional
+from typing import Dict, List
 from unittest.mock import MagicMock, patch
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
@@ -38,8 +39,10 @@ EXPECTATION_BY_SLUG = {
 }
 
 
-def _extract_prompt(text: str) -> str:
-    """Extrai o prompt típico do bloco de citação após o cabeçalho canônico."""
+def _extract_prompts(text: str) -> List[str]:
+    """Extrai TODOS os prompts típicos das linhas de citação após o cabeçalho
+    canônico `## Template de Prompt Tipico`."""
+    prompts: List[str] = []
     lines = text.splitlines()
     in_section = False
     for line in lines:
@@ -48,12 +51,14 @@ def _extract_prompt(text: str) -> str:
             in_section = True
             continue
         if in_section and stripped.startswith(">"):
-            return stripped.lstrip(">").strip().strip('"').strip()
-    return ""
+            prompt = stripped.lstrip(">").strip().strip('"').strip()
+            if prompt:
+                prompts.append(prompt)
+    return prompts
 
 
 def load_personas(personas_dir: str = DEFAULT_PERSONAS_DIR) -> List[Dict]:
-    """Lê todas as personas de `personas/*.md` e devolve slug + prompt."""
+    """Lê todas as personas de `personas/*.md` e devolve slug + prompts."""
     personas: List[Dict] = []
     for filename in sorted(os.listdir(personas_dir)):
         if not filename.endswith(".md"):
@@ -62,7 +67,7 @@ def load_personas(personas_dir: str = DEFAULT_PERSONAS_DIR) -> List[Dict]:
         path = os.path.join(personas_dir, filename)
         with open(path, encoding="utf-8") as handle:
             text = handle.read()
-        personas.append({"slug": slug, "prompt": _extract_prompt(text)})
+        personas.append({"slug": slug, "prompts": _extract_prompts(text)})
     return personas
 
 
@@ -94,8 +99,8 @@ def _build_mock_chain(expectation: str) -> MagicMock:
     return chain
 
 
-def _evaluate(slug: str, expectation: str, status: int, body: Dict) -> Dict:
-    """Aplica o critério de aceitação da persona ao resultado do endpoint."""
+def _evaluate_iteration(slug: str, expectation: str, status: int, body: Dict) -> List[str]:
+    """Aplica o critério de aceitação da persona a UMA iteração. Devolve erros."""
     errors: List[str] = []
     answer = body.get("answer", "")
     sources = body.get("sources", [])
@@ -121,51 +126,65 @@ def _evaluate(slug: str, expectation: str, status: int, body: Dict) -> Dict:
         if not answer.strip():
             errors.append("resposta vazia")
 
-    return {
-        "persona": slug,
-        "expectation": expectation,
-        "status": status,
-        "ok": not errors,
-        "errors": errors,
-        "sources": sources,
-        "answer": answer,
-    }
+    return errors
 
 
 def run_persona(slug: str, personas_dir: str = DEFAULT_PERSONAS_DIR) -> Dict:
-    """Executa a persona contra o endpoint de chat (E2E em processo)."""
+    """Executa TODAS as iterações da persona contra o endpoint de chat
+    (E2E em processo), reutilizando a MESMA sessão (multi-turn)."""
     personas = {p["slug"]: p for p in load_personas(personas_dir)}
-    if slug not in personas:
+    if slug not in personas or not personas[slug]["prompts"]:
         return {
             "persona": slug,
             "expectation": "valid",
             "status": None,
             "ok": False,
-            "errors": [f"persona desconhecida: {slug}"],
+            "errors": [f"persona sem prompts: {slug}"],
             "sources": [],
             "answer": "",
+            "iterations": 0,
         }
 
     expectation = persona_expectation(slug)
-    prompt = personas[slug]["prompt"].replace("[Nome]", "Deputado Federal")
+    prompts = personas[slug]["prompts"]
     token = {"uid": f"qa-{slug}", "privileges": []}
+    session_id = f"persona_test_{slug}"
 
+    errors: List[str] = []
+    statuses: List[int] = []
+    all_sources: List[Dict] = []
     client = TestClient(app)
-    with patch("backend.api.auth.auth.verify_id_token", return_value=token), \
-         patch("backend.api.main.ensure_initialized"), \
-         patch("backend.api.main.get_rag_chain", return_value=_build_mock_chain(expectation)):
-        response = client.post(
-            "/api/v1/chat",
-            json={"query": prompt, "session_id": f"persona_test_{slug}"},
-            headers={"Authorization": "Bearer valid-token"},
-        )
 
-    try:
-        body = response.json()
-    except Exception:
-        body = {}
+    for index, prompt in enumerate(prompts):
+        filled = prompt.replace("[Nome]", "Deputado Federal")
+        with patch("backend.api.auth.auth.verify_id_token", return_value=token), \
+             patch("backend.api.main.ensure_initialized"), \
+             patch("backend.api.main.get_rag_chain", return_value=_build_mock_chain(expectation)):
+            response = client.post(
+                "/api/v1/chat",
+                json={"query": filled, "session_id": session_id},
+                headers={"Authorization": "Bearer valid-token"},
+            )
+        try:
+            body = response.json()
+        except Exception:
+            body = {}
 
-    return _evaluate(slug, expectation, response.status_code, body)
+        statuses.append(response.status_code)
+        all_sources.extend(body.get("sources", []))
+        for err in _evaluate_iteration(slug, expectation, response.status_code, body):
+            errors.append(f"iteração {index + 1}: {err}")
+
+    return {
+        "persona": slug,
+        "expectation": expectation,
+        "status": statuses[-1],
+        "ok": not errors,
+        "errors": errors,
+        "sources": all_sources,
+        "answer": "",
+        "iterations": len(prompts),
+    }
 
 
 def open_qa_issue(title: str, body: str, dry_run: bool = False):
@@ -201,7 +220,7 @@ def main():
         print(f"🧪 Testando Persona: [{slug}]")
         result = run_persona(slug)
         if result["ok"]:
-            print(f"  ✅ Passou (status {result['status']}).")
+            print(f"  ✅ Passou ({result['iterations']} iteração(ões), status {result['status']}).")
         else:
             print(f"  ❌ Falhou: {'; '.join(result['errors'])}")
             failures.append(result)
@@ -217,6 +236,7 @@ def main():
             (
                 f"**Persona**: `{fail['persona']}`\n"
                 f"**Expectativa**: `{fail['expectation']}`\n"
+                f"**Iterações**: `{fail['iterations']}`\n"
                 f"**Status HTTP**: `{fail['status']}`\n"
                 f"**Erros**: {'; '.join(fail['errors'])}"
             ),
