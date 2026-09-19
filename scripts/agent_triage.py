@@ -13,13 +13,13 @@ from typing import Dict, List, Optional
 
 # Mapeamento heurístico de componentes por domínio de palavras-chave
 CODEBASE_MAP = {
-    "fontes": {
+    "font": {
         "files": ["backend/rag/chat.py", "backend/api/main.py"],
         "symbols": ["_buscar_noticias_web", "parse_source_name", "_clean_url"],
         "cause": "Falha na extração de metadados das fontes do RAG ou limpeza inadequadas de URLs (UTM/parâmetros).",
         "fix": "Revisar a normalização de URLs e garantir que a lista de `SourceObject` inclua as propriedades `url` e `label` tratadas."
     },
-    "truncado": {
+    "trunc": {
         "files": ["backend/rag/chat.py"],
         "symbols": ["get_rag_chain", "init_components"],
         "cause": "Limite de max_tokens na resposta do LLM ou instrução de sistema não enfatizando completude.",
