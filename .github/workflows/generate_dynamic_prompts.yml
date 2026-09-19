@@ -10,6 +10,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write
+      pull-requests: write
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -31,11 +32,15 @@ jobs:
         run: |
           cd pipelines/ingestion
           python generate_dynamic_prompts.py --output ../../backend/api/curated_prompts.json
-          
-      - name: Commit e Push caso haja mudanças
-        run: |
-          git config --global user.name "github-actions[bot]"
-          git config --global user.email "github-actions[bot]@users.noreply.github.com"
-          git add backend/api/curated_prompts.json
-          git commit -m "chore(ux): atualiza sugestões dinâmicas via cronjob LLM" || echo "Nenhuma mudança para commitar"
-          git push
+
+      - name: Abrir Pull Request caso haja mudanças
+        uses: peter-evans/create-pull-request@v6
+        with:
+          commit-message: "chore(ux): atualiza sugestões dinâmicas via cronjob LLM"
+          branch: chore/prompts-dinamicos
+          delete-branch: true
+          title: "chore(ux): atualiza sugestões dinâmicas via cronjob LLM"
+          body: |
+            Atualização automática das sugestões dinâmicas gerada pelo cronjob semanal.
+            Requer revisão humana antes do merge na `main`.
+          base: main
