@@ -5,3 +5,4 @@ export { ModelSelector } from './ModelSelector';
 export { SessionSidebar } from './SessionSidebar';
 export { SourceBadges } from './SourceBadges';
 export { SuggestionGrid } from './SuggestionGrid';
+export { RewardedAdModal } from './RewardedAdModal';

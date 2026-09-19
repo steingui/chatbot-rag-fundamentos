@@ -6,7 +6,8 @@ import {
   ChatHeader,
   MessageList,
   SuggestionGrid,
-  IntroModal
+  IntroModal,
+  RewardedAdModal
 } from './components';
 
 export default function App() {
@@ -46,6 +47,7 @@ export default function App() {
   return (
     <div className="flex h-screen w-screen bg-[#F4F4F6] text-neutral-900 font-sans overflow-hidden">
       <IntroModal />
+      <RewardedAdModal />
       {isSidebarOpen && <SessionSidebar />}
 
       <main className="flex-1 flex flex-col h-full bg-[#F2F2F7] overflow-hidden min-w-0">
