@@ -13,7 +13,7 @@ Para garantir um desenvolvimento modular e sustentável, o backlog do projeto fo
 3. 📱 **[App Mobile](./backlog/03-mobile-app.md)**: App React Native (Expo SDK 52), `expo-router`, UI Design System, Haptic Feedback e cache offline.
 4. ☁️ **[Infra & GCP](./backlog/04-infra-gcp.md)**: GCP Cloud Run, Secret Manager, Cloud Build CI/CD e domínio customizado (`politichat.com.br`).
 5. 🔒 **[Auth & Segurança](./backlog/05-auth-security.md)**: Firebase Auth (Google/Apple Sign-In), validação de JWT, guardrails e conformidade LGPD.
-6. 💰 **[Monetização & Lojas](./backlog/06-monetization-store.md)**: Paywall Freemium/Pro (RevenueCat) e submissão na Apple App Store & Google Play Store.
+6. 💰 **[Monetização & Lojas](./backlog/06-monetization-store.md)**: Ads web (AdSense/GPT) + Paywall Freemium/Pro (Stripe).
 
 ---
 

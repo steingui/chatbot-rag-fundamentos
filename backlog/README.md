@@ -13,7 +13,7 @@ Este diretório contém o backlog modularizado e segmentado por domínio técnic
 | **3. Mobile App** | [`03-mobile-app.md`](./03-mobile-app.md) | React Native (Expo SDK 52), expo-router, Zustand, Haptic, SQLite cache | 🔴 Planejado |
 | **4. Infra & GCP** | [`04-infra-gcp.md`](./04-infra-gcp.md) | GCP Cloud Run, Secret Manager, Cloud Build CI/CD, domínio customizado | 🟡 Em Progresso |
 | **5. Auth & Segurança** | [`05-auth-security.md`](./05-auth-security.md) | Firebase Auth, JWT validation middleware, LGPD compliance, guardrails | 🔴 Planejado |
-| **6. Monetização & Lojas** | [`06-monetization-store.md`](./06-monetization-store.md) | Tiers Freemium/Pro, RevenueCat IAP, checklists App Store & Google Play | 🔴 Planejado |
+| **6. Monetização & Lojas** | [`06-monetization-store.md`](./06-monetization-store.md) | Ads web (AdSense/GPT) + Paywall Freemium/Pro (Stripe) | 🔴 Planejado |
 
 ---
 
