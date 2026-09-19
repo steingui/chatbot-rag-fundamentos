@@ -27,10 +27,9 @@ def test_healthcheck_stays_at_root():
     assert "/" in _api_paths()
 
 
-def test_chat_v1_allows_anonymous():
+def test_chat_v1_requires_authentication():
     mock_chain = MagicMock()
     mock_chain.invoke.return_value = {"answer": "Resposta de teste", "sources": []}
     with patch("backend.api.main.ensure_initialized"), patch("backend.api.main.get_rag_chain", return_value=mock_chain):
         response = client.post("/api/v1/chat", json={"query": "Qual o limite orçamentário?", "session_id": "test_anon"})
-        assert response.status_code == 200
-        assert "answer" in response.json()
+        assert response.status_code == 401

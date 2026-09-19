@@ -16,7 +16,7 @@ from backend.rag.chat import init_components, get_rag_chain
 from backend.rag.cache import global_rag_cache
 from backend.api.analytics import get_top_suggestions, record_query
 from backend.api.guardrails import validate_and_sanitize_query
-from backend.api.auth import get_optional_user
+from backend.api.auth import get_required_user
 from backend.api.firestore_db import get_session_messages, save_chat_message
 
 limiter = Limiter(key_func=get_remote_address)
@@ -193,27 +193,26 @@ def parse_source_name(raw_source: str) -> SourceObject:
 
 @app.post("/api/v1/chat", response_model=ChatResponse)
 @limiter.limit("30/minute")
-async def chat(request: Request, body: ChatRequest, background_tasks: BackgroundTasks, current_user: Optional[dict] = Depends(get_optional_user)):
+async def chat(request: Request, body: ChatRequest, background_tasks: BackgroundTasks, current_user: dict = Depends(get_required_user)):
     try:
         query = validate_and_sanitize_query(body.query)
         if body.model and body.model not in ALLOWED_MODELS:
             raise HTTPException(status_code=400, detail="Modelo não permitido.")
         
-        user_id = current_user.get("uid") if current_user else "anonymous"
+        user_id = current_user["uid"]
 
         cached = global_rag_cache.get(query, body.model)
         if cached:
             background_tasks.add_task(record_query, query)
-            if user_id != "anonymous":
-                background_tasks.add_task(save_chat_message, user_id, body.session_id, "user", query)
-                background_tasks.add_task(save_chat_message, user_id, body.session_id, "assistant", cached.get("answer", ""), cached.get("sources", []))
+            background_tasks.add_task(save_chat_message, user_id, body.session_id, "user", query)
+            background_tasks.add_task(save_chat_message, user_id, body.session_id, "assistant", cached.get("answer", ""), cached.get("sources", []))
             sources = [SourceObject(**s) for s in cached.get("sources", [])]
             return ChatResponse(answer=cached.get("answer", ""), sources=sources)
 
         ensure_initialized()
         background_tasks.add_task(record_query, query)
         rag_chain = get_rag_chain(body.session_id, model_name=body.model)
-        history = get_session_messages(user_id, body.session_id, limit=50) if user_id != "anonymous" else []
+        history = get_session_messages(user_id, body.session_id, limit=50)
         response = rag_chain.invoke({"question": query, "history": history})
         
         seen_keys = set()
@@ -231,9 +230,8 @@ async def chat(request: Request, body: ChatRequest, background_tasks: Background
         sources_dict = [s.model_dump() for s in structured_sources]
         global_rag_cache.set(query, {"answer": response["answer"], "sources": sources_dict}, body.model)
         
-        if user_id != "anonymous":
-            background_tasks.add_task(save_chat_message, user_id, body.session_id, "user", query)
-            background_tasks.add_task(save_chat_message, user_id, body.session_id, "assistant", response["answer"], sources_dict)
+        background_tasks.add_task(save_chat_message, user_id, body.session_id, "user", query)
+        background_tasks.add_task(save_chat_message, user_id, body.session_id, "assistant", response["answer"], sources_dict)
 
         return ChatResponse(answer=response["answer"], sources=structured_sources)
     except HTTPException:
@@ -248,20 +246,19 @@ from fastapi.responses import StreamingResponse
 
 @app.post("/api/v1/chat/stream")
 @limiter.limit("30/minute")
-async def chat_stream(request: Request, body: ChatRequest, background_tasks: BackgroundTasks, current_user: Optional[dict] = Depends(get_optional_user)):
+async def chat_stream(request: Request, body: ChatRequest, background_tasks: BackgroundTasks, current_user: dict = Depends(get_required_user)):
     try:
         query = validate_and_sanitize_query(body.query)
         if body.model and body.model not in ALLOWED_MODELS:
             raise HTTPException(status_code=400, detail="Modelo não permitido.")
         
-        user_id = current_user.get("uid") if current_user else "anonymous"
+        user_id = current_user["uid"]
         cached = global_rag_cache.get(query, body.model)
         
         if cached:
             background_tasks.add_task(record_query, query)
-            if user_id != "anonymous":
-                background_tasks.add_task(save_chat_message, user_id, body.session_id, "user", query)
-                background_tasks.add_task(save_chat_message, user_id, body.session_id, "assistant", cached.get("answer", ""), cached.get("sources", []))
+            background_tasks.add_task(save_chat_message, user_id, body.session_id, "user", query)
+            background_tasks.add_task(save_chat_message, user_id, body.session_id, "assistant", cached.get("answer", ""), cached.get("sources", []))
             def cached_event_generator():
                 payload_src = {"type": "sources", "sources": cached.get("sources", [])}
                 yield f"data: {json.dumps(payload_src, ensure_ascii=False)}\n\n"
@@ -273,7 +270,7 @@ async def chat_stream(request: Request, body: ChatRequest, background_tasks: Bac
         ensure_initialized()
         background_tasks.add_task(record_query, query)
         rag_chain = get_rag_chain(body.session_id, model_name=body.model)
-        history = get_session_messages(user_id, body.session_id, limit=50) if user_id != "anonymous" else []
+        history = get_session_messages(user_id, body.session_id, limit=50)
 
         def event_generator():
             try:
@@ -301,9 +298,8 @@ async def chat_stream(request: Request, body: ChatRequest, background_tasks: Bac
                 
                 final_answer = "".join(full_tokens)
                 global_rag_cache.set(query, {"answer": final_answer, "sources": cached_sources}, body.model)
-                if user_id != "anonymous":
-                    save_chat_message(user_id, body.session_id, "user", query)
-                    save_chat_message(user_id, body.session_id, "assistant", final_answer, cached_sources)
+                save_chat_message(user_id, body.session_id, "user", query)
+                save_chat_message(user_id, body.session_id, "assistant", final_answer, cached_sources)
                 yield "data: [DONE]\n\n"
             except Exception as stream_err:
                 logging.error(f"Erro no event_generator: {stream_err}")
