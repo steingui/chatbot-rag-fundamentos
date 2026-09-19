@@ -43,7 +43,7 @@ steps:
       - |
         cd frontend
         npm ci
-        VITE_API_URL=https://chatbot-rag-api-1043919586992.southamerica-east1.run.app npm run build
+        VITE_API_URL=https://chatbot-rag-api-1043919586992.southamerica-east1.run.app/api/v1/chat npm run build
 
   - name: 'node:22'
     entrypoint: bash
