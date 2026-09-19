@@ -20,5 +20,5 @@
 - [x] **[RAG-109]** Implementar janela de contexto dinâmico baseada em contagem exata de tokens para evitar perda de histórico recente.
 
 ### 1.3 Avaliação & Benchmark
-- [ ] **[RAG-110]** Criar script de benchmark `eval_merge.py` com conjunto de teste de perguntas complexas para medir taxa de alucinação.
-- [ ] **[RAG-111]** Avaliar migração futura de embeddings (`sentence-transformers/all-MiniLM-L6-v2` → `multilingual-e5-large`) para v2.
+- [x] **[RAG-110]** Criar script de benchmark `eval_merge.py` com conjunto de teste de perguntas complexas para medir taxa de alucinação.
+- [x] **[RAG-111]** Avaliar migração futura de embeddings (`sentence-transformers/all-MiniLM-L6-v2` → `multilingual-e5-large`) para v2. Recomendação: migrar na v2 (melhor pt-BR, 1024 dims) com re-indexação completa do Pinecone — ver [`scripts/eval_embedding_migration.py`](../scripts/eval_embedding_migration.py).
