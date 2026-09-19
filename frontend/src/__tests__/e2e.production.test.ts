@@ -26,7 +26,7 @@ describe.skipIf(!runProd)('E2E produção (Firebase Hosting + Cloud Run)', () =>
     expect(res.ok).toBe(true);
     const html = await res.text();
     expect(html).toContain('<div id="root"></div>');
-    expect(html).toContain('rag_politico');
+    expect(html).toContain('RAG Político');
   });
 
   it('backend prod responde healthcheck', async () => {
