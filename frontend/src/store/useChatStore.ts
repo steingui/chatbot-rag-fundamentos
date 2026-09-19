@@ -6,6 +6,16 @@ export const API_URL = import.meta.env.VITE_API_URL || 'https://chatbot-rag-api-
 export const STREAM_API_URL = API_URL.endsWith('/chat') ? `${API_URL}/stream` : `${API_URL}/chat/stream`;
 export const SUGGESTION_API_URL = API_URL.replace(/\/chat$/, '/suggestions');
 export const MAX_SESSIONS = 5;
+export const PROMPTS_PER_BATCH = 3;
+
+// MON-602: trava após consumir o lote (ex.: 3, 6, 9 prompts)
+export const isAdLocked = (count: number): boolean =>
+  count > 0 && count % PROMPTS_PER_BATCH === 0;
+
+export const promptsRemainingInBatch = (count: number): number => {
+  if (isAdLocked(count)) return 0;
+  return PROMPTS_PER_BATCH - (count % PROMPTS_PER_BATCH);
+};
 
 export const FREE_MODELS = [
   { id: 'gemini-3.7-flash', label: 'gemini-3.7-flash · google' },
@@ -114,6 +124,7 @@ interface ChatState {
   fontSize: number;
   guestId: string;
   guestPromptCount: number;
+  adLocked: boolean;
   
   abortController: AbortController | null;
 
@@ -137,6 +148,7 @@ interface ChatState {
   editLastPrompt: () => void;
   incrementGuestPrompts: () => void;
   resetGuestPrompts: () => void;
+  unlockRewardedAd: () => void;
 }
 
 const LOCAL_STORAGE_KEY = 'rag_chat_sessions_v1';
@@ -184,6 +196,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
   abortController: null,
   guestId: getOrCreateGuestId(),
   guestPromptCount: getPersistedGuestPrompts(),
+  adLocked: isAdLocked(getPersistedGuestPrompts()),
   suggestions: [
     { prompt: 'Quais doadores do TSE possuem contratos milionários com a União?' },
     { prompt: 'Quais parlamentares mais mudaram de voto em pautas ambientais?' },
@@ -193,7 +206,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
 
   incrementGuestPrompts: () => {
     const next = get().guestPromptCount + 1;
-    set({ guestPromptCount: next });
+    set({ guestPromptCount: next, adLocked: isAdLocked(next) });
     try {
       localStorage.setItem(GUEST_PROMPTS_KEY, String(next));
     } catch (e) {
@@ -202,13 +215,16 @@ export const useChatStore = create<ChatState>((set, get) => ({
   },
 
   resetGuestPrompts: () => {
-    set({ guestPromptCount: 0 });
+    set({ guestPromptCount: 0, adLocked: false });
     try {
       localStorage.setItem(GUEST_PROMPTS_KEY, '0');
     } catch (e) {
       console.warn('Erro ao resetar guest_prompts:', e);
     }
   },
+
+  // MON-602: assistir 1 Rewarded Ad destrava o próximo lote de prompts
+  unlockRewardedAd: () => set({ adLocked: false }),
 
   setInput: (input) => set({ input }),
   setSelectedModel: (selectedModel) => set({ selectedModel }),
@@ -389,10 +405,10 @@ export const useChatStore = create<ChatState>((set, get) => ({
 
   sendMessageStream: async (queryText: string) => {
     const query = queryText.trim();
-    const { isLoading, activeIdx, sessions, selectedModel, fetchSuggestions, incrementGuestPrompts } = get();
+    const { isLoading, adLocked, activeIdx, sessions, selectedModel, fetchSuggestions, incrementGuestPrompts } = get();
 
-    // Proteção Anti-Spam & Trava Concorrente Estrita
-    if (!query || isLoading) return;
+    // Proteção Anti-Spam, Trava Concorrente Estrita & Trava de Anúncio (MON-603)
+    if (!query || isLoading || adLocked) return;
 
     // Incrementar estatística Guest-First
     incrementGuestPrompts();
