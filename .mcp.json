@@ -1,0 +1,12 @@
+{
+  "mcpServers": {
+    "gcp-observability": {
+      "command": "npx",
+      "args": ["-y", "google-cloud-observability-mcp@latest"],
+      "env": {
+        "GOOGLE_APPLICATION_CREDENTIALS": "/home/gui/.config/gcloud/keys/gcp-observability-mcp.json",
+        "GOOGLE_CLOUD_PROJECT": "rag-eleicoes"
+      }
+    }
+  }
+}
