@@ -110,6 +110,21 @@ Classificação de fontes em `main.py:parse_source_name()`:
 - Eviction: remove entry mais antiga quando cheio
 - Cache é populado após resposta completa (inclui sources serializados)
 
+## Roteamento Semântico (RAG-101)
+
+Antes de acionar qualquer ferramenta, o [`SemanticRouter`](backend/rag/semantic_router.py)
+classifica a intenção da consulta de forma determinística (regex + normalização NFKD,
+sem custo de LLM):
+
+| Rota | Gatilho | Ferramentas acionadas |
+|------|---------|----------------------|
+| `RAG` | Domínio legislativo/político (votações, leis, parlamentares, TSE, CGU...) | Pinecone (primária) + DuckDuckGo (secundária) |
+| `WEB` | Intenção de recência/notícias (hoje, notícias, recentemente...) | Somente DuckDuckGo |
+| `DIRECT` | Saudação/identidade (olá, quem é você, obrigado...) | Nenhuma — LLM direto |
+
+Precedência: sinais de Web vencem o domínio; o domínio vence a conversa casual.
+Rota `DIRECT` retorna `source_documents` vazio (sem rastreabilidade de fontes aplicável).
+
 ## Retriever Híbrido
 
 ### HybridRetriever (backend/rag/retriever.py)

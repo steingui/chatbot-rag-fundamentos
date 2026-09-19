@@ -34,6 +34,7 @@ backend/
 │   └── firestore_db.py   # Persistência opcional de histórico de chat no Firestore
 ├── rag/
 │   ├── chat.py           # MultiSourceAgentChain: orquestra Pinecone + DDGS + LLM
+│   ├── semantic_router.py # RAG-101: classifica intenção (RAG vs Web vs Direct) antes das ferramentas
 │   ├── context_window.py # RAG-109: janela de contexto dinâmica por contagem exata de tokens
 │   ├── retriever.py      # HybridRetriever: Dense (Pinecone) + BM25 com RRF
 │   ├── llm_fallback.py   # DynamicFallbackLLMManager: alternância dinâmica de LLMs
@@ -48,11 +49,12 @@ backend/
 2. `global_rag_cache.get()` — verifica cache (TTL 5min, chave = `model:query_normalizado`)
 3. Se cache miss: `init_components()` lazy → inicializa Pinecone + LLM
 4. `get_rag_chain(session_id, model)` → retorna `MultiSourceAgentChain`
-5. `chain.stream()` →
-   a. `_retriever.invoke(query)` → busca vetorial (Pinecone VectorStore)
-   b. `_buscar_noticias_web(query)` → DDGS text + news fallback (região BR)
-   c. `_build_synthesis_prompt()` → prompt de síntese hierárquica (histórico recente podado por tokens exatos + base factual interna = primário; web = secundário)
-   d. `llm.stream(prompt)` → gera tokens incrementais
+5. `chain.stream()` → roteia por `SemanticRouter.route(query)` (RAG vs Web vs Direct):
+   a. Rota RAG → `_retriever.invoke(query)` (Pinecone VectorStore) como fonte primária
+   b. Rota RAG/Web → `_buscar_noticias_web(query)` (DDGS text + news fallback, região BR)
+   c. Rota Direct → LLM direto, sem ferramentas
+   d. `_build_synthesis_prompt()` → prompt de síntese hierárquica (histórico recente podado por tokens exatos + base factual interna = primário; web = secundário)
+   e. `llm.stream(prompt)` → gera tokens incrementais
 6. SSE events: `{type: "sources", sources: [...]}` → `{type: "token", token: "..."}` → `[DONE]`
 7. `global_rag_cache.set()` — armazena resposta completa
 8. `record_query()` em background — atualiza SQLite analytics
