@@ -1,7 +1,15 @@
 import re
 import logging
 import unicodedata
+import warnings
+from functools import lru_cache
+
 from fastapi import HTTPException
+
+try:
+    from sklearn.exceptions import InconsistentVersionWarning
+except Exception:  # pragma: no cover - scikit-learn opcional
+    InconsistentVersionWarning = Warning
 
 # SEC-008: Patterns expandidos com variantes em português, Unicode e técnicas avançadas
 PROMPT_INJECTION_PATTERNS = [
@@ -42,12 +50,29 @@ COMPILED_INJECTION_REGEX = re.compile(
     "|".join(PROMPT_INJECTION_PATTERNS), re.IGNORECASE
 )
 
-# Tenta carregar biblioteca especializada de detecção de injeção
+# Tenta carregar biblioteca especializada de detecção de injeção.
+# O pacote `prompt-injection-detector` empacota model.pkl/vectorizer.pkl
+# serializados com scikit-learn 1.8.0; ao desserializar com 1.9.0, o sklearn
+# emite InconsistentVersionWarning (artefato de terceiros, não retreinável aqui).
 try:
     import prompt_injection_detector as pid
-    _pid_scanner = pid.Scanner()
-except Exception:
-    _pid_scanner = None
+except Exception:  # pragma: no cover - dependência opcional
+    pid = None
+
+
+@lru_cache(maxsize=1)
+def _get_pid_scanner():
+    """Carrega o Scanner PID uma única vez (lazy), suprimindo o warning de
+    versão dos artefatos pickle de terceiros. Retorna None se indisponível."""
+    if pid is None:
+        return None
+    try:
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore", InconsistentVersionWarning)
+            return pid.Scanner()
+    except Exception:  # pragma: no cover - depende de artefatos do pacote
+        return None
+
 
 def validate_and_sanitize_query(query: str) -> str:
     """Higieniza e valida a consulta do usuário contra injeção de prompt e exploits."""
@@ -77,15 +102,20 @@ def validate_and_sanitize_query(query: str) -> str:
         )
 
     # Camada 2: Scanner especializado via biblioteca prompt-injection-detector
+    _pid_scanner = _get_pid_scanner()
     if _pid_scanner is not None:
         try:
-            scan_res = _pid_scanner.scan(normalized_query)
+            with warnings.catch_warnings():
+                warnings.simplefilter("ignore", InconsistentVersionWarning)
+                scan_res = _pid_scanner.scan(normalized_query)
             if scan_res.decision == "reject" or scan_res.risk_score >= 0.85:
                 logging.warning(f"SEC-011: Prompt Injection bloqueado por PID Scanner (score: {scan_res.risk_score:.2f}, hash: {query_hash})")
                 raise HTTPException(
                     status_code=400,
                     detail="Consulta bloqueada pelas diretrizes de segurança anti-prompt injection."
                 )
+        except HTTPException:
+            raise
         except Exception as e:
             logging.debug(f"Falha ao rodar PID scanner: {e}")
 
