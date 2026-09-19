@@ -8,7 +8,7 @@
 
 ### 4.1 Consolidação GCP Serverless
 - [x] **[INF-401]** Containerizar aplicação backend FastAPI para execução no GCP Cloud Run (`Dockerfile`).
-- [ ] **[INF-402]** Mapear variáveis de ambiente locais para o GCP Secret Manager (substituindo arquivos `.env` em produção).
+- [x] **[INF-402]** Mapear variáveis de ambiente locais para o GCP Secret Manager (substituindo arquivos `.env` em produção).
 - [ ] **[INF-403]** Configurar Firestore NoSQL na região `southamerica-east1` (São Paulo) com regras de acesso e índices.
 - [ ] **[INF-404]** Configurar mapeamento de domínio customizado (`api.politichat.com.br`) no Cloud Run com SSL automático.
 
