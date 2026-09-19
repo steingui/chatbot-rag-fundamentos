@@ -17,7 +17,7 @@ from backend.rag.cache import global_rag_cache
 from backend.api.analytics import get_top_suggestions, record_query
 from backend.api.guardrails import validate_and_sanitize_query
 from backend.api.auth import get_optional_user
-from backend.api.firestore_db import save_chat_message
+from backend.api.firestore_db import get_session_messages, save_chat_message
 
 limiter = Limiter(key_func=get_remote_address)
 
@@ -231,7 +231,8 @@ async def chat(request: Request, body: ChatRequest, background_tasks: Background
         ensure_initialized()
         background_tasks.add_task(record_query, query)
         rag_chain = get_rag_chain(body.session_id, model_name=body.model)
-        response = rag_chain.invoke({"question": query})
+        history = get_session_messages(user_id, body.session_id, limit=50) if user_id != "anonymous" else []
+        response = rag_chain.invoke({"question": query, "history": history})
         
         seen_keys = set()
         structured_sources = []
@@ -290,12 +291,13 @@ async def chat_stream(request: Request, body: ChatRequest, background_tasks: Bac
         ensure_initialized()
         background_tasks.add_task(record_query, query)
         rag_chain = get_rag_chain(body.session_id, model_name=body.model)
+        history = get_session_messages(user_id, body.session_id, limit=50) if user_id != "anonymous" else []
 
         def event_generator():
             try:
                 full_tokens = []
                 cached_sources = []
-                for item in rag_chain.stream({"question": query}):
+                for item in rag_chain.stream({"question": query, "history": history}):
                     if item.get("type") == "sources":
                         seen_keys = set()
                         structured_sources = []

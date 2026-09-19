@@ -8,6 +8,13 @@ from langchain_huggingface import HuggingFaceEndpointEmbeddings
 from langchain_openai import ChatOpenAI
 from langchain_core.documents import Document
 
+from backend.rag.context_window import (
+    build_context_window,
+    count_tokens,
+    format_history,
+    max_input_tokens_for_model,
+)
+
 logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
 load_dotenv()
 
@@ -185,10 +192,60 @@ def _extract_text(content_obj) -> str:
     return str(content_obj) if content_obj is not None else ""
 
 
+_SYNTHESIS_SYSTEM_PROMPT = """Você é um assistente especialista em política brasileira e análise legislativa.
+Sua tarefa é responder à pergunta do usuário aplicando SÍNTESE HIERÁRQUICA, isolando o contexto factual interno dos resultados web secundários.
+
+HIERARQUIA DE CONFIANÇA (obrigatória):
+1. FONTE PRIMÁRIA — BASE INTERNA (Câmara/Senado/TSE/CGU/Checagens): fonte factual canônica e verificada. Toda afirmação sobre nomes, listas, valores, votações ou datas DEVE ser ancorada aqui.
+2. FONTE SECUNDÁRIA — RESULTADOS WEB (DuckDuckGo BR): complemento de atualidade/contexto. NUNCA substitui, contradiz ou sobrescreve a base interna.
+
+REGRAS CRÍTICAS:
+- Isole o contexto factual interno: trate os dados da BASE INTERNA como verdade canônica, sem misturar com o ruído da web.
+- Use a web apenas como enriquecimento secundário (recência/contexto), explicitando sempre que a informação vem da web.
+- Em caso de conflito entre as fontes, prevaleça SEMPRE a BASE INTERNA e sinalize a divergência.
+- Se nomes, listas ou valores específicos não tiverem comprovação exata na BASE INTERNA, NUNCA invente dados. Diga explicitamente o que foi encontrado.
+- Se a BASE INTERNA não trouxer dados, responda com a web deixando claro que é informação secundária não verificada.
+"""
+
+
+def _build_synthesis_prompt(pinecone_context: str, web_context: str, question: str, history_text: str = "") -> str:
+    """Monta o prompt de síntese hierárquica: base factual interna (primária) isolada dos resultados web (secundários)."""
+    history_block = (
+        f"\n--- HISTÓRICO RECENTE DA CONVERSA (janela dinâmica): ---\n{history_text}\n"
+        if history_text
+        else ""
+    )
+    return f"""{_SYNTHESIS_SYSTEM_PROMPT}{history_block}
+--- [FONTE PRIMÁRIA] DADOS DA BASE INTERNA (Câmara/Senado/TSE/CGU/Checagens): ---
+{pinecone_context}
+
+--- [FONTE SECUNDÁRIA] RESULTADOS WEB (DuckDuckGo BR): ---
+{web_context}
+
+--- PERGUNTA DO USUÁRIO: ---
+{question}
+
+Resposta:"""
+
+
 class MultiSourceAgentChain:
-    def __init__(self, llm, session_id: str):
+    def __init__(self, llm, session_id: str, model_name: str = None):
         self.llm = llm
         self.session_id = session_id
+        self.model_name = model_name
+
+    def _build_history_block(self, question: str, inputs: dict) -> str:
+        """Janela de contexto dinâmica: mantém o histórico recente que cabe no
+        orçamento exato de tokens de entrada do modelo (descartando o antigo)."""
+        history = inputs.get("history") or []
+        if not history:
+            return ""
+
+        budget = max_input_tokens_for_model(self.model_name)
+        fixed = count_tokens(_SYNTHESIS_SYSTEM_PROMPT) + count_tokens(question)
+        history_budget = max(0, budget - fixed)
+        windowed = build_context_window(history, history_budget)
+        return format_history(windowed)
 
     def invoke(self, inputs: dict) -> dict:
         question = inputs.get("question", "")
@@ -213,24 +270,11 @@ class MultiSourceAgentChain:
         web_context, web_sources = _buscar_noticias_web(question, self.session_id)
         sources.extend(web_sources)
 
-        # 3. Prompt de síntese unificada (Merge de RAG + Web)
-        prompt_text = f"""Você é um assistente especialista em política brasileira e análise legislativa.
-Sua tarefa é responder à pergunta do usuário SINTETIZANDO E MESCLANDO as informações das duas fontes abaixo (Base Interna e Notícias da Web).
+        # 3. Janela de contexto dinâmica: histórico recente podado por tokens exatos
+        history_text = self._build_history_block(question, inputs)
 
-REGRA CRÍTICA:
-- Se houver dados em ambas as fontes, funda-os em uma resposta única, coesa e estruturada.
-- Se perguntado sobre nomes, listas ou valores específicos e não houver comprovação exata nas fontes, NUNCA invente dados. Diga explicitamente o que foi encontrado.
-
---- DADOS DA BASE INTERNA (Câmara/Senado/TSE/CGU/Checagens): ---
-{pinecone_context}
-
---- DADOS RECENTES DA WEB (DuckDuckGo BR): ---
-{web_context}
-
---- PERGUNTA DO USUÁRIO: ---
-{question}
-
-Resposta:"""
+        # 4. Prompt de síntese hierárquica (base factual interna vs. web secundária)
+        prompt_text = _build_synthesis_prompt(pinecone_context, web_context, question, history_text)
 
         try:
             res = self.llm.invoke(prompt_text)
@@ -254,23 +298,8 @@ Resposta:"""
         web_context, web_sources = _buscar_noticias_web(question, self.session_id)
         sources.extend(web_sources)
 
-        prompt_text = f"""Você é um assistente especialista em política brasileira e análise legislativa.
-Sua tarefa é responder à pergunta do usuário SINTETIZANDO E MESCLANDO as informações das duas fontes abaixo (Base Interna e Notícias da Web).
-
-REGRA CRÍTICA:
-- Se houver dados em ambas as fontes, funda-os em uma resposta única, coesa e estruturada.
-- Se perguntado sobre nomes, listas ou valores específicos e não houver comprovação exata nas fontes, NUNCA invente dados. Diga explicitamente o que foi encontrado.
-
---- DADOS DA BASE INTERNA (Câmara/Senado/TSE/CGU/Checagens): ---
-{pinecone_context}
-
---- DADOS RECENTES DA WEB (DuckDuckGo BR): ---
-{web_context}
-
---- PERGUNTA DO USUÁRIO: ---
-{question}
-
-Resposta:"""
+        history_text = self._build_history_block(question, inputs)
+        prompt_text = _build_synthesis_prompt(pinecone_context, web_context, question, history_text)
 
         yield {"type": "sources", "source_documents": sources}
 
@@ -308,7 +337,7 @@ def get_rag_chain(session_id: str = "default", model_name: str = None):
                 )
                 fallback_list = gemini_fallbacks + ([_llm] if _llm else [])
                 custom_llm = primary_custom.with_fallbacks(fallback_list)
-                return MultiSourceAgentChain(custom_llm, session_id)
+                return MultiSourceAgentChain(custom_llm, session_id, model_name)
             except Exception as e:
                 logging.warning(f"Falha ao instanciar Gemini {model_name} nativo: {e}")
 
@@ -330,7 +359,7 @@ def get_rag_chain(session_id: str = "default", model_name: str = None):
                 max_retries=2,
                 temperature=0.2
             )
-        return MultiSourceAgentChain(custom_llm, session_id)
+        return MultiSourceAgentChain(custom_llm, session_id, model_name)
 
     if session_id in _session_agents:
         return _session_agents[session_id]
