@@ -23,7 +23,7 @@ function List({ items }: { items: string[] }) {
 
 export function PrivacyPage() {
   return (
-    <main className="min-h-screen w-screen overflow-y-auto bg-[#F2F2F7]">
+    <main className="min-h-screen w-screen overflow-y-auto bg-canvas">
       <div className="mx-auto max-w-3xl px-5 py-10 sm:px-8 sm:py-14">
         <a
           href="/"

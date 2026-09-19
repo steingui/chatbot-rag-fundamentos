@@ -11,15 +11,29 @@ export default {
         mono: ['JetBrains Mono', 'monospace'],
       },
       colors: {
-        surface: {
-          bg: '#F4F4F6',
-          card: '#FFFFFF',
-        },
-        lime: {
-          500: '#52C443',
-          600: '#45B037',
-        }
-      }
+        canvas: 'var(--color-canvas)',
+        surface: 'var(--color-surface)',
+        card: 'var(--color-card)',
+        border: 'var(--color-border)',
+        'border-strong': 'var(--color-border-strong)',
+        ink: 'var(--color-ink)',
+        'ink-muted': 'var(--color-ink-muted)',
+        accent: 'var(--color-accent)',
+        'accent-strong': 'var(--color-accent-strong)',
+        'accent-ink': 'var(--color-accent-ink)',
+        warning: 'var(--color-warning)',
+        danger: 'var(--color-danger)',
+        'danger-strong': 'var(--color-danger-strong)',
+      },
+      borderRadius: {
+        sm: 'var(--radius-sm)',
+        md: 'var(--radius-md)',
+        lg: 'var(--radius-lg)',
+        xl: 'var(--radius-xl)',
+      },
+      transitionTimingFunction: {
+        spring: 'var(--ease-spring)',
+      },
     },
   },
   plugins: [],
