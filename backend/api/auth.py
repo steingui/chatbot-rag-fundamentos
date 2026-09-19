@@ -43,7 +43,8 @@ init_firebase()
 
 async def get_optional_user(authorization: Optional[str] = Header(None)) -> Optional[dict]:
     """Retorna os dados do usuario se o token Bearer JWT do Firebase for valido.
-    Se nao for fornecido token, retorna None para compatibilidade web/anonimo."""
+    Se nao for fornecido token, retorna None para compatibilidade web/anonimo.
+    Injeta user_id e privilegios (custom claims) no contexto da requisicao."""
     if not authorization or not authorization.startswith("Bearer "):
         return None
 
@@ -53,7 +54,8 @@ async def get_optional_user(authorization: Optional[str] = Header(None)) -> Opti
         return {
             "uid": decoded_token.get("uid"),
             "email": decoded_token.get("email"),
-            "name": decoded_token.get("name")
+            "name": decoded_token.get("name"),
+            "privileges": decoded_token.get("privileges", [])
         }
     except Exception as e:
         logger.warning(f"Token JWT do Firebase invalido ou expirado: {e}")

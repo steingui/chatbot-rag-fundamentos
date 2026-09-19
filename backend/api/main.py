@@ -39,7 +39,7 @@ app.add_middleware(
     allow_origins=ALLOWED_ORIGINS,
     allow_credentials=False,
     allow_methods=["GET", "POST"],
-    allow_headers=["Content-Type"],
+    allow_headers=["Content-Type", "Authorization"],
 )
 
 
@@ -54,24 +54,6 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
         return response
 
 app.add_middleware(SecurityHeadersMiddleware)
-
-
-# SEC-005: Validação de Origin para endpoints POST (mitiga abuso direto da API)
-class OriginCheckMiddleware(BaseHTTPMiddleware):
-    async def dispatch(self, request, call_next):
-        if request.method == "POST":
-            origin = request.headers.get("origin", "")
-            referer = request.headers.get("referer", "")
-            is_trusted = any(
-                origin.startswith(o) or referer.startswith(o) for o in ALLOWED_ORIGINS
-            )
-            if not is_trusted and origin:
-                logging.warning(f"SEC-005: Origin não confiável bloqueado: {origin}")
-                from starlette.responses import JSONResponse
-                return JSONResponse(status_code=403, content={"detail": "Origin não autorizado."})
-        return await call_next(request)
-
-app.add_middleware(OriginCheckMiddleware)
 
 
 # SEC-009: Allowlist de modelos para prevenir cache poisoning

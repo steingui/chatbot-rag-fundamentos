@@ -39,6 +39,11 @@ Rate limit: **60/min** por IP.
 Consulta síncrona (resposta completa de uma vez).
 Rate limit: **30/min** por IP.
 
+**Autenticação**:
+- Opcional. Sem `Authorization`, o usuário é tratado como `anonymous`.
+- Com `Authorization: Bearer <id_token>` (Firebase Auth), o backend valida o
+  token e injeta `uid`, `email`, `name` e `privileges` (custom claims) no contexto.
+
 **Request Body**:
 ```json
 {
@@ -81,6 +86,8 @@ Rate limit: **30/min** por IP.
 Consulta com streaming via **Server-Sent Events (SSE)**.
 Rate limit: **30/min** por IP.
 Content-Type da resposta: `text/event-stream`.
+
+**Autenticação**: mesma de `POST /api/v1/chat` (Bearer opcional).
 
 **Request Body**: mesmo de `POST /api/v1/chat`.
 
@@ -137,11 +144,15 @@ class SuggestionsResponse(BaseModel):
 ## CORS
 
 ```python
-allow_origins=["*"]
+allow_origins=ALLOWED_ORIGINS   # domínios conhecidos (SEC-001)
 allow_credentials=False
-allow_methods=["*"]
-allow_headers=["*"]
+allow_methods=["GET", "POST"]
+allow_headers=["Content-Type", "Authorization"]
 ```
+
+> Nota: a validação de `Origin` (`OriginCheckMiddleware`) foi substituída por
+> validação de Bearer Token (`SEC-503`). O `Origin` não é mais usado como
+> mecanismo de segurança.
 
 ## Frontend → Backend Communication
 

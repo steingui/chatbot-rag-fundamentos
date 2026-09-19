@@ -8,8 +8,8 @@
 
 ### 5.1 Autenticação & Validação
 - [ ] **[SEC-501]** Configurar projeto no Firebase Auth habilitando provedores sociais (Google Sign-In e Apple Sign-In).
-- [ ] **[SEC-502]** Criar middleware FastAPI de validação de `id_token` do Firebase, injetando `user_id` e privilégios no contexto das requisições.
-- [ ] **[SEC-503]** Substituir `OriginCheckMiddleware` por validação de Bearer Token nas rotas protegidas da API.
+- [x] **[SEC-502]** Criar middleware FastAPI de validação de `id_token` do Firebase, injetando `user_id` e privilégios no contexto das requisições.
+- [x] **[SEC-503]** Substituir `OriginCheckMiddleware` por validação de Bearer Token nas rotas protegidas da API.
 - [ ] **[SEC-507]** Autenticação Anônima (`signInAnonymously()`): Liberar degustação imediata sem formulário no primeiro acesso do app/web.
 - [ ] **[SEC-508]** Vinculação de Conta (`linkWithCredential()`): Converter a conta anônima em conta social (Google/Apple) mantendo o histórico de chats intacto.
 - [ ] **[SEC-509]** Barreira de Autenticação Progressiva: Exibir bloqueio elegante requerendo cadastro após 3 a 5 prompts de teste.
