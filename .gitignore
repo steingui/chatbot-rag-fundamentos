@@ -11,6 +11,7 @@ node_modules/
 dist/
 .codegraph/
 LINKEDIN_POST_ARTICLE.md
+.playwright-mcp/
 
 # Secrets & Credentials
 firebase-service-account.json
