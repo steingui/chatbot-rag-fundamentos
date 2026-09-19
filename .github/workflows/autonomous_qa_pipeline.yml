@@ -5,8 +5,12 @@ on:
   schedule:
     - cron: '0 3 * * *' # Todos os dias às 03:00 UTC
 
+permissions:
+  issues: write
+  contents: read
+
 jobs:
-  orchestrate-agents:
+  unit-tests:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Repository
@@ -25,35 +29,55 @@ jobs:
           if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
           pip install pytest pytest-asyncio
 
-      - name: Step 0A - Unit & Business Rule Tests (Pytest)
+      - name: Run Unit & Business Rule Tests (Pytest)
         run: |
           PYTHONPATH=. pytest tests/ -q
 
-      - name: Step 0B - Executar Agente Testador de RAG-AI (Personas & Security)
+  test-persona:
+    needs: unit-tests
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        persona:
+          - qa_adversarial
+          - eleitor_leigo
+          - jornalista_politico
+          - pesquisador_academico
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install Dependencies
+        run: |
+          python -m pip install --upgrade pip
+          if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+
+      - name: Executar Agente Testador de RAG-AI (${{ matrix.persona }})
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          PYTHONPATH=. python3 scripts/agent_rag_tester.py
+          PYTHONPATH=. python3 scripts/agent_rag_tester.py --persona ${{ matrix.persona }}
 
-      - name: Step 1 - Triage (Agente Engenheiro)
+  triage:
+    needs: test-persona
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Triage (Agente Engenheiro)
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           python3 scripts/agent_triage.py
 
-      - name: Step 2 - Worker Pool (Fix Engine & PRs)
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          python3 scripts/agent_pool.py
-
-      - name: Step 3 - Auto Code Reviewer
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          python3 scripts/agent_reviewer.py
-
-      - name: Step 4 - Relatório de Observabilidade
+      - name: Relatório de Observabilidade
         run: |
           echo "### 📊 Relatório da Rodada de QA Autônomo" >> $GITHUB_STEP_SUMMARY
           echo "- **Data**: $(date -u)" >> $GITHUB_STEP_SUMMARY
