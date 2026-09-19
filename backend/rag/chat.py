@@ -14,6 +14,7 @@ from backend.rag.context_window import (
     format_history,
     max_input_tokens_for_model,
 )
+from backend.rag.semantic_router import Route, SemanticRouter
 
 logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
 load_dotenv()
@@ -25,6 +26,7 @@ INDEX_NAME = os.environ.get("PINECONE_INDEX_NAME", "rag-fundamentos")
 _retriever = None
 _llm = None
 _session_agents = {}
+_router = SemanticRouter()
 
 
 def init_components():
@@ -250,25 +252,29 @@ class MultiSourceAgentChain:
     def invoke(self, inputs: dict) -> dict:
         question = inputs.get("question", "")
         sources: list[Document] = []
-        
-        # 1. Recupera documentos da base vetorial (Pinecone)
+        route = _router.route(question)
         pinecone_context = ""
-        try:
-            if _retriever is not None:
-                docs = _retriever.invoke(question)
-                formatted = []
-                for doc in docs:
-                    sources.append(doc)
-                    src = doc.metadata.get("source", "Desconhecido")
-                    formatted.append(f"[Fonte Base: {src}]\n{doc.page_content}")
-                pinecone_context = "\n\n".join(formatted) if formatted else "Nenhum documento encontrado na base interna."
-        except Exception as e:
-            logging.error(f"Erro ao consultar Pinecone: {e}")
-            pinecone_context = "Falha ao consultar a base interna."
+        web_context = ""
 
-        # 2. Recupera fatos recentes da Web (DDGS BR com fallback)
-        web_context, web_sources = _buscar_noticias_web(question, self.session_id)
-        sources.extend(web_sources)
+        # 1. Rota RAG: recupera a base vetorial (Pinecone) como fonte primária.
+        if route == Route.RAG:
+            try:
+                if _retriever is not None:
+                    docs = _retriever.invoke(question)
+                    formatted = []
+                    for doc in docs:
+                        sources.append(doc)
+                        src = doc.metadata.get("source", "Desconhecido")
+                        formatted.append(f"[Fonte Base: {src}]\n{doc.page_content}")
+                    pinecone_context = "\n\n".join(formatted) if formatted else "Nenhum documento encontrado na base interna."
+            except Exception as e:
+                logging.error(f"Erro ao consultar Pinecone: {e}")
+                pinecone_context = "Falha ao consultar a base interna."
+
+        # 2. Rota RAG ou WEB: recupera fatos recentes da Web (DDGS BR com fallback).
+        if route in (Route.RAG, Route.WEB):
+            web_context, web_sources = _buscar_noticias_web(question, self.session_id)
+            sources.extend(web_sources)
 
         # 3. Janela de contexto dinâmica: histórico recente podado por tokens exatos
         history_text = self._build_history_block(question, inputs)
@@ -291,11 +297,12 @@ class MultiSourceAgentChain:
 
     def stream(self, inputs: dict):
         question = inputs.get("question", "")
-        pinecone_docs = _retriever.invoke(question) if _retriever else []
+        route = _router.route(question)
+        pinecone_docs = _retriever.invoke(question) if (_retriever and route == Route.RAG) else []
         pinecone_context = "\n\n".join([d.page_content for d in pinecone_docs]) if pinecone_docs else "Nenhum documento interno relevante encontrado."
         sources = list(pinecone_docs)
 
-        web_context, web_sources = _buscar_noticias_web(question, self.session_id)
+        web_context, web_sources = _buscar_noticias_web(question, self.session_id) if route in (Route.RAG, Route.WEB) else ("", [])
         sources.extend(web_sources)
 
         history_text = self._build_history_block(question, inputs)
