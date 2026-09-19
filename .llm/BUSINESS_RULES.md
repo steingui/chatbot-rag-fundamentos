@@ -135,3 +135,18 @@ Combina **Dense** (Pinecone VectorStore) + **BM25** (lexical) via **RRF** (Recip
 - Se ambos retornam docs → RRF merge
 - Se apenas um retorna → top-k desse retriever
 - BM25 é construído a partir dos documentos carregados (tokenização: `split()` lowercase)
+
+## Chunking & Recuperação — Avaliação de Recall
+
+Avaliação sistemática das 3 alavancas de recall de chunking aplicadas à codebase:
+
+| Alavanca | Status | Peso | Evidência / Ação |
+|----------|--------|------|------------------|
+| Chunk semântico (não tamanho fixo) | Implementado | **ALTA** | [`_chunk_documents()`](pipelines/ingestion/pinecone_ingestor.py:88) divide por sentenças completas (`_split_sentences()` + `_chunk_sentences()`) respeitando o orçamento `CHUNK_SIZE=1000`, sem cortar frase no meio. |
+| Overlap estratégico entre chunks | Implementado | — | `OVERLAP_SENTENCES=1` em [`pinecone_ingestor.py`](pipelines/ingestion/pinecone_ingestor.py:24) preserva continuidade nas bordas (redundância intencional). |
+| Metadata por chunk | Implementado | **MÉDIA** | [`enrich_metadata()`](pipelines/ingestion/pinecone_ingestor.py:73) adiciona `doc_type`/`title`/`date` em todo chunk (ver [`DATA_MODEL.md`](.llm/DATA_MODEL.md)). |
+
+Invariantes:
+- Overlap é redundância intencional (coverage de queries cruzadas nas bordas), não lixo.
+- Filtro de metadata antecede a busca vetorial (reduz ruído antes do rerank).
+- Embedding bom não compensa chunk ruim — o chunking define o teto do recall.

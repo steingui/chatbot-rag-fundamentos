@@ -116,13 +116,22 @@ _cache: Dict[str, Tuple[float, Any]]
 - **Index name**: `rag-fundamentos`
 - **Embedding model**: `sentence-transformers/all-MiniLM-L6-v2` (384 dims)
 - **Provider**: HuggingFace Inference API
-- **Metadata fields**: `source` (string com nome/path do arquivo de origem)
+- **Metadata fields** (enriquecidos por [`enrich_metadata()`](pipelines/ingestion/pinecone_ingestor.py:73)):
+  - `source` (string com nome/path do arquivo de origem)
+  - `doc_type` (string: `votacao` | `senado` | `transparencia` | `fact_check` | `tse_bens` | `proposicao` | `plano_governo` | `interno`)
+  - `title` (string — stem do arquivo de origem)
+  - `date` (string ISO `YYYY-MM-DD`, extraída do nome do arquivo quando presente)
 
 ### LangChain Document
 
 ```python
 Document(
-    page_content="texto do chunk",
-    metadata={"source": "votacao_12345"}  # ou URL, ou nome de arquivo
+    page_content="texto do chunk (sentenças completas)",
+    metadata={
+        "source": "votacao_12345",
+        "doc_type": "votacao",
+        "title": "votacao_12345",
+        "date": "2026-05-12",  # quando presente no nome do arquivo
+    }
 )
 ```
