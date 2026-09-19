@@ -5,13 +5,13 @@ sys.path.insert(0, str(_Path(__file__).resolve().parents[2]))
 import os
 import hashlib
 import logging
+import re
 from pathlib import Path
 from dotenv import load_dotenv
 
 from langchain_community.document_loaders import PyPDFDirectoryLoader, DirectoryLoader, TextLoader
-from langchain_text_splitters import RecursiveCharacterTextSplitter
-from langchain_pinecone import PineconeVectorStore
 from langchain_huggingface import HuggingFaceEndpointEmbeddings
+from langchain_core.documents import Document
 
 # Configuração Básica
 logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
@@ -21,7 +21,81 @@ load_dotenv()
 EMBEDDING_MODEL = "sentence-transformers/all-MiniLM-L6-v2"
 INDEX_NAME = os.environ.get("PINECONE_INDEX_NAME", "rag-fundamentos")
 CHUNK_SIZE = 1000
-CHUNK_OVERLAP = 200
+OVERLAP_SENTENCES = 1
+
+_SENTENCE_SPLIT_RE = re.compile(r'(?<=[.!?])\s+')
+_DATE_RE = re.compile(r'(\d{4})[_-](\d{2})[_-](\d{2})')
+
+_DOC_TYPE_RULES = [
+    ("tse_bens", "tse_bens"),
+    ("votacao_", "votacao"),
+    ("senado", "senado"),
+    ("transparencia", "transparencia"),
+    ("cgu", "transparencia"),
+    ("lupa", "fact_check"),
+    ("aosfatos", "fact_check"),
+    ("proposicao", "proposicao"),
+    ("camara", "proposicao"),
+    ("plano_governo", "plano_governo"),
+]
+
+
+def _split_sentences(text: str) -> list:
+    """Divide o texto em sentenças completas (nunca corta a frase no meio)."""
+    return [part.strip() for part in _SENTENCE_SPLIT_RE.split(text.strip()) if part.strip()]
+
+
+def _chunk_sentences(sentences: list, chunk_size: int = CHUNK_SIZE, overlap_sentences: int = OVERLAP_SENTENCES) -> list:
+    """Agrupa sentenças em chunks por orçamento de caracteres, com overlap de sentenças nas bordas."""
+    chunks: list = []
+    buffer = ""
+    buffer_sentences: list = []
+
+    for sentence in sentences:
+        if buffer and len(buffer) + len(sentence) + 1 > chunk_size:
+            chunks.append(buffer)
+            tail = buffer_sentences[-overlap_sentences:] if overlap_sentences > 0 else []
+            buffer = " ".join(tail)
+            buffer_sentences = list(tail)
+
+        buffer = f"{buffer} {sentence}".strip() if buffer else sentence
+        buffer_sentences.append(sentence)
+
+    if buffer:
+        chunks.append(buffer)
+    return chunks
+
+
+def enrich_metadata(meta: dict) -> dict:
+    """Enriquece metadata do chunk com doc_type, title e date para filtro pré-busca/rerank."""
+    enriched = dict(meta)
+    source = str(meta.get("source", ""))
+    source_lower = source.lower()
+
+    for keyword, doc_type in _DOC_TYPE_RULES:
+        if keyword in source_lower:
+            enriched["doc_type"] = doc_type
+            break
+    else:
+        enriched["doc_type"] = "interno"
+
+    enriched.setdefault("title", Path(source).stem if source else "unknown")
+
+    match = _DATE_RE.search(source)
+    if match:
+        enriched["date"] = f"{match.group(1)}-{match.group(2)}-{match.group(3)}"
+
+    return enriched
+
+
+def _chunk_documents(docs: list) -> list:
+    """Chunk semântico por sentenças + metadata enriquecida (doc_type/title/date)."""
+    chunks = []
+    for doc in docs:
+        sentences = _split_sentences(doc.page_content)
+        for text in _chunk_sentences(sentences):
+            chunks.append(Document(page_content=text, metadata=enrich_metadata(doc.metadata)))
+    return chunks
 
 
 def carregar_documentos_diretorio(docs_path: Path) -> list:
@@ -86,9 +160,8 @@ def ingest_documents(docs: list) -> None:
     unique_sources = set(doc.metadata.get("source") for doc in docs if doc.metadata.get("source"))
     limpar_vetores_antigos_por_fonte(unique_sources)
 
-    logging.info(f"{len(docs)} documentos recebidos. Fatiando...")
-    text_splitter = RecursiveCharacterTextSplitter(chunk_size=CHUNK_SIZE, chunk_overlap=CHUNK_OVERLAP)
-    splits = text_splitter.split_documents(docs)
+    logging.info(f"{len(docs)} documentos recebidos. Fatiando semanticamente...")
+    splits = _chunk_documents(docs)
 
     logging.info(f"Gerando embeddings (API HF) e enviando para o Pinecone (Index: {INDEX_NAME})...")
     embeddings = HuggingFaceEndpointEmbeddings(
