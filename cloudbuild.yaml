@@ -32,7 +32,7 @@ steps:
       - '--memory=1Gi'
       - '--cpu=1'
       - '--timeout=300'
-      - '--set-secrets=PINECONE_API_KEY=PINECONE_API_KEY:latest,PINECONE_INDEX_NAME=PINECONE_INDEX_NAME:latest,OPENROUTER_API_KEY=OPENROUTER_API_KEY:latest,HF_TOKEN=HF_TOKEN:latest,GOOGLE_API_KEY=GOOGLE_API_KEY:latest'
+      - '--set-secrets=PINECONE_API_KEY=PINECONE_API_KEY:latest,PINECONE_INDEX_NAME=PINECONE_INDEX_NAME:latest,OPENROUTER_API_KEY=OPENROUTER_API_KEY:latest,HF_TOKEN=HF_TOKEN:latest,GOOGLE_API_KEY=GOOGLE_API_KEY:latest,GEMINI_API_KEY=GEMINI_API_KEY:latest'
       - '--port=10000'
 
   # Deploy frontend no Firebase Hosting
