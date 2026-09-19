@@ -115,7 +115,7 @@ class SuggestionsResponse(BaseModel):
     suggestions: list[SuggestionItem]
 
 
-@app.get("/suggestions", response_model=SuggestionsResponse)
+@app.get("/api/v1/suggestions", response_model=SuggestionsResponse)
 @limiter.limit("60/minute")
 def suggestions(request: Request):
     return SuggestionsResponse(suggestions=get_top_suggestions(limit=8))
@@ -209,7 +209,7 @@ def parse_source_name(raw_source: str) -> SourceObject:
         )
 
 
-@app.post("/chat", response_model=ChatResponse)
+@app.post("/api/v1/chat", response_model=ChatResponse)
 @limiter.limit("30/minute")
 async def chat(request: Request, body: ChatRequest, background_tasks: BackgroundTasks, current_user: Optional[dict] = Depends(get_optional_user)):
     try:
@@ -264,7 +264,7 @@ async def chat(request: Request, body: ChatRequest, background_tasks: Background
 import json
 from fastapi.responses import StreamingResponse
 
-@app.post("/chat/stream")
+@app.post("/api/v1/chat/stream")
 @limiter.limit("30/minute")
 async def chat_stream(request: Request, body: ChatRequest, background_tasks: BackgroundTasks, current_user: Optional[dict] = Depends(get_optional_user)):
     try:

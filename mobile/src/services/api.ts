@@ -25,7 +25,7 @@ export async function sendChatMessage(query: string, sessionId: string = 'defaul
     headers['Authorization'] = `Bearer ${token}`;
   }
 
-  const response = await fetch(`${API_BASE_URL}/chat`, {
+  const response = await fetch(`${API_BASE_URL}/api/v1/chat`, {
     method: 'POST',
     headers,
     body: JSON.stringify({

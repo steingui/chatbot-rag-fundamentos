@@ -17,7 +17,7 @@ Health check.
 
 ---
 
-### `GET /suggestions`
+### `GET /api/v1/suggestions`
 
 Retorna as 8 consultas mais populares.
 Rate limit: **60/min** por IP.
@@ -34,7 +34,7 @@ Rate limit: **60/min** por IP.
 
 ---
 
-### `POST /chat`
+### `POST /api/v1/chat`
 
 Consulta síncrona (resposta completa de uma vez).
 Rate limit: **30/min** por IP.
@@ -76,13 +76,13 @@ Rate limit: **30/min** por IP.
 
 ---
 
-### `POST /chat/stream`
+### `POST /api/v1/chat/stream`
 
 Consulta com streaming via **Server-Sent Events (SSE)**.
 Rate limit: **30/min** por IP.
 Content-Type da resposta: `text/event-stream`.
 
-**Request Body**: mesmo de `POST /chat`.
+**Request Body**: mesmo de `POST /api/v1/chat`.
 
 **SSE Events** (cada um em `data: {json}\n\n`):
 
@@ -148,10 +148,10 @@ allow_headers=["*"]
 O frontend (`useChatStore.ts`) calcula as URLs assim:
 
 ```typescript
-API_URL = VITE_API_URL || 'https://chatbot-rag-api-q2k5.onrender.com/chat'
-STREAM_API_URL = API_URL + '/stream'      // POST /chat/stream
-SUGGESTION_API_URL = API_URL → '/suggestions'  // GET /suggestions
+API_URL = VITE_API_URL || 'https://chatbot-rag-api-1043919586992.southamerica-east1.run.app/api/v1/chat'
+STREAM_API_URL = API_URL + '/stream'      // POST /api/v1/chat/stream
+SUGGESTION_API_URL = API_URL → '/suggestions'  // GET /api/v1/suggestions
 ```
 
-Fluxo preferencial: **SSE streaming** (`/chat/stream`).
-Fallback: se SSE falhar (`!res.ok || !res.body`), faz POST síncrono em `/chat`.
+Fluxo preferencial: **SSE streaming** (`/api/v1/chat/stream`).
+Fallback: se SSE falhar (`!res.ok || !res.body`), faz POST síncrono em `/api/v1/chat`.
