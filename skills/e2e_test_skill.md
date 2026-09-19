@@ -9,15 +9,18 @@ Esta skill instrui um Agente Tester a simular a interação de uma determinada P
 1. **Leitura da Persona**:
    - Carregar as características, metas e critérios de falha do arquivo em `personas/<nome_persona>.md`.
 2. **Execução de Consulta (Via API ou Frontend)**:
-   - **Endpoint local/remoto**: `POST https://chatbot-rag-api-1043919586992.southamerica-east1.run.app/chat`
+   - **Endpoint**: via variável de ambiente `CHATBOT_API_URL` (default local:
+     `http://localhost:10000`). Nunca hardcode URL de produção.
    - **Payload**:
      ```json
      {
        "message": "<PROMPT_DA_PERSONA>",
        "session_id": "persona_test_<TIMESTAMP>",
-       "model": "gemini-1.5-flash"
+       "model": "<MODELO_VIA_ENV_QA_MODEL>"
      }
      ```
+   - `MODELO_VIA_ENV_QA_MODEL` é definido por variável de ambiente `QA_MODEL`; se
+     ausente, omitir o campo `model` e deixar o backend usar o default.
 3. **Avaliação da Resposta (Checklist de Validação)**:
    - [ ] A resposta atendeu ao objetivo da persona sem violar jargões/formato?
    - [ ] Existem reticências (`...`) ou truncamentos indesejados?
