@@ -76,7 +76,6 @@ def init_components():
 
     api_key = os.environ.get("OPENROUTER_API_KEY", "")
     google_key = os.environ.get("GEMINI_API_KEY") or os.environ.get("GOOGLE_API_KEY")
-    api_key = os.environ.get("OPENROUTER_API_KEY", "")
 
     fallbacks = []
     if google_key:
@@ -516,32 +515,3 @@ def get_rag_chain(session_id: str = "default", model_name: str = None):
     return chain
 
 
-def iniciar_chat() -> None:
-    print("\nAgente Político RAG + Web conectado. Digite 'sair' para encerrar.")
-    while True:
-        try:
-            user_input = input("\nVocê: ").strip()
-            if not user_input:
-                continue
-            if user_input.lower() in ["sair", "exit", "quit"]:
-                break
-
-            chain = get_rag_chain("cli-session")
-            response = chain.invoke({"question": user_input})
-            print(f"\nBot: {response['answer']}")
-            
-        except KeyboardInterrupt:
-            break
-        except Exception as e:
-            logging.error(f"Erro: {e}")
-
-
-def main() -> None:
-    try:
-        iniciar_chat()
-    except Exception as e:
-        logging.error(e)
-
-
-if __name__ == "__main__":
-    main()

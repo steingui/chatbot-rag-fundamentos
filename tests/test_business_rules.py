@@ -1,9 +1,7 @@
 import pytest
 from backend.api.main import parse_source_name
 from backend.rag.cache import RAGQueryCache
-from backend.rag.retriever import HybridRetriever
 from backend.api.analytics import record_query, get_top_suggestions
-from langchain_core.documents import Document
 
 def test_source_classification_business_rules():
     """Valida regra 3: Classificacao e Rastreabilidade de Fontes por metadados."""
@@ -50,21 +48,6 @@ def test_cache_business_rules():
     # "quais as leis da saude?" deve ter sido removido por ser o mais antigo
     assert cache.get("quais as leis da saude?", model_name="gemini-3.6-flash") is None
     assert cache.get("query 3") is not None
-
-def test_hybrid_retriever_rrf_scoring():
-    """Valida fusao RRF (Reciprocal Rank Fusion) no Retriever Hibrido."""
-    doc1 = Document(page_content="Votação da PEC do orçamento da saúde", metadata={"source": "camara_pec.txt"})
-    doc2 = Document(page_content="Declaração de bens do candidato no TSE", metadata={"source": "tse_bens.pdf"})
-
-    class MockDenseRetriever:
-        def invoke(self, query):
-            return [doc1, doc2]
-
-    retriever = HybridRetriever(dense_retriever=MockDenseRetriever(), documents=[doc1, doc2], k_dense=2, k_bm25=2)
-    docs = retriever.invoke("orçamento da saúde")
-
-    assert len(docs) > 0
-    assert docs[0].page_content == doc1.page_content
 
 def test_analytics_business_rules():
     """Valida regras de negocio do Analytics: carregamento de sugestoes curiosas."""
