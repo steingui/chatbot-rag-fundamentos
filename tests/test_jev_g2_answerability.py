@@ -192,8 +192,8 @@ def test_invoke_pos_check_verifica_base_e_web_combinadas(monkeypatch):
     chain = chat.MultiSourceAgentChain(llm, "sess")
     chain.invoke({"question": "Pergunta X"})
 
-    # 1ª chamada = gate pré-geração (base); 2ª = pós-geração (base + web).
-    post_evidence = calls[1]["evidence"]
+    # 1ª = gate pré-geração (base); 2ª = conflito web (G5); 3ª = pós-geração (base + web).
+    post_evidence = calls[2]["evidence"]
     assert "Votação da PEC" in post_evidence
     assert "WEB_CTX" in post_evidence
 
@@ -206,7 +206,8 @@ def test_invoke_pos_check_contradito_substitui(monkeypatch):
     )
     monkeypatch.setattr(chat, "_buscar_noticias_web", lambda q, sid="d": ("WEB", []))
 
-    verdicts = iter(["supported", "contradicted"])
+    # 3 chamadas: pré-geração (G2), conflito web (G5), pós-geração (G2).
+    verdicts = iter(["supported", "insufficient", "contradicted"])
     monkeypatch.setattr(chat, "jev_check", lambda **kw: next(verdicts))
     monkeypatch.setattr(chat, "jev_noul", lambda **kw: None)
 

@@ -15,7 +15,7 @@ from backend.rag.context_window import (
     max_input_tokens_for_model,
 )
 from backend.rag.semantic_router import Route, SemanticRouter
-from backend.rag.jev_client import CHECK_CONTRADICTED, CHECK_INSUFFICIENT, jev_check, jev_noul
+from backend.rag.jev_client import CHECK_CONTRADICTED, CHECK_INSUFFICIENT, CHECK_SUPPORTED, jev_check, jev_noul
 
 logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
 load_dotenv()
@@ -284,6 +284,26 @@ def _synthesis_evidence(pinecone_context: str, web_context: str) -> str:
     return "\n\n".join(partes)
 
 
+def _web_conflicts_with_base(pinecone_context: str, web_context: str, question: str) -> bool:
+    """Gate mecânico de conflito (G5): a fonte web contradiz a base interna?
+
+    Só dispara quando ambas as fontes existem. ``None``/falha do Jev ou veredito
+    diferente de ``supported`` ⇒ ``False`` (resolução por instrução no prompt,
+    comportamento atual). Nunca bloqueia o pipeline por indisponibilidade do Jev.
+    """
+    if not web_context.strip():
+        return False
+    if not pinecone_context.strip() or pinecone_context.startswith(("Nenhum documento", "Falha ao consultar")):
+        return False
+    evidence = _synthesis_evidence(pinecone_context, web_context)
+    verdict = jev_check(
+        claim="A fonte web contradiz a base interna.",
+        evidence=evidence,
+        state={"pergunta": question},
+    )
+    return verdict == CHECK_SUPPORTED
+
+
 def _post_check_ok(answer: str, evidence: str, question: str) -> bool:
     """Pós-geração (G2): a resposta gerada é sustentada pelas evidências usadas?
 
@@ -297,11 +317,23 @@ def _post_check_ok(answer: str, evidence: str, question: str) -> bool:
     return verdict != CHECK_CONTRADICTED
 
 
-def _build_synthesis_prompt(pinecone_context: str, web_context: str, question: str, history_text: str = "") -> str:
+def _build_synthesis_prompt(
+    pinecone_context: str,
+    web_context: str,
+    question: str,
+    history_text: str = "",
+    web_conflict: bool = False,
+) -> str:
     """Monta o prompt de síntese hierárquica: base factual interna (primária) isolada dos resultados web (secundários)."""
     history_block = (
         f"\n--- HISTÓRICO RECENTE DA CONVERSA (janela dinâmica): ---\n{history_text}\n"
         if history_text
+        else ""
+    )
+    conflict_block = (
+        "\n--- ALERTA DE CONFLITO (mecânico): a fonte web contradiz a base interna. "
+        "PRIORIZE a base interna, ignore a divergência da web e cite a divergência explicitamente na resposta. ---"
+        if web_conflict
         else ""
     )
     return f"""{_SYNTHESIS_SYSTEM_PROMPT}{history_block}
@@ -310,7 +342,7 @@ def _build_synthesis_prompt(pinecone_context: str, web_context: str, question: s
 
 --- [FONTE SECUNDÁRIA] RESULTADOS WEB (DuckDuckGo BR): ---
 {web_context}
-
+{conflict_block}
 --- PERGUNTA DO USUÁRIO: ---
 {question}
 
@@ -372,7 +404,8 @@ class MultiSourceAgentChain:
         history_text = self._build_history_block(question, inputs)
 
         # 5. Prompt de síntese hierárquica (base factual interna vs. web secundária)
-        prompt_text = _build_synthesis_prompt(pinecone_context, web_context, question, history_text)
+        web_conflict = _web_conflicts_with_base(pinecone_context, web_context, question)
+        prompt_text = _build_synthesis_prompt(pinecone_context, web_context, question, history_text, web_conflict)
 
         try:
             res = self.llm.invoke(prompt_text)
