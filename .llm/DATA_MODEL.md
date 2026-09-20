@@ -6,8 +6,8 @@
 
 ```typescript
 type SuggestionItem = {
-  prompt: string;  // Texto da sugestão
-  count: number;   // Contagem de uso
+  prompt: string;   // Texto da sugestão
+  count?: number;   // Contagem de uso (hoje sempre ausente/0 — ver API_CONTRACT.md)
 };
 
 type Source = {
@@ -26,7 +26,7 @@ type Message = {
 };
 
 type Session = {
-  id: string;        // "sess-{random7}" (ex: "sess-a3k9f2x")
+  id: string;        // "sess-{crypto.randomUUID()}" (SEC-010)
   label: string;     // Primeiras 25 chars da primeira pergunta ou "Sessão N"
   messages: Message[];
   createdAt: Date;
@@ -38,12 +38,12 @@ type Session = {
 ```typescript
 MAX_SESSIONS = 5
 FREE_MODELS = [
-  'gemini-3.7-flash',
-  'gemini-3.6-flash',
-  'gemini-flash-latest',
-  'gemini-2.5-flash',
-  'meta-llama/llama-3.3-70b-instruct:free',
-  'deepseek/deepseek-r1-distill-llama-70b:free'
+  { id: 'gemini-3.7-flash', label: 'gemini-3.7-flash · google' },
+  { id: 'gemini-3.6-flash', label: 'gemini-3.6-flash · google' },
+  { id: 'gemini-flash-latest', label: 'gemini-flash-latest · google' },
+  { id: 'gemini-2.5-flash', label: 'gemini-2.5-flash · google' },
+  { id: 'meta-llama/llama-3.3-70b-instruct:free', label: 'llama-3.3-70b · free' },
+  { id: 'deepseek/deepseek-r1-distill-llama-70b:free', label: 'deepseek-r1-70b · free' }
 ]
 ```
 
@@ -76,39 +76,25 @@ class ChatResponse(BaseModel):
 
 class SuggestionItem(BaseModel):
     prompt: str
-    count: int
+    count: Optional[int] = 0
 
 class SuggestionsResponse(BaseModel):
     suggestions: list[SuggestionItem]
 ```
 
-### SQLite Schema (analytics.db)
+### Sugestões Populares (backend/api/analytics.py)
 
-```sql
-CREATE TABLE query_stats (
-    id               INTEGER PRIMARY KEY AUTOINCREMENT,
-    canonical_prompt  TEXT UNIQUE NOT NULL,     -- Texto canonizado da consulta
-    count            INTEGER DEFAULT 1,         -- Contagem de uso
-    category         TEXT DEFAULT 'geral',      -- Categoria temática
-    updated_at       TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
-```
-
-Seeds iniciais (populados em `init_analytics_db`):
-
-| canonical_prompt | count | category |
-|-----------------|-------|----------|
-| Resuma a PEC 45/2019 e a reforma tributária | 24 | economia |
-| Como os deputados votaram sobre o arcabouço fiscal? | 18 | legislativo |
-| Quais bens foram declarados nas eleições recentes pelo TSE? | 12 | tse |
-| O que a agência Lupa checou sobre imposto de renda? | 8 | fact-checking |
+Não existe mais `analytics.db` nem `init_analytics_db`. As sugestões são prompts
+curados lidos de `backend/api/curated_prompts.json` por `get_top_suggestions(limit)`
+(aleatórios, sem contadores de popularidade). `record_query()` é no-op — a query é
+persistida no Firestore via `save_chat_message()`.
 
 ### RAGQueryCache (in-memory)
 
 ```python
-_cache: Dict[str, Tuple[float, Any]]
+cachetools.TTLCache(maxsize=200, ttl=300)  # LRU quando cheio
 # key format: "{model_name}:{query_normalizado}"
-# value: (unix_timestamp, {"answer": str, "sources": [dict]})
+# value: {"answer": str, "sources": [dict]}
 ```
 
 ### Pinecone Index

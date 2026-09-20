@@ -70,6 +70,8 @@ def test_format_history_renderiza_papeis():
 def test_chain_injeta_historico_recente_no_prompt(monkeypatch):
     monkeypatch.setattr(chat, "_retriever", None)
     monkeypatch.setattr(chat, "_buscar_noticias_web", lambda q, sid="default": ("WEB", []))
+    # Este teste valida a janela de histórico, não o gate G2 de answerability.
+    monkeypatch.setattr(chat, "_answerable", lambda *a, **k: True)
 
     llm = MagicMock()
     llm.invoke.return_value = MagicMock(content="ok")

@@ -1,6 +1,6 @@
 ---
 name: gcp-bug-fixer
-description: Busca o grupo de erro mais crítico no GCP Error Reporting, analisa o stack trace, implementa a correção em uma branch, valida com testes e abre um Pull Request com evidências.
+description: Busca o grupo de erro mais crítico no GCP Error Reporting, tria o stack trace com gate Jev (código vs infra), implementa a correção em uma branch, valida com testes e abre um Pull Request com evidências.
 ---
 
 # GCP Bug Fixer
@@ -16,6 +16,7 @@ Use esta skill quando o usuário pedir para:
 - O MCP `gcp-observability` deve estar configurado com acesso à API Error Reporting.
 - O MCP `github` deve estar configurado com um token com escopo `repo`.
 - O MCP `playwright` deve estar configurado.
+- O MCP `jevcore` deve estar configurado (gate de triagem).
 - Opcional: MCP `memory` para consultar diagnósticos anteriores.
 
 ### Configuração do MCP gcp-observability
@@ -41,7 +42,16 @@ Service Account mínima: `roles/errorreporting.viewer`, `roles/logging.viewer`, 
 - Chame `errors_get` com o ID do grupo de erro para extrair stack traces e eventos.
 - Identifique: mensagem de erro, arquivo, linha e tipo de exceção.
 - Se o MCP `memory` existir, chame `search_nodes` com palavras-chave da mensagem. Se houver entidade relevante, leia as observations em busca de diagnóstico/fix conhecido.
-- Se o stack trace apontar para infraestrutura (Cloud Run, build) em vez de código, redirecione para as skills `logs-backend`/`logs-frontend` antes de mexer em código.
+
+### 2.1 Gate Jev — triagem código vs infra (MCP `jevcore`)
+- Chame `jev_ask` com `type: "choice"`:
+  - `instructions`: `"O stack trace aponta para código da aplicação ou para infraestrutura (Cloud Run, build, deploy)?"`
+  - `criteria`: `{"código": "falha em lógica da aplicação (arquivo/linha de código)", "infraestrutura": "falha de build, deploy, quota, rede ou plataforma"}`
+  - `state`: `{"erro": "<mensagem>", "stack_trace": "<resumo do stack>"}`
+- **Resultado:**
+  - `"código"` → prossiga para o passo 3.
+  - `"infraestrutura"` → redirecione para as skills `logs-backend`/`logs-frontend` antes de mexer em código, e pare.
+- **Fallback:** Jev indisponível (`None`, erro ou timeout) ⇒ aplicar a heurística atual (stack apontando para Cloud Run/build ⇒ infra). O Jev nunca bloqueia o fluxo.
 
 ### 3. Preparação do fix (GitHub MCP)
 - Crie a branch via `create_branch` a partir de `main`, com o nome `fix/gcp-<error-group-id>`.

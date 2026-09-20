@@ -32,7 +32,7 @@
 | `ARCHITECTURE.md` | ~1.5K | Visão geral, camadas, fluxo de dados, deploy |
 | `BUSINESS_RULES.md` | ~1.8K | Regras de negócio, domínio, invariantes |
 | `API_CONTRACT.md` | ~1.0K | Contratos HTTP (endpoints, DTOs, SSE, rate limits) |
-| `DATA_MODEL.md` | ~1.0K | Modelos de dados (frontend types, Pydantic, SQLite) |
+| `DATA_MODEL.md` | ~1.0K | Modelos de dados (frontend types, Pydantic, sugestões curadas, TTLCache) |
 | `COMPONENT_MAP.md` | ~1.1K | Componentes React + store Zustand |
 | `DESIGN_SYSTEM.md` | ~0.7K | Tokens de design, paleta, tipografia |
 | `DEPENDENCY_GRAPH.md` | ~1.2K | Grafo de dependências (Python + Node) |

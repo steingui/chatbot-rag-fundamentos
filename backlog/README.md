@@ -17,6 +17,14 @@ Este diretório contém o backlog modularizado e segmentado por domínio técnic
 
 ---
 
+## ✅ Convenção de marcação de itens concluídos
+
+Toda implementação concluída **deve** atualizar o backlog no mesmo commit,
+marcando o item com o sufixo `[DONE]` e referenciando o artefato entregue
+(arquivo/PR). Nunca deixe um item implementado sem o marcador.
+
+---
+
 ## 🎯 Prioridades Globais (Próxima Sprint / MVP Mobile)
 
 1. **[RAG-01]** Implementar Semantic Router / Fallback Roteado (Gemini 3.7 Flash → Groq → DeepSeek).

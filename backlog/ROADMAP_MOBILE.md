@@ -74,12 +74,12 @@ Fase 4 (v2):  Avaliar gpt-4o-mini ou Claude Haiku se receita justificar
 
 | Área | Estado Atual | Risco para Mobile |
 |---|---|---|
-| **Autenticação** | Nenhuma | Qualquer pessoa acessa a API aberta |
+| **Autenticação** | Firebase Auth (JWT obrigatório via `get_required_user`) | Degustação anônima ainda pendente (SEC-507) |
 | **Rate Limiting** | IP-based (slowapi) | Não funciona bem com mobile (NAT/carrier) |
-| **Persistência** | Sem banco de dados | Histórico perdido ao reiniciar, sem perfil de usuário |
+| **Persistência** | Firestore (`save_chat_message`/`get_session_messages`) | Sem perfil de usuário / history paginado (BE-204) |
 | **Push Notifications** | Inexistente | Impossível alertar sobre novos dados legislativos |
-| **Deploy** | Render Free (sleep after 15min) | Latência de cold-start de ~30s, inaceitável para mobile |
-| **Observabilidade** | Logging básico | Sem métricas de uso, crash reports, ou analytics |
+| **Deploy** | GCP Cloud Run + Firebase Hosting | Cold-start de container serverless |
+| **Observabilidade** | Logging estruturado + Cloud Logging | Sem métricas de uso, crash reports, ou analytics |
 
 ### Melhorias Obrigatórias (Pré-Launch)
 
@@ -379,7 +379,7 @@ Com **5 assinantes Pro** (R$14.90), o app já se paga.
 | **Fase 1: Backend Hardening** | 2 semanas | Auth (Firebase), PostgreSQL, rate-limit por user, API versionada |
 | **Fase 2: Migração de Modelos** | 1 semana | LLM pago, re-indexar embeddings multilíngue, benchmark |
 | **Fase 3: App Mobile (MVP)** | 4 semanas | Chat, auth, streaming, sessões, dark mode, offline cache |
-| **Fase 4: Deploy & Domínio** | 1 semana | Domínio, SSL, CI/CD, Render Starter |
+| **Fase 4: Deploy & Domínio** | 1 semana | Domínio, SSL, CI/CD (Cloud Build + Firebase Hosting) |
 | **Fase 5: Monetização** | 1 semana | In-app purchase (RevenueCat), tiers, paywall |
 | **Fase 6: Submissão às Lojas** | 1-2 semanas | Screenshots, review, compliance LGPD, publish |
 | **Total** | **~10-12 semanas** | App publicado e monetizado |

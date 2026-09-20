@@ -11,6 +11,7 @@ from unittest.mock import MagicMock
 import pytest
 
 import backend.rag.chat as chat
+import backend.rag.semantic_router as semantic_router
 from langchain_core.documents import Document
 
 
@@ -35,8 +36,16 @@ def _make_chain():
 
 
 def test_loop_multiturn_coerencia_e_fontes(monkeypatch):
+    # Isola o gate Jev (G1): este teste é offline e determinístico; o roteador
+    # continua exercitando o regex e o fallback ambiguo vira RAG (comportamento
+    # atual), sem chamada de rede.
+    monkeypatch.setattr(semantic_router, "_jev_choice", lambda **kw: ("RAG", 1.0))
     monkeypatch.setattr(chat, "_retriever", MagicMock(invoke=_fake_retriever))
     monkeypatch.setattr(chat, "_buscar_noticias_web", _fake_web)
+    # Gate G2 (answerability) fora do escopo deste loop: mantém determinístico/offline.
+    monkeypatch.setattr(chat, "jev_check", lambda **kw: "supported")
+    # G3: rerank por noul fica neutro (mantém os docs) para isolar o loop de contexto.
+    monkeypatch.setattr(chat, "jev_noul", lambda **kw: None)
 
     chain, llm = _make_chain()
     history = []

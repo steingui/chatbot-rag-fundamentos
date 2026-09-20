@@ -1,6 +1,6 @@
 ---
 name: logs-frontend
-description: Busca logs de build/deploy do frontend (Cloud Build → Firebase Hosting) dos últimos N minutos (default 30), ancorados no último build.
+description: Busca logs de build/deploy do frontend (Cloud Build → Firebase Hosting) dos últimos N minutos (default 30), ancorados no último build, e prioriza as falhas com gate Jev.
 ---
 
 # Logs do Frontend (Cloud Build → Firebase Hosting)
@@ -22,4 +22,9 @@ build` + `firebase deploy --only hosting` do `cloudbuild.yaml`).
    - `Step #3` (build npm) ou `Step #4` (deploy firebase) com erro ou falha.
    - Status do último build diferente de `SUCCESS`.
    - Erros de `tsc`/`vite` ou falha no `firebase deploy`.
-4. Resuma em bullets: build id, status, passo com falha e causa provável. Sem anomalias → reporte build saudável.
+4. **Priorização com Jev (MCP `jevcore`):** Se houver 2+ anomalias, chame `jev_rank` com:
+   - `query`: `"Qual falha de build/deploy é mais crítica para o frontend?"`
+   - `candidates`: cada anomalia como `"<build id> | <status> | <passo com falha> | <causa provável>"`.
+   - Apresente o resumo na ordem retornada pelo ranking.
+   - **Fallback:** Jev indisponível (`None`, erro ou timeout) ⇒ listar por status (não-`SUCCESS` primeiro) e, em empate, por build id mais recente. O Jev nunca bloqueia a análise.
+5. Resuma em bullets: build id, status, passo com falha e causa provável. Sem anomalias → reporte build saudável.

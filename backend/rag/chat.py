@@ -15,6 +15,7 @@ from backend.rag.context_window import (
     max_input_tokens_for_model,
 )
 from backend.rag.semantic_router import Route, SemanticRouter
+from backend.rag.jev_client import CHECK_CONTRADICTED, CHECK_INSUFFICIENT, jev_check, jev_noul
 
 logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
 load_dotenv()
@@ -210,6 +211,74 @@ REGRAS CRÍTICAS:
 """
 
 
+NOT_FOUND_ANSWER = "Não encontrei informação suficiente na base interna para responder com segurança."
+
+# G3 — Limiar de relevância no rerank: mantém apenas trechos com noul >= limiar.
+RERANK_NOUL_THRESHOLD = 0.5
+
+
+def _filter_relevant_docs(question: str, docs: list[Document]) -> list[Document]:
+    """Filtra documentos rerankeados por relevância mecânica (noul por trecho).
+
+    Cada documento é julgado individualmente ("este trecho responde à
+    pergunta?"). ``None``/falha do Jev ⇒ mantém o documento (o pipeline nunca
+    quebra por indisponibilidade do Jev).
+    """
+    kept: list[Document] = []
+    for doc in docs:
+        trecho = (doc.page_content or "").strip()
+        if not trecho:
+            continue
+        noul = jev_noul(
+            instructions="Does this passage answer the user's question?",
+            state={"pergunta": question, "trecho": trecho},
+        )
+        if noul is None or noul >= RERANK_NOUL_THRESHOLD:
+            kept.append(doc)
+    return kept
+
+
+def _answerable(pinecone_context: str, question: str) -> bool:
+    """Gate mecânico anti-alucinação (G2): a base interna sustenta a pergunta?
+
+    ``False`` quando a base está vazia ou o Jev julga a evidência insuficiente
+    ou contraditória. ``None``/falha do Jev ⇒ ``True`` (comportamento atual).
+    """
+    if not pinecone_context.strip() or pinecone_context.startswith(("Nenhum documento", "Falha ao consultar")):
+        return False
+    verdict = jev_check(claim=question, evidence=pinecone_context, state={"pergunta": question})
+    if verdict is None:
+        return True
+    return verdict not in (CHECK_INSUFFICIENT, CHECK_CONTRADICTED)
+
+
+def _synthesis_evidence(pinecone_context: str, web_context: str) -> str:
+    """Evidência combinada (base interna + web) usada para checar a resposta final.
+
+    A síntese hierárquica responde com as duas fontes, então o pós-check deve
+    julgar a resposta contra o mesmo material que a gerou — não só contra a base.
+    """
+    partes = []
+    if pinecone_context.strip() and not pinecone_context.startswith(("Nenhum documento", "Falha ao consultar")):
+        partes.append(f"[BASE INTERNA]\n{pinecone_context}")
+    if web_context.strip():
+        partes.append(f"[WEB]\n{web_context}")
+    return "\n\n".join(partes)
+
+
+def _post_check_ok(answer: str, evidence: str, question: str) -> bool:
+    """Pós-geração (G2): a resposta gerada é sustentada pelas evidências usadas?
+
+    Só contradição explícita derruba a resposta — se o Jev falhar (``None``) ou
+    julgar ``insufficient`` (evidência fraca, sem refutação), mantém o
+    comportamento atual. Sem evidência, não há o que checar.
+    """
+    if not evidence.strip():
+        return True
+    verdict = jev_check(claim=answer, evidence=evidence, state={"pergunta": question})
+    return verdict != CHECK_CONTRADICTED
+
+
 def _build_synthesis_prompt(pinecone_context: str, web_context: str, question: str, history_text: str = "") -> str:
     """Monta o prompt de síntese hierárquica: base factual interna (primária) isolada dos resultados web (secundários)."""
     history_block = (
@@ -260,7 +329,7 @@ class MultiSourceAgentChain:
         if route == Route.RAG:
             try:
                 if _retriever is not None:
-                    docs = _retriever.invoke(question)
+                    docs = _filter_relevant_docs(question, _retriever.invoke(question))
                     formatted = []
                     for doc in docs:
                         sources.append(doc)
@@ -276,10 +345,14 @@ class MultiSourceAgentChain:
             web_context, web_sources = _buscar_noticias_web(question, self.session_id)
             sources.extend(web_sources)
 
-        # 3. Janela de contexto dinâmica: histórico recente podado por tokens exatos
+        # 3. Gate mecânico anti-alucinação (G2/R3): base insuficiente ⇒ não gera.
+        if route == Route.RAG and not _answerable(pinecone_context, question):
+            return {"answer": NOT_FOUND_ANSWER, "source_documents": sources}
+
+        # 4. Janela de contexto dinâmica: histórico recente podado por tokens exatos
         history_text = self._build_history_block(question, inputs)
 
-        # 4. Prompt de síntese hierárquica (base factual interna vs. web secundária)
+        # 5. Prompt de síntese hierárquica (base factual interna vs. web secundária)
         prompt_text = _build_synthesis_prompt(pinecone_context, web_context, question, history_text)
 
         try:
@@ -289,6 +362,11 @@ class MultiSourceAgentChain:
         except Exception as e:
             logging.error(f"Erro ao chamar LLM: {e}")
             answer = "Não foi possível gerar a resposta no momento devido a instabilidade temporária no serviço de LLM."
+
+        # 6. Pós-geração: verificação mecânica da resposta contra a evidência
+        #    que a gerou (base interna + web), espelhando a síntese hierárquica.
+        if not _post_check_ok(answer, _synthesis_evidence(pinecone_context, web_context), question):
+            answer = NOT_FOUND_ANSWER
 
         return {
             "answer": answer,
@@ -304,6 +382,12 @@ class MultiSourceAgentChain:
 
         web_context, web_sources = _buscar_noticias_web(question, self.session_id) if route in (Route.RAG, Route.WEB) else ("", [])
         sources.extend(web_sources)
+
+        # Gate mecânico anti-alucinação (G2/R3): base insuficiente ⇒ não gera.
+        if route == Route.RAG and not _answerable(pinecone_context, question):
+            yield {"type": "sources", "source_documents": sources}
+            yield {"type": "token", "token": NOT_FOUND_ANSWER}
+            return
 
         history_text = self._build_history_block(question, inputs)
         prompt_text = _build_synthesis_prompt(pinecone_context, web_context, question, history_text)

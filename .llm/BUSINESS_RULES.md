@@ -26,8 +26,18 @@ dados, a web é usada explicitamente como informação secundária não verifica
 > Se perguntado sobre nomes, listas ou valores específicos e não houver comprovação exata
 > na Base Interna, NUNCA invente dados. Diga explicitamente o que foi encontrado.
 
-Essa regra está hardcoded no prompt de síntese hierárquica, centralizado no helper
-`_build_synthesis_prompt()` em `backend/rag/chat.py` (usado por `invoke()` e `stream()`).
+A regra tem **duas camadas**:
+
+1. **Prompt (freio brando):** hardcoded no prompt de síntese hierárquica, centralizado no
+   helper `_build_synthesis_prompt()` em `backend/rag/chat.py` (usado por `invoke()` e `stream()`).
+2. **Verificação mecânica (G2):** [`jev_check()`](backend/rag/jev_client.py:213) com
+   `claim = pergunta/resposta` e `evidence = documentos recuperados`:
+   - **Pré-geração** — [`_answerable()`](backend/rag/chat.py:217): base interna insuficiente ou
+     contraditória ⇒ retorna `NOT_FOUND_ANSWER` sem gastar síntese Gemini.
+   - **Pós-geração** — [`_post_check_ok()`](backend/rag/chat.py:231): resposta contradita pela
+     evidência que a gerou (base interna **+ web**, via [`_synthesis_evidence()`](backend/rag/chat.py:231))
+     ⇒ substituída por `NOT_FOUND_ANSWER`.
+   - Falha do Jev (`None`) ⇒ pipeline nunca quebra: segue com a geração.
 
 ### 3. Rastreabilidade de Fontes
 
@@ -53,9 +63,12 @@ Classificação de fontes em `main.py:parse_source_name()`:
 
 - Query vazia → HTTP 400
 - Query > 1000 caracteres → HTTP 400
-- Detecção de prompt injection via regex compilado (11 padrões):
-  `ignore previous instructions`, `jailbreak`, `DAN mode`, `exec()`, `<script>`, etc.
-- Match → HTTP 400 + log de warning com os primeiros 60 chars
+- Detecção de prompt injection em duas camadas:
+  1. Regex compilado (~30 padrões em inglês/português + code/template injection) em
+     [`PROMPT_INJECTION_PATTERNS`](backend/api/guardrails.py:15);
+  2. Scanner especializado `prompt-injection-detector` — rejeita quando
+     `decision == "reject"` ou `risk_score >= 0.85`.
+- Match → HTTP 400 + log de warning com hash curto da query (não loga o conteúdo)
 
 ### Rate Limiting (slowapi)
 
@@ -79,7 +92,7 @@ Classificação de fontes em `main.py:parse_source_name()`:
 ## Regras de Sessão
 
 - Máximo de **5 sessões** simultâneas (`MAX_SESSIONS = 5`)
-- Cada sessão é identificada por `sess-{random7}` e tem `label` dinâmico
+- Cada sessão é identificada por `sess-{crypto.randomUUID()}` (SEC-010) e tem `label` dinâmico
 - Label é atualizado com as primeiras 25 chars da primeira pergunta do usuário
 - Sessões persistem em `localStorage` (`rag_chat_sessions_v1`)
 - "Limpar Sessão" reseta mensagens mas mantém o slot
@@ -89,32 +102,35 @@ Classificação de fontes em `main.py:parse_source_name()`:
 
 ### Registro de Query (backend/api/analytics.py)
 
-1. Query < 5 chars → ignorada
-2. **Fuzzy Match** (SequenceMatcher ratio ≥ 0.68) contra queries existentes → incrementa contagem
-3. Se não houver match → **Canonização via LLM** (prompt leve) → insere como nova sugestão
-4. Frontend exibe top 8 por contagem decrescente
+- [`record_query()`](backend/api/analytics.py:26) é **no-op** (`pass`) — o pipeline de
+  fuzzy-match + canonização por LLM foi descontinuado; a query é persistida no
+  Firestore via [`save_chat_message()`](backend/api/firestore_db.py:1) em `background_tasks`.
+- [`get_top_suggestions()`](backend/api/analytics.py:18) retorna `limit` prompts
+  curados aleatórios de `curated_prompts.json` (sem contadores de popularidade).
 
 ### Cache de Sugestões (Frontend)
 
-- `localStorage` com TTL de 5 minutos (`SUGGESTIONS_TTL_MS = 300_000`)
-- Fallback hardcoded com 8 sugestões iniciais (seeds populados no SQLite em `init_analytics_db`)
+- `localStorage` com TTL de 5 minutos (`SUGGESTIONS_TTL_MS = 5 * 60 * 1000`)
+- Sem seeds SQLite: o backend lê `curated_prompts.json`; não existe `init_analytics_db`.
 
 ## Regras de Cache (Backend)
 
 ### RAGQueryCache (backend/rag/cache.py)
 
-- Cache em memória (dict Python)
+- Cache em memória via `cachetools.TTLCache`
 - TTL: 300 segundos (5 min)
 - Max: 200 entries
 - Chave: `"{model}:{query_normalizado}"` (lowercase, whitespace colapsado)
-- Eviction: remove entry mais antiga quando cheio
+- Eviction: LRU quando cheio (comportamento padrão do `TTLCache`)
 - Cache é populado após resposta completa (inclui sources serializados)
 
 ## Roteamento Semântico (RAG-101)
 
 Antes de acionar qualquer ferramenta, o [`SemanticRouter`](backend/rag/semantic_router.py)
-classifica a intenção da consulta de forma determinística (regex + normalização NFKD,
-sem custo de LLM):
+classifica a intenção da consulta. Casos óbvios são decididos por regex + normalização
+NFKD (custo zero); o **default ambíguo** é arbitrado pelo Jev (`jev_choice`) com
+guardrail de 90% de confiança e, abaixo disso, pelo decider LLM
+([`_llm_decide()`](backend/rag/semantic_router.py:84)). Fallback final: `RAG`.
 
 | Rota | Gatilho | Ferramentas acionadas |
 |------|---------|----------------------|
@@ -127,14 +143,14 @@ Rota `DIRECT` retorna `source_documents` vazio (sem rastreabilidade de fontes ap
 
 ## Retriever Híbrido
 
-### HybridRetriever (backend/rag/retriever.py)
+O pipeline ativo em [`init_components()`](backend/rag/chat.py:33) usa
+`PineconeHybridSearchRetriever` (dense + sparse BM25 nativo do Pinecone, `top_k=30`)
+comprimido por `PineconeRerank` (`bge-reranker-v2-m3`, `top_n=5`) via
+`ContextualCompressionRetriever`.
 
-Combina **Dense** (Pinecone VectorStore) + **BM25** (lexical) via **RRF** (Reciprocal Rank Fusion).
-
-- `k_dense = 4`, `k_bm25 = 4`, `rrf_k = 60`
-- Se ambos retornam docs → RRF merge
-- Se apenas um retorna → top-k desse retriever
-- BM25 é construído a partir dos documentos carregados (tokenização: `split()` lowercase)
+A classe [`HybridRetriever`](backend/rag/retriever.py:11) (Dense + BM25 local via RRF)
+**não é instanciada** pelo chat — é candidata a remoção no bloco de dead code do
+[`JEV_GAPS.md`](docs/JEV_GAPS.md:200).
 
 ## Chunking & Recuperação — Avaliação de Recall
 

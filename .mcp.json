@@ -7,6 +7,10 @@
         "GOOGLE_APPLICATION_CREDENTIALS": "/home/gui/.config/gcloud/keys/gcp-observability-mcp.json",
         "GOOGLE_CLOUD_PROJECT": "rag-eleicoes"
       }
+    },
+    "jevcore": {
+      "command": "bash",
+      "args": ["/home/gui/Área de trabalho/repositories/chatbot-rag-fundamentos/scripts/jevcore_mcp_launcher.sh"]
     }
   }
 }
