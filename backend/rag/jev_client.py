@@ -177,3 +177,73 @@ def jev_choice(instructions: str, criteria: dict[str, str], state: dict) -> tupl
     if not isinstance(confidence, (int, float)) or not (0 <= confidence <= 1):
         confidence = 0.0
     return answer["choice"], float(confidence)
+
+
+# Vereditos canônicos do ``jev_check`` (contrato do jevcore/TypeSafe).
+CHECK_SUPPORTED = "supported"
+CHECK_CONTRADICTED = "contradicted"
+CHECK_CONFLICTED = "conflicted"
+CHECK_INSUFFICIENT = "insufficient"
+CHECK_UNKNOWN = "unknown"
+
+# Limiares do jevcore ``resolveCheck`` (contrato de precedência: contradição
+# vence suporte; suporte sem suficiência = ``insufficient``).
+_CHECK_SUPPORT_THRESHOLD = 0.7
+_CHECK_CONTRADICTION_THRESHOLD = 0.7
+_CHECK_SUFFICIENCY_THRESHOLD = 0.5
+
+# Ids canônicos do jevcore (``VERDICT_QUESTION``): as chaves das perguntas são
+# também as chaves das respostas no payload System One.
+_CHECK_QUESTIONS = {
+    "supports_claim": {"type": "noul", "instructions": "Does this evidence support the claim?"},
+    "contradicts_claim": {"type": "noul", "instructions": "Does this evidence contradict the claim?"},
+    "evidence_is_sufficient": {"type": "noul", "instructions": "Is this evidence sufficient to settle whether the claim is true?"},
+}
+
+
+def _read_noul(answers: dict, key: str) -> float | None:
+    answer = answers.get(key)
+    if isinstance(answer, dict) and answer.get("type") == "noul":
+        noul = answer.get("noul")
+        if isinstance(noul, (int, float)) and 0 <= noul <= 1:
+            return float(noul)
+    return None
+
+
+def jev_check(claim: str, evidence: str, state: dict | None = None) -> str | None:
+    """Verifica se ``evidence`` sustenta ``claim`` (veredito calibrado).
+
+    Espelha o ``jev_check`` do jevcore: três perguntas ``noul`` independentes
+    (suporta / contradiz / suficiente) resolvidas com precedência em código —
+    contradição vence suporte; suporte sem suficiência é ``insufficient``.
+
+    Devolve o veredito canônico ou ``None`` em falha (fallback do chamador:
+    o pipeline nunca quebra por indisponibilidade do Jev).
+    """
+    questions = {k: dict(v) for k, v in _CHECK_QUESTIONS.items()}
+    data = _system_one(
+        questions,
+        {"claim": claim, "evidence": evidence, **(state or {})},
+    )
+    if not data:
+        return None
+
+    answers = data.get("answers", {})
+    supports = _read_noul(answers, "supports_claim")
+    contradicts = _read_noul(answers, "contradicts_claim")
+    sufficient = _read_noul(answers, "evidence_is_sufficient")
+
+    if supports is None and contradicts is None:
+        _breaker.record_failure()
+        _log("error", "resposta sem veredito válido", 0)
+        return None
+
+    if (supports or 0) >= _CHECK_SUPPORT_THRESHOLD and (contradicts or 0) >= _CHECK_CONTRADICTION_THRESHOLD:
+        return CHECK_CONFLICTED
+    if (contradicts or 0) >= _CHECK_CONTRADICTION_THRESHOLD:
+        return CHECK_CONTRADICTED
+    if (supports or 0) >= _CHECK_SUPPORT_THRESHOLD:
+        if sufficient is not None and sufficient < _CHECK_SUFFICIENCY_THRESHOLD:
+            return CHECK_INSUFFICIENT
+        return CHECK_SUPPORTED
+    return CHECK_INSUFFICIENT
