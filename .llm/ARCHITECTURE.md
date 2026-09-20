@@ -28,7 +28,7 @@ Monorepo com 3 camadas: **Backend Python** (FastAPI no GCP Cloud Run), **Fronten
 backend/
 ├── api/
 │   ├── main.py           # FastAPI app, rotas /chat, /chat/stream, /suggestions
-│   ├── analytics.py      # Sugestões curadas (curated_prompts.json); record_query é no-op
+│   ├── analytics.py      # Sugestões curadas + record_query com canonização de tema (Jev, G6)
 │   ├── guardrails.py     # Validação anti-injection, sanitização, limites
 │   ├── auth.py           # Validação obrigatória de JWT do Firebase Auth (get_required_user)
 │   └── firestore_db.py   # Persistência de mensagens/sessões de chat no Firestore
@@ -36,9 +36,8 @@ backend/
 │   ├── chat.py           # MultiSourceAgentChain: orquestra Pinecone + DDGS + LLM
 │   ├── semantic_router.py # RAG-101: classifica intenção (RAG vs Web vs Direct) antes das ferramentas
 │   ├── context_window.py # RAG-109: janela de contexto dinâmica por contagem exata de tokens
-│   ├── retriever.py      # HybridRetriever: Dense + BM25 local via RRF (dead code, não instanciado)
-│   ├── llm_fallback.py   # DynamicFallbackLLMManager (dead code, não instanciado)
-│   └── cache.py          # RAGQueryCache: cache em memória com TTL e eviction LRU
+│   ├── cache.py          # RAGQueryCache: cache em memória com TTL + dedup semântico (G7)
+│   └── sparse_encoder.py # FastBM25Encoder: sparse encoding leve para o hybrid search
 └── workers/
     └── ingestion_worker.py  # Worker assíncrono para ingestão batch no Pinecone
 ```
@@ -46,7 +45,7 @@ backend/
 ### Fluxo de Requisição (POST /chat/stream)
 
 1. `guardrails.validate_and_sanitize_query()` — sanitiza input, bloqueia injection
-2. `global_rag_cache.get()` — verifica cache (TTL 5min, chave = `model:query_normalizado`)
+2. `global_rag_cache.get()` — verifica cache (TTL 5min, chave = `model:query_normalizado` + dedup semântico G7)
 3. Se cache miss: `init_components()` lazy → inicializa Pinecone + LLM
 4. `get_rag_chain(session_id, model)` → retorna `MultiSourceAgentChain`
 5. `chain.stream()` → roteia por `SemanticRouter.route(query)` (RAG vs Web vs Direct):
@@ -57,7 +56,7 @@ backend/
    e. `llm.stream(prompt)` → gera tokens incrementais
 6. SSE events: `{type: "sources", sources: [...]}` → `{type: "token", token: "..."}` → `[DONE]`
 7. `global_rag_cache.set()` — armazena resposta completa
-8. `record_query()` em background — no-op (`pass`); persistência fica no Firestore via `save_chat_message()`
+8. `record_query()` em background — classifica o tema via Jev (G6) e loga evento estruturado; persistência fica no Firestore via `save_chat_message()`
 
 ## Camada Frontend (v2)
 

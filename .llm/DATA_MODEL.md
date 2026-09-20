@@ -86,8 +86,9 @@ class SuggestionsResponse(BaseModel):
 
 Não existe mais `analytics.db` nem `init_analytics_db`. As sugestões são prompts
 curados lidos de `backend/api/curated_prompts.json` por `get_top_suggestions(limit)`
-(aleatórios, sem contadores de popularidade). `record_query()` é no-op — a query é
-persistida no Firestore via `save_chat_message()`.
+(aleatórios, sem contadores de popularidade). `record_query()` classifica o tema da
+query via `jev_choice` (G6, guardrail 90%) e loga evento estruturado com
+`query_hash`; a query é persistida no Firestore via `save_chat_message()`.
 
 ### RAGQueryCache (in-memory)
 
@@ -95,6 +96,8 @@ persistida no Firestore via `save_chat_message()`.
 cachetools.TTLCache(maxsize=200, ttl=300)  # LRU quando cheio
 # key format: "{model_name}:{query_normalizado}"
 # value: {"answer": str, "sources": [dict]}
+# dedup semântico (G7): miss exato compara com chaves do mesmo modelo via jev_noul
+# SEMANTIC_DEDUP_THRESHOLD = 0.9
 ```
 
 ### Pinecone Index

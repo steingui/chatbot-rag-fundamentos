@@ -29,7 +29,7 @@
 ```
 .
 ├── backend/api/      # FastAPI — main.py, guardrails.py, analytics.py, auth.py, firestore_db.py
-├── backend/rag/      # LangChain + Pinecone — chat.py, retriever.py, llm_fallback.py, cache.py
+├── backend/rag/      # LangChain + Pinecone — chat.py, cache.py, sparse_encoder.py, semantic_router.py, jev_client.py
 ├── backend/workers/  # Workers de ingestão assíncrona
 ├── frontend/         # React + Vite + TypeScript + Zustand
 ├── pipelines/        # ingestion/ e scrapers/ de dados legislativos

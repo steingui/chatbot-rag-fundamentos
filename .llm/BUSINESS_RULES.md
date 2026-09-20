@@ -102,9 +102,13 @@ Classificação de fontes em `main.py:parse_source_name()`:
 
 ### Registro de Query (backend/api/analytics.py)
 
-- [`record_query()`](backend/api/analytics.py:26) é **no-op** (`pass`) — o pipeline de
-  fuzzy-match + canonização por LLM foi descontinuado; a query é persistida no
-  Firestore via [`save_chat_message()`](backend/api/firestore_db.py:1) em `background_tasks`.
+- [`record_query()`](backend/api/analytics.py:58) classifica o tema da query com
+  `jev_choice` (G6) usando as chaves de `QUERY_THEMES`, aceitando o rótulo só com
+  confiança `>= JEV_MIN_CONFIDENCE` (0.9); abaixo do guardrail ou falha do Jev ⇒
+  `"desconhecido"`. Roda em `background_tasks` e **nunca lança**; loga evento
+  estruturado com `theme` + `query_hash` (nunca o texto cru da query).
+- A query continua persistida no Firestore via
+  [`save_chat_message()`](backend/api/firestore_db.py:1) em `background_tasks`.
 - [`get_top_suggestions()`](backend/api/analytics.py:18) retorna `limit` prompts
   curados aleatórios de `curated_prompts.json` (sem contadores de popularidade).
 
@@ -123,6 +127,10 @@ Classificação de fontes em `main.py:parse_source_name()`:
 - Chave: `"{model}:{query_normalizado}"` (lowercase, whitespace colapsado)
 - Eviction: LRU quando cheio (comportamento padrão do `TTLCache`)
 - Cache é populado após resposta completa (inclui sources serializados)
+- Dedup semântico (G7): em miss exato, compara a query com as chaves recentes do
+  **mesmo modelo** via `jev_noul`; reusa resposta quando
+  `noul >= SEMANTIC_DEDUP_THRESHOLD` (0.9). Jev indisponível/abaixo do limiar ⇒
+  miss (comportamento atual). Nunca cruza modelos diferentes.
 
 ## Roteamento Semântico (RAG-101)
 
@@ -148,9 +156,9 @@ O pipeline ativo em [`init_components()`](backend/rag/chat.py:33) usa
 comprimido por `PineconeRerank` (`bge-reranker-v2-m3`, `top_n=5`) via
 `ContextualCompressionRetriever`.
 
-A classe [`HybridRetriever`](backend/rag/retriever.py:11) (Dense + BM25 local via RRF)
-**não é instanciada** pelo chat — é candidata a remoção no bloco de dead code do
-[`JEV_GAPS.md`](docs/JEV_GAPS.md:200).
+O antigo `HybridRetriever` (Dense + BM25 local via RRF) e o
+`DynamicFallbackLLMManager` foram removidos no bloco de dead code do
+[`JEV_GAPS.md`](docs/JEV_GAPS.md:216).
 
 ## Chunking & Recuperação — Avaliação de Recall
 

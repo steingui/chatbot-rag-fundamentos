@@ -20,7 +20,6 @@
 | `requests` | 2.34.2 | HTTP client (scrapers) |
 | `duckduckgo-search` / `ddgs` | 9.15.0 | Busca web (DDGS) |
 | `slowapi` | 0.1.10 | Rate limiting por IP |
-| `rank-bm25` | — | BM25Okapi (retriever legado) |
 | `pinecone-text` | 0.9.0 | Sparse encoder |
 | `mmh3` | — | Hash para sparse encoding |
 | `firebase-admin` | — | Firebase Auth (JWT) |
@@ -59,19 +58,14 @@ backend/rag/chat.py
 backend/rag/context_window.py
 └── tiktoken                  → contagem exata de tokens (fallback: proxy determinístico)
 
-backend/rag/retriever.py
-├── langchain_core.documents  → Document
-└── rank_bm25                 → BM25Okapi
-
-backend/rag/llm_fallback.py
-└── langchain_google_genai / langchain_openai → ChatGoogleGenerativeAI, ChatOpenAI
-
 backend/rag/cache.py
-└── cachetools → TTLCache
+├── cachetools            → TTLCache
+└── backend.rag.jev_client → jev_noul (dedup semântico G7)
 
 backend/api/analytics.py
-├── os, random, logging, typing (stdlib)
-└── curated_prompts.json      → prompts curados (não usa SQLite nem LLM)
+├── os, random, hashlib, logging, typing (stdlib)
+├── curated_prompts.json      → prompts curados (não usa SQLite)
+└── backend.rag.jev_client    → jev_choice (canonização de tema G6)
 
 backend/api/guardrails.py
 └── fastapi                   → HTTPException

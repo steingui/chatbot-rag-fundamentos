@@ -31,9 +31,9 @@ barata.
 | G2 | Anti-alucinação só por prompt | `check` | Média (evita geração inútil) | Alta (menos alucinação) | `[DONE]` |
 | G3 | Rerank sem limiar de relevância | `noul` | Média (menos tokens no prompt) | Alta (menos ruído) | `[DONE]` |
 | G4 | Web search dispara sempre em RAG | `noul` | Alta (corta DDGS+latência) | Neutra/alta | `[DONE]` |
-| G5 | Conflito interno vs web não verificado | `check` | Baixa | Alta (hierarquia mecânica) |
-| G6 | `record_query` é no-op (analytics morto) | `choice`/`noul` | Baixa | Alta (dados de produto) |
-| G7 | Cache por string exata (sem dedup semântico) | `noul` | Alta (hit rate) | Neutra |
+| G5 | Conflito interno vs web não verificado | `check` | Baixa | Alta (hierarquia mecânica) | `[DONE]` |
+| G6 | `record_query` é no-op (analytics morto) | `choice`/`noul` | Baixa | Alta (dados de produto) | `[DONE]` |
+| G7 | Cache por string exata (sem dedup semântico) | `noul` | Alta (hit rate) | Neutra | `[DONE]` |
 
 ---
 
@@ -153,7 +153,16 @@ perguntas internas. Economia direta de tempo de execução no Cloud Run.
 
 ---
 
-### G5 — Conflito interno vs web não verificado mecanicamente
+### G5 — Conflito interno vs web não verificado mecanicamente `[DONE]`
+
+**Implementado em:** [`_web_conflicts_with_base()`](backend/rag/chat.py:287) +
+flag explícita de conflito em
+[`_build_synthesis_prompt()`](backend/rag/chat.py:308), injetada em
+[`MultiSourceAgentChain.invoke()`](backend/rag/chat.py:406). Quando a base e a
+web coexistem e o `jev_check` julga que a web contradiz a base, o prompt recebe
+a flag para priorizar a base e citar a divergência. `None`/falha do Jev ou
+fonte ausente ⇒ sem flag (resolução por instrução, comportamento atual).
+Testes em [`tests/test_jev_g5_web_conflict.py`](tests/test_jev_g5_web_conflict.py).
 
 **Local:** prompt de síntese hierárquica em
 [`_build_synthesis_prompt()`](backend/rag/chat.py:213) — a base interna é a
@@ -169,13 +178,21 @@ alinhada a [`BUSINESS_RULES.md` #1](.llm/BUSINESS_RULES.md:10).
 
 ---
 
-### G6 — Analytics morto (`record_query` no-op)
+### G6 — Analytics morto (`record_query` no-op) `[DONE]`
 
-**Local:** [`record_query()`](backend/api/analytics.py:26) é um `pass`
-marcado "(Obsoleto)", mas ainda é chamado via `background_tasks` em
+**Implementado em:** [`_classify_query_theme()`](backend/api/analytics.py:46) +
+[`record_query()`](backend/api/analytics.py:69). A query é canonizada com
+`jev_choice` (temas [`QUERY_THEMES`](backend/api/analytics.py:14)) sob o
+guardrail `JEV_MIN_CONFIDENCE = 0.9`; o evento é logado de forma estruturada
+(`theme` + hash SHA-256 da query, **nunca** o texto cru — regra #1 do
+`AGENTS.md`). Falha do Jev → tema `desconhecido` (o analytics nunca quebra o
+pipeline). Testes em [`tests/test_jev_g6_analytics.py`](tests/test_jev_g6_analytics.py).
+
+**Local:** [`record_query()`](backend/api/analytics.py:26) era um `pass`
+marcado "(Obsoleto)", mas ainda chamado via `background_tasks` em
 [`main.py`](backend/api/main.py:268). A
-[`BUSINESS_RULES.md` #6](.llm/BUSINESS_RULES.md:90) documenta fuzzy-match +
-canonização por LLM que **não existe mais** (drift).
+[`BUSINESS_RULES.md` #6](.llm/BUSINESS_RULES.md:90) documentava fuzzy-match +
+canonização por LLM que **não existia mais** (drift).
 
 **Solução Jev:** canonizar/classificar a query com `choice`/`noul` barato em
 vez de LLM de síntese, reativando métricas de produto (temas mais perguntados,
@@ -186,36 +203,40 @@ entre docs e código.
 
 ---
 
-### G7 — Cache por string exata (sem dedup semântico)
+### G7 — Cache por string exata (sem dedup semântico) `[DONE]`
 
-**Local:** [`RAGQueryCache._normalize_key()`](backend/rag/cache.py:13) usa
+**Implementado em:** [`RAGQueryCache._semantic_hit()`](backend/rag/cache.py:25)
+com limiar `SEMANTIC_DEDUP_THRESHOLD = 0.9`. O hit exato continua imediato
+(zero Jev); só no miss a query nova é comparada via `jev_noul` contra as
+chaves do mesmo `model`. Falha do Jev → miss (comportamento anterior). Testes
+em [`tests/test_jev_g7_cache.py`](tests/test_jev_g7_cache.py).
+
+**Local:** [`RAGQueryCache._normalize_key()`](backend/rag/cache.py:13) usava
 `{model}:{query_normalizado}` — dedup só por string idêntica.
 
 **Problema:** "voto do deputado X na PEC Y" e "como o deputado X votou na PEC
-Y" não compartilham cache, embora sejam a mesma pergunta. Cada paráfrase paga
-o pipeline completo.
+Y" não compartilhavam cache, embora sejam a mesma pergunta. Cada paráfrase
+pagava o pipeline completo.
 
 **Solução Jev:** `noul` de similaridade entre a query nova e chaves recentes
-do cache (ou embedding barato). Hit semântico → reusa resposta.
+do cache. Hit semântico → reusa resposta.
 
 **Impacto:** aumento de hit rate → menos chamadas Pinecone+Gemini repetidas.
-Avaliar trade-off: exige comparar com embedding local (all-MiniLM) que já
-existe no projeto e pode ser mais barato que o Jev aqui.
 
 ---
 
-## 3. Dead code — candidatos a `horse-optimize` (não-Jev)
+## 3. Dead code — candidatos a `horse-optimize` (não-Jev) `[DONE]`
 
-Estes não usam Jev; são limpeza de performance/simplicidade. **O skill
-`horse-optimize` se aplica a este bloco** como tarefa de refatoração (não
-executada aqui — modo horse-architect edita apenas `.md`):
+Estes não usam Jev; são limpeza de performance/simplicidade. Limpeza executada
+via `opt` (horse-optimize):
 
-| Item | Local | Ação |
-|------|-------|------|
-| `DynamicFallbackLLMManager` não importado | [`llm_fallback.py`](backend/rag/llm_fallback.py:13) | Remover módulo |
-| `HybridRetriever` não usado (chat usa `PineconeHybridSearchRetriever`) | [`retriever.py`](backend/rag/retriever.py:11) | Remover ou reativar |
-| CLI `iniciar_chat()`/`main()` morto | [`chat.py:379`](backend/rag/chat.py:379), [`chat.py:399`](backend/rag/chat.py:399) | Remover |
-| `api_key` atribuído 2x (linhas 76 e 78) | [`chat.py:76`](backend/rag/chat.py:76), [`chat.py:78`](backend/rag/chat.py:78) | Remover duplicata |
+| Item | Local | Ação | Status |
+|------|-------|------|--------|
+| `DynamicFallbackLLMManager` não importado | `llm_fallback.py` | Remover módulo | `[DONE]` (módulo removido) |
+| `HybridRetriever` não usado (chat usa `PineconeHybridSearchRetriever`) | `retriever.py` | Remover ou reativar | `[DONE]` (módulo removido) |
+| CLI `iniciar_chat()`/`main()` morto | `chat.py` | Remover | `[DONE]` |
+| `api_key` atribuído 2x | `chat.py` | Remover duplicata | `[DONE]` |
+| `rank-bm25` órfão (só usado por `retriever.py`) | `requirements.txt` | Remover dependência | `[DONE]` |
 
 ---
 
@@ -231,10 +252,10 @@ executada aqui — modo horse-architect edita apenas `.md`):
 4. **G3** — filtro de relevância pós-rerank com `noul` `[DONE]`. Entregue em
    [`jev_noul()`](backend/rag/jev_client.py:213) +
    [`_filter_relevant_docs()`](backend/rag/chat.py:217).
-5. **G6** — reativar `record_query` com canonização Jev.
-6. **G5** — checagem de conflito interno vs web.
-7. **G7** — dedup semântico (comparar com embedding local antes).
-8. **Dead code** — rodar `horse-optimize` para a limpeza da seção 3.
+5. **G6** — reativar `record_query` com canonização Jev. `[DONE]`
+6. **G5** — checagem de conflito interno vs web. `[DONE]`
+7. **G7** — dedup semântico (comparar com embedding local antes). `[DONE]`
+8. **Dead code** — rodar `horse-optimize` para a limpeza da seção 3. `[DONE]`
 
 ### Regras de integração obrigatórias
 
