@@ -7,13 +7,23 @@ custo desnecessário de LLM/retriever:
 - ``WEB``: intenção de recência/notícias → somente DuckDuckGo.
 - ``DIRECT``: saudação/identidade → LLM direto, sem ferramentas.
 
-Sem dependências externas: heurística por regex sobre texto normalizado
-(NFKD, lowercase, sem acentos). A ordem importa — sinais de web vencem o
-domínio, e o domínio vence a conversa casual.
+Ordem de decisão (da mais barata para a mais cara):
+
+1. **Regex soberano** (custo zero) decide os casos óbvios.
+2. **Jev** arbitra o default ambíguo — mas só opera com **confiança ≥ 90%**
+   (guardrail). Abaixo disso a decisão é delegada às nossas LLMs.
+3. **Decider LLM** decide a rota quando o Jev está abaixo do limiar.
+4. **Fallback final** ``Route.RAG`` (comportamento atual) se Jev e LLM
+   estiverem indisponíveis — o pipeline nunca quebra.
 """
+import os
 import re
 import unicodedata
 from enum import Enum
+
+import httpx
+
+from backend.rag.jev_client import JEV_MIN_CONFIDENCE, jev_choice
 
 
 class Route(str, Enum):
@@ -21,6 +31,9 @@ class Route(str, Enum):
     WEB = "web"
     DIRECT = "direct"
 
+
+OPENROUTER_BASE = "https://openrouter.ai/api/v1"
+DECIDER_MODEL = os.environ.get("JEV_DECIDER_MODEL", "meta-llama/llama-3.3-70b-instruct:free")
 
 # Intenção de recência/notícias (avaliada primeiro: "notícias de hoje sobre
 # o congresso" é WEB, não RAG).
@@ -49,9 +62,61 @@ _DIRECT_RE = re.compile(
     r"prazer em"
 )
 
+_DECIDER_PROMPT = (
+    "Decida a rota de atendimento para a pergunta. Responda exatamente uma "
+    "palavra:\n"
+    "RAG — pergunta factual sobre política/legislação;\n"
+    "WEB — pede notícias ou informação recente;\n"
+    "DIRECT — conversa casual, identidade ou fora do domínio.\n\n"
+    "Pergunta: "
+)
+
+
+def _parse_route_token(token: str) -> Route | None:
+    """Mapeia o primeiro token da resposta do decider para uma rota válida."""
+    first = token.strip().upper().split()[0].strip(".,;:\"")
+    for route in (Route.RAG, Route.WEB, Route.DIRECT):
+        if first.startswith(route.value.upper()):
+            return route
+    return None
+
+
+def _llm_decide(query: str) -> Route | None:
+    """Decider LLM via OpenRouter (chat completions). ``None`` em falha."""
+    api_key = os.environ.get("OPENROUTER_API_KEY", "").strip()
+    if not api_key:
+        return None
+    try:
+        response = httpx.post(
+            f"{OPENROUTER_BASE}/chat/completions",
+            headers={"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"},
+            json={
+                "model": DECIDER_MODEL,
+                "messages": [
+                    {"role": "user", "content": _DECIDER_PROMPT + query},
+                ],
+                "max_tokens": 5,
+                "temperature": 0,
+            },
+            timeout=5.0,
+        )
+        if response.status_code != 200:
+            return None
+        content = response.json()["choices"][0]["message"]["content"]
+        return _parse_route_token(content)
+    except Exception:
+        return None
+
+
+def _jev_choice(instructions: str, criteria: dict[str, str], state: dict) -> tuple[str, float] | None:
+    return jev_choice(instructions, criteria, state)
+
 
 class SemanticRouter:
     """Roteador semântico de intenção do usuário (RAG vs Web vs Direct)."""
+
+    def __init__(self, decider=None):
+        self._decider = decider
 
     def _normalize(self, text: str) -> str:
         nfkd = unicodedata.normalize("NFKD", text.lower())
@@ -66,4 +131,32 @@ class SemanticRouter:
             return Route.RAG
         if _DIRECT_RE.search(q):
             return Route.DIRECT
+
+        # Default ambíguo: Jev arbitra, mas só opera com confiança >= 90%.
+        result = _jev_choice(
+            instructions="Classifique a intenção da pergunta.",
+            criteria={
+                "RAG": "pergunta factual sobre política/legislação",
+                "WEB": "pede notícias ou informação recente",
+                "DIRECT": "conversa casual, identidade ou fora do domínio",
+            },
+            state={"pergunta": query},
+        )
+        if result is not None:
+            choice, confidence = result
+            if confidence >= JEV_MIN_CONFIDENCE:
+                route = _parse_route_token(choice)
+                if route is not None:
+                    return route
+
+        # Jev abaixo de 90% (ou falhou): delega a decisão às nossas LLMs.
+        decider = self._decider or _llm_decide
+        try:
+            decided = decider(query)
+        except Exception:
+            decided = None
+        if decided is not None and decided in (Route.RAG, Route.WEB, Route.DIRECT):
+            return decided
+
+        # Fallback final: comportamento atual.
         return Route.RAG
