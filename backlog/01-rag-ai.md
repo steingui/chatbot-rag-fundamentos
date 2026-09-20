@@ -23,3 +23,4 @@
 ### 1.3 Avaliação & Benchmark
 - [x] **[RAG-110]** Criar script de benchmark `eval_merge.py` com conjunto de teste de perguntas complexas para medir taxa de alucinação.
 - [x] **[RAG-111]** Avaliar migração futura de embeddings (`sentence-transformers/all-MiniLM-L6-v2` → `multilingual-e5-large`) para v2. Recomendação: migrar na v2 (melhor pt-BR, 1024 dims) com re-indexação completa do Pinecone — ver [`scripts/eval_embedding_migration.py`](../scripts/eval_embedding_migration.py).
+- [x] **[RAG-114]** Verificação mecânica anti-alucinação (G2): `jev_check` pré-geração (base insuficiente ⇒ `NOT_FOUND_ANSWER`) e pós-geração (resposta contradita ⇒ substituída) `[DONE]` → [`backend/rag/jev_client.py`](../backend/rag/jev_client.py:213) + [`backend/rag/chat.py`](../backend/rag/chat.py:217).

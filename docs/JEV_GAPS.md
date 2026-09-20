@@ -73,7 +73,7 @@ consultas fora do domínio. É o maior ganho de economia do mapa.
 
 ---
 
-### G2 — Anti-alucinação apenas por prompt (verificação mecânica ausente)
+### G2 — Anti-alucinação apenas por prompt (verificação mecânica ausente) `[DONE]`
 
 **Local:** [`_build_synthesis_prompt()`](backend/rag/chat.py:213) e regra
 [`BUSINESS_RULES.md` #2](.llm/BUSINESS_RULES.md:24). A instrução "não invente"

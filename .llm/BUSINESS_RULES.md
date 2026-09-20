@@ -26,8 +26,18 @@ dados, a web é usada explicitamente como informação secundária não verifica
 > Se perguntado sobre nomes, listas ou valores específicos e não houver comprovação exata
 > na Base Interna, NUNCA invente dados. Diga explicitamente o que foi encontrado.
 
-Essa regra está hardcoded no prompt de síntese hierárquica, centralizado no helper
-`_build_synthesis_prompt()` em `backend/rag/chat.py` (usado por `invoke()` e `stream()`).
+A regra tem **duas camadas**:
+
+1. **Prompt (freio brando):** hardcoded no prompt de síntese hierárquica, centralizado no
+   helper `_build_synthesis_prompt()` em `backend/rag/chat.py` (usado por `invoke()` e `stream()`).
+2. **Verificação mecânica (G2):** [`jev_check()`](backend/rag/jev_client.py:213) com
+   `claim = pergunta/resposta` e `evidence = documentos recuperados`:
+   - **Pré-geração** — [`_answerable()`](backend/rag/chat.py:217): base interna insuficiente ou
+     contraditória ⇒ retorna `NOT_FOUND_ANSWER` sem gastar síntese Gemini.
+   - **Pós-geração** — [`_post_check_ok()`](backend/rag/chat.py:231): resposta contradita pela
+     evidência que a gerou (base interna **+ web**, via [`_synthesis_evidence()`](backend/rag/chat.py:231))
+     ⇒ substituída por `NOT_FOUND_ANSWER`.
+   - Falha do Jev (`None`) ⇒ pipeline nunca quebra: segue com a geração.
 
 ### 3. Rastreabilidade de Fontes
 
