@@ -23,7 +23,7 @@ O Jev resolve exatamente isso: é um modelo de **decisão calibrada** (retorna
 *score* de confiança, o Jev substitui a síntese LLM por uma chamada ~100x mais
 barata.
 
-**Veredito: 6 gaps de alto valor + 1 gap de cache + 4 pontos de dead code.**
+**Veredito: 6 gaps de alto valor + 1 gap de cache + 1 gap de follow-up + 4 pontos de dead code.**
 
 | # | Gap | Tipo Jev | Economia | Qualidade |
 |---|-----|----------|----------|-----------|
@@ -34,6 +34,7 @@ barata.
 | G5 | Conflito interno vs web não verificado | `check` | Baixa | Alta (hierarquia mecânica) | `[DONE]` |
 | G6 | `record_query` é no-op (analytics morto) | `choice`/`noul` | Baixa | Alta (dados de produto) | `[DONE]` |
 | G7 | Cache por string exata (sem dedup semântico) | `noul` | Alta (hit rate) | Neutra | `[DONE]` |
+| G8 | Follow-up ("fale mais") cai em RAG/web | regex (não-Jev) | Alta (corta DDGS+latência) | Alta (sem fontes-lixo) | `[DONE]` |
 
 ---
 
@@ -222,6 +223,32 @@ pagava o pipeline completo.
 do cache. Hit semântico → reusa resposta.
 
 **Impacto:** aumento de hit rate → menos chamadas Pinecone+Gemini repetidas.
+
+---
+
+### G8 — Follow-up conversacional ("fale mais") cai em RAG/web `[DONE]`
+
+**Implementado em:** [`_FOLLOWUP_RE`](backend/rag/semantic_router.py:64) +
+[`SemanticRouter.route()`](backend/rag/semantic_router.py:139). Follow-ups puros
+("fale mais", "continue", "explique melhor", "mais detalhes"...) são decididos
+por regex (custo zero, sem Jev) como `Route.DIRECT` — sem Pinecone nem DDGS. A
+mensagem de erro de streaming em [`MultiSourceAgentChain.stream()`](backend/rag/chat.py:458)
+agora é separada por quebra de linha da resposta parcial. Testes em
+[`tests/test_followup_direct.py`](tests/test_followup_direct.py).
+
+**Local:** follow-ups sem palavra de domínio nem de recência caíam no default
+ambíguo do [`SemanticRouter.route()`](backend/rag/semantic_router.py:126),
+viravam `RAG` e disparavam DDGS com a query "fale mais" — recuperando lixo
+(wikipedia/instagram/facebook) e queimando latência/tokens.
+
+**Problema:** a continuação do diálogo não é uma pergunta factual nova; o
+contexto está no histórico da conversa, não na base vetorial.
+
+**Solução:** regex de follow-up com precedência após `_DOMAIN_RE` (custo zero).
+"fale mais sobre a PEC 192" continua `RAG` (domínio vence).
+
+**Impacto:** corte de DDGS+latência e de fontes-lixo em todo follow-up; a
+resposta continua ancorada no histórico, sem degradar a qualidade.
 
 ---
 

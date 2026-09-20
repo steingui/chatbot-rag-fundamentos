@@ -144,10 +144,12 @@ guardrail de 90% de confiança e, abaixo disso, pelo decider LLM
 |------|---------|----------------------|
 | `RAG` | Domínio legislativo/político (votações, leis, parlamentares, TSE, CGU...) | Pinecone (primária) + DuckDuckGo (secundária) |
 | `WEB` | Intenção de recência/notícias (hoje, notícias, recentemente...) | Somente DuckDuckGo |
-| `DIRECT` | Saudação/identidade (olá, quem é você, obrigado...) | Nenhuma — LLM direto |
+| `DIRECT` | Saudação/identidade (olá, quem é você, obrigado...) e follow-ups ("fale mais", "continue", "explique melhor"...) | Nenhuma — LLM direto |
 
-Precedência: sinais de Web vencem o domínio; o domínio vence a conversa casual.
-Rota `DIRECT` retorna `source_documents` vazio (sem rastreabilidade de fontes aplicável).
+Precedência: sinais de Web vencem o domínio; o domínio vence a conversa casual
+e os follow-ups (`_FOLLOWUP_RE` só dispara após `_DOMAIN_RE`; "fale mais sobre a
+PEC 192" continua `RAG`). Rota `DIRECT` retorna `source_documents` vazio (sem
+rastreabilidade de fontes aplicável).
 
 ## Retriever Híbrido
 

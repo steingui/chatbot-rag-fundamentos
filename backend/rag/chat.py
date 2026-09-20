@@ -457,7 +457,7 @@ class MultiSourceAgentChain:
                     yield {"type": "token", "token": text}
         except Exception as e:
             logging.error(f"Erro no streaming LLM: {e}")
-            yield {"type": "token", "token": "Não foi possível gerar a resposta completa devido a instabilidade temporária."}
+            yield {"type": "token", "token": "\n\n[Resposta interrompida por instabilidade temporária. Tente novamente.]"}
 
 
 

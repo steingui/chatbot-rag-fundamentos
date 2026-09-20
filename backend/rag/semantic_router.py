@@ -62,6 +62,17 @@ _DIRECT_RE = re.compile(
     r"prazer em"
 )
 
+# Follow-ups conversacionais (G8): continuação do diálogo sobre a resposta
+# anterior, sem palavra de domínio nem de recência. São DIRECT por regex (custo
+# zero), nunca RAG/web — evita DDGS com query "fale mais" e lixo de fontes.
+_FOLLOWUP_RE = re.compile(
+    r"^(fale mais|fala mais|pode falar mais|falar mais|fale sobre|"
+    r"continue|continua|continuar|"
+    r"explique melhor|explica melhor|explique mais|explica mais|"
+    r"mais detalhes|mais informa[çc][õo]es|detalhe mais|detalhes|"
+    r"aprofunde)\b"
+)
+
 _DECIDER_PROMPT = (
     "Decida a rota de atendimento para a pergunta. Responda exatamente uma "
     "palavra:\n"
@@ -130,6 +141,8 @@ class SemanticRouter:
         if _DOMAIN_RE.search(q):
             return Route.RAG
         if _DIRECT_RE.search(q):
+            return Route.DIRECT
+        if _FOLLOWUP_RE.search(q):
             return Route.DIRECT
 
         # Default ambíguo: Jev arbitra, mas só opera com confiança >= 90%.
