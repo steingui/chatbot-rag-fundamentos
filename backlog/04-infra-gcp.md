@@ -16,3 +16,4 @@
 - [x] **[INF-405]** Configurar pipeline no GCP Cloud Build (`cloudbuild.yaml`) para deploy automático da API a cada push na branch `main`.
 - [ ] **[INF-406]** Configurar GitHub Actions para builds automatizados do app mobile via Expo Application Services (EAS Build).
 - [ ] **[INF-407]** Configurar monitoramento e observabilidade via GCP Cloud Logging, Error Reporting e Cloud Trace.
+- [x] **[INF-408]** Monitor de erros do backend no GitHub Actions: analisa logs do Cloud Run a cada 3h e abre issue documentada quando há erros. [DONE] — artefatos: [`.github/workflows/backend-log-monitor.yml`](.github/workflows/backend-log-monitor.yml:1) e [`scripts/backend_log_monitor.py`](scripts/backend_log_monitor.py:1).
