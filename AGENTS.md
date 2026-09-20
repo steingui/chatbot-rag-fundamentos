@@ -94,6 +94,10 @@ codegraph sync .
 - **Diff-Only**: Altere apenas o necessário. Nunca reescreva arquivos inteiros.
 - **Tipagem**: Type hints obrigatórios (Python). TypeScript strict (Frontend).
 - **Docs sync**: Alterações estruturais → atualize o `.llm/` correspondente no mesmo commit.
+- **Backlog sync**: Toda implementação concluída **deve** atualizar o backlog em
+  `backlog/` no mesmo commit, marcando o item correspondente com o sufixo
+  `[DONE]` e referenciando o artefato entregue (arquivo/PR). Nunca deixe um item
+  de backlog implementado sem o marcador.
 
 ---
 
