@@ -85,10 +85,10 @@ def _stub_checks(monkeypatch):
     """Jev estubado: G3/G4 liberam; G2 answerable e G5 conflito = supported."""
     monkeypatch.setattr(
         chat, "jev_noul",
-        lambda instructions, state: 0.9 if "trecho" in state else 0.9,
+        lambda instructions, state, routine=None: 0.9 if "trecho" in state else 0.9,
     )
 
-    def jev_check(claim, evidence, state=None):
+    def jev_check(claim, evidence, state=None, routine=None):
         return "supported"
 
     monkeypatch.setattr(chat, "jev_check", jev_check)

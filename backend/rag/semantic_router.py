@@ -23,7 +23,7 @@ from enum import Enum
 
 import httpx
 
-from backend.rag.jev_client import JEV_MIN_CONFIDENCE, jev_choice
+from backend.rag.jev_client import JEV_MIN_CONFIDENCE, jev_choice, log_low_confidence
 
 
 class Route(str, Enum):
@@ -120,7 +120,7 @@ def _llm_decide(query: str) -> Route | None:
 
 
 def _jev_choice(instructions: str, criteria: dict[str, str], state: dict) -> tuple[str, float] | None:
-    return jev_choice(instructions, criteria, state)
+    return jev_choice(instructions, criteria, state, routine="r1_semantic_route")
 
 
 class SemanticRouter:
@@ -157,10 +157,10 @@ class SemanticRouter:
         )
         if result is not None:
             choice, confidence = result
-            if confidence >= JEV_MIN_CONFIDENCE:
-                route = _parse_route_token(choice)
-                if route is not None:
-                    return route
+            if confidence < JEV_MIN_CONFIDENCE:
+                log_low_confidence("r1_semantic_route")
+            elif (route := _parse_route_token(choice)) is not None:
+                return route
 
         # Jev abaixo de 90% (ou falhou): delega a decisão às nossas LLMs.
         decider = self._decider or _llm_decide

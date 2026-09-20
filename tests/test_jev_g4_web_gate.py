@@ -36,22 +36,22 @@ class _FakeRetriever:
 # --- _needs_web_search (unidade) ---
 
 def test_needs_web_quando_noul_alto(monkeypatch):
-    monkeypatch.setattr(chat, "jev_noul", lambda instructions, state: 0.9)
+    monkeypatch.setattr(chat, "jev_noul", lambda instructions, state, routine=None: 0.9)
     assert chat._needs_web_search("últimas notícias da Câmara") is True
 
 
 def test_needs_web_quando_noul_no_limiar(monkeypatch):
-    monkeypatch.setattr(chat, "jev_noul", lambda instructions, state: 0.5)
+    monkeypatch.setattr(chat, "jev_noul", lambda instructions, state, routine=None: 0.5)
     assert chat._needs_web_search("notícias de hoje") is True
 
 
 def test_pula_web_quando_noul_baixo(monkeypatch):
-    monkeypatch.setattr(chat, "jev_noul", lambda instructions, state: 0.1)
+    monkeypatch.setattr(chat, "jev_noul", lambda instructions, state, routine=None: 0.1)
     assert chat._needs_web_search("como o deputado X votou na PEC Y") is False
 
 
 def test_jev_falha_mantem_web(monkeypatch):
-    monkeypatch.setattr(chat, "jev_noul", lambda instructions, state: None)
+    monkeypatch.setattr(chat, "jev_noul", lambda instructions, state, routine=None: None)
     assert chat._needs_web_search("pergunta qualquer") is True
 
 
@@ -65,7 +65,7 @@ def test_invoke_pula_web_quando_gate_corta(monkeypatch):
     )
     monkeypatch.setattr(
         chat, "jev_noul",
-        lambda instructions, state: 0.9 if "trecho" in state else 0.1,
+        lambda instructions, state, routine=None: 0.9 if "trecho" in state else 0.1,
     )
     monkeypatch.setattr(chat, "jev_check", lambda **kw: "supported")
 
@@ -91,7 +91,7 @@ def test_invoke_chama_web_quando_gate_libera(monkeypatch):
     )
     monkeypatch.setattr(
         chat, "jev_noul",
-        lambda instructions, state: 0.9 if "trecho" in state else 0.9,
+        lambda instructions, state, routine=None: 0.9 if "trecho" in state else 0.9,
     )
     monkeypatch.setattr(chat, "jev_check", lambda **kw: "supported")
 
@@ -114,7 +114,7 @@ def test_stream_pula_web_quando_gate_corta(monkeypatch):
         chat, "_retriever",
         _FakeRetriever([Document(page_content="Votação da PEC", metadata={"source": "camara"})]),
     )
-    monkeypatch.setattr(chat, "jev_noul", lambda instructions, state: 0.1)
+    monkeypatch.setattr(chat, "jev_noul", lambda instructions, state, routine=None: 0.1)
     monkeypatch.setattr(chat, "jev_check", lambda **kw: "supported")
 
     web_calls: list[str] = []

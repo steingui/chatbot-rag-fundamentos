@@ -108,7 +108,7 @@ def test_invoke_prompt_contem_apenas_docs_relevantes(monkeypatch):
     monkeypatch.setattr(chat, "_buscar_noticias_web", lambda q, sid="d": ("", []))
     monkeypatch.setattr(
         chat, "jev_noul",
-        lambda instructions, state: 0.9 if state.get("trecho") == "trecho-relevante-xyz" else 0.1,
+        lambda instructions, state, routine=None: 0.9 if state.get("trecho") == "trecho-relevante-xyz" else 0.1,
     )
     # Gate de answerability: Jev julga a base (pós-filtro) suficiente.
     monkeypatch.setattr(chat, "jev_check", lambda **kw: "supported")

@@ -30,6 +30,17 @@ JEV_MIN_CONFIDENCE = 0.9
 
 logger = logging.getLogger("jev_client")
 
+# Severidade de log por ``status`` (contrato JEV_ALERTING.md §1). O circuit
+# breaker aberto usa ``status="error"`` com severidade WARNING — tratado à parte.
+_SEVERITY: dict[str, int] = {
+    "ok": logging.INFO,
+    "low_confidence": logging.INFO,
+    "rate_limited": logging.WARNING,
+    "no_credits": logging.ERROR,
+    "error": logging.ERROR,
+    "timeout": logging.ERROR,
+}
+
 
 class _CircuitBreaker:
     """Abre após ``threshold`` falhas consecutivas e rearma após ``cooldown``s."""
@@ -62,10 +73,10 @@ class _CircuitBreaker:
 _breaker = _CircuitBreaker()
 
 
-def _log(status: str, error: str | None, latency_ms: int) -> None:
+def _log(status: str, error: str | None, latency_ms: int, routine: str = "r1_semantic_route") -> None:
     entry = {
         "event": "jev_call",
-        "routine": "r1_semantic_route",
+        "routine": routine,
         "model": JEV_MODEL,
         "status": status,
         "latency_ms": latency_ms,
@@ -73,21 +84,27 @@ def _log(status: str, error: str | None, latency_ms: int) -> None:
     if error:
         entry["error"] = error
     line = json.dumps(entry, ensure_ascii=False)
-    if status == "ok":
-        logger.info(line)
+    # Circuit breaker aberto é WARNING (status="error" mas não é falha de rede).
+    if status == "error" and error == "circuit breaker aberto":
+        logger.warning(line)
     else:
-        logger.error(line)
+        logger.log(_SEVERITY.get(status, logging.ERROR), line)
 
 
-def _system_one(questions: dict, state: dict) -> dict | None:
+def log_low_confidence(routine: str) -> None:
+    """Registra a delegação por guardrail de 90% (não é falha — é o guardrail)."""
+    _log("low_confidence", None, 0, routine)
+
+
+def _system_one(questions: dict, state: dict, routine: str) -> dict | None:
     """POST ``/v1/systemone`` e devolve o JSON bruto, ou ``None`` em falha."""
     if not _breaker.allow():
-        _log("error", "circuit breaker aberto", 0)
+        _log("error", "circuit breaker aberto", 0, routine)
         return None
 
     api_key = os.environ.get("OPENROUTER_API_KEY", "").strip()
     if not api_key:
-        _log("error", "OPENROUTER_API_KEY ausente", 0)
+        _log("error", "OPENROUTER_API_KEY ausente", 0, routine)
         return None
 
     payload = {"state": state, "model": JEV_MODEL, "questions": questions}
@@ -122,39 +139,44 @@ def _system_one(questions: dict, state: dict) -> dict | None:
 
     if response is None:
         _breaker.record_failure()
-        _log(status, last_error or "sem resposta", latency_ms)
+        _log(status, last_error or "sem resposta", latency_ms, routine)
         return None
 
     if response.status_code == 401:
         _breaker.record_failure()
-        _log("error", "401 chave inválida", latency_ms)
+        _log("error", "401 chave inválida", latency_ms, routine)
         return None
     if response.status_code == 402:
         _breaker.record_failure()
-        _log("no_credits", "402 sem crédito", latency_ms)
+        _log("no_credits", "402 sem crédito", latency_ms, routine)
         return None
     if response.status_code == 429:
         _breaker.record_failure()
-        _log("rate_limited", "429", latency_ms)
+        _log("rate_limited", "429", latency_ms, routine)
         return None
     if response.status_code != 200:
         _breaker.record_failure()
-        _log("error", f"HTTP {response.status_code}", latency_ms)
+        _log("error", f"HTTP {response.status_code}", latency_ms, routine)
         return None
 
     try:
         data = response.json()
     except ValueError:
         _breaker.record_failure()
-        _log("error", "resposta JSON inválida", latency_ms)
+        _log("error", "resposta JSON inválida", latency_ms, routine)
         return None
 
     _breaker.record_success()
-    _log("ok", None, latency_ms)
+    _log("ok", None, latency_ms, routine)
     return data
 
 
-def jev_choice(instructions: str, criteria: dict[str, str], state: dict) -> tuple[str, float] | None:
+def jev_choice(
+    instructions: str,
+    criteria: dict[str, str],
+    state: dict,
+    routine: str = "r1_semantic_route",
+) -> tuple[str, float] | None:
     """Escolhe um rótulo entre ``criteria`` com a confiança calibrada.
 
     Devolve ``(choice, confidence)``. ``None`` em falha (fallback do chamador).
@@ -164,13 +186,14 @@ def jev_choice(instructions: str, criteria: dict[str, str], state: dict) -> tupl
     data = _system_one(
         {"route": {"type": "choice", "instructions": instructions, "criteria": criteria}},
         state,
+        routine,
     )
     if not data:
         return None
     answer = data.get("answers", {}).get("route")
     if not (isinstance(answer, dict) and isinstance(answer.get("choice"), str)):
         _breaker.record_failure()
-        _log("error", "resposta sem escolha válida", 0)
+        _log("error", "resposta sem escolha válida", 0, routine)
         return None
 
     confidence = answer.get("confidence")
@@ -210,7 +233,11 @@ def _read_noul(answers: dict, key: str) -> float | None:
     return None
 
 
-def jev_noul(instructions: str, state: dict) -> float | None:
+def jev_noul(
+    instructions: str,
+    state: dict,
+    routine: str = "r4_rerank",
+) -> float | None:
     """Devolve o ``noul`` calibrado (0..1) para uma única pergunta.
 
     Usado no rerank (G3) para julgar, documento a documento, se o trecho
@@ -220,17 +247,23 @@ def jev_noul(instructions: str, state: dict) -> float | None:
     data = _system_one(
         {"relevance": {"type": "noul", "instructions": instructions}},
         state,
+        routine,
     )
     if not data:
         return None
     noul = _read_noul(data.get("answers", {}), "relevance")
     if noul is None:
         _breaker.record_failure()
-        _log("error", "resposta sem noul válido", 0)
+        _log("error", "resposta sem noul válido", 0, routine)
     return noul
 
 
-def jev_check(claim: str, evidence: str, state: dict | None = None) -> str | None:
+def jev_check(
+    claim: str,
+    evidence: str,
+    state: dict | None = None,
+    routine: str = "r3_answerability",
+) -> str | None:
     """Verifica se ``evidence`` sustenta ``claim`` (veredito calibrado).
 
     Espelha o ``jev_check`` do jevcore: três perguntas ``noul`` independentes
@@ -244,6 +277,7 @@ def jev_check(claim: str, evidence: str, state: dict | None = None) -> str | Non
     data = _system_one(
         questions,
         {"claim": claim, "evidence": evidence, **(state or {})},
+        routine,
     )
     if not data:
         return None
@@ -255,7 +289,7 @@ def jev_check(claim: str, evidence: str, state: dict | None = None) -> str | Non
 
     if supports is None and contradicts is None:
         _breaker.record_failure()
-        _log("error", "resposta sem veredito válido", 0)
+        _log("error", "resposta sem veredito válido", 0, routine)
         return None
 
     if (supports or 0) >= _CHECK_SUPPORT_THRESHOLD and (contradicts or 0) >= _CHECK_CONTRADICTION_THRESHOLD:

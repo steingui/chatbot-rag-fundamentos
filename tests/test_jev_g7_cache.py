@@ -22,28 +22,28 @@ def test_get_hit_exato_nao_chama_jev(monkeypatch):
 
 
 def test_get_hit_semantico(monkeypatch):
-    monkeypatch.setattr(cache_mod, "jev_noul", lambda instructions, state: 1.0)
+    monkeypatch.setattr(cache_mod, "jev_noul", lambda instructions, state, routine=None: 1.0)
     c = RAGQueryCache(ttl_seconds=300, max_size=10)
     c.set("voto do deputado X na PEC Y", {"answer": "A"}, model_name="m")
     assert c.get("como o deputado X votou na PEC Y", model_name="m")["answer"] == "A"
 
 
 def test_get_semantico_abaixo_do_limiar(monkeypatch):
-    monkeypatch.setattr(cache_mod, "jev_noul", lambda instructions, state: 0.1)
+    monkeypatch.setattr(cache_mod, "jev_noul", lambda instructions, state, routine=None: 0.1)
     c = RAGQueryCache(ttl_seconds=300, max_size=10)
     c.set("voto do deputado X na PEC Y", {"answer": "A"}, model_name="m")
     assert c.get("como o deputado X votou na PEC Y", model_name="m") is None
 
 
 def test_get_semantico_jev_falha(monkeypatch):
-    monkeypatch.setattr(cache_mod, "jev_noul", lambda instructions, state: None)
+    monkeypatch.setattr(cache_mod, "jev_noul", lambda instructions, state, routine=None: None)
     c = RAGQueryCache(ttl_seconds=300, max_size=10)
     c.set("voto do deputado X", {"answer": "A"}, model_name="m")
     assert c.get("outra pergunta", model_name="m") is None
 
 
 def test_semantico_respeita_modelo(monkeypatch):
-    monkeypatch.setattr(cache_mod, "jev_noul", lambda instructions, state: 1.0)
+    monkeypatch.setattr(cache_mod, "jev_noul", lambda instructions, state, routine=None: 1.0)
     c = RAGQueryCache(ttl_seconds=300, max_size=10)
     c.set("voto do deputado X", {"answer": "A"}, model_name="gemini")
     assert c.get("como votou o deputado X", model_name="llama") is None
