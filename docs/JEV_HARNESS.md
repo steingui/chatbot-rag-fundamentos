@@ -3,7 +3,7 @@
 > **Status: H1 implementado** via SDD-cycle (teste de aceite →
 > [`test_harness_links.py`](tests/test_harness_links.py:132) falhou → passo 4
 > adicionado ao skill [`validate-commits`](.roo/skills/validate-commits/SKILL.md:18)
-> → teste passou). H2 permanece opcional/adido.
+> → teste passou). H2 permanece opcional/adiado.
 
 > Pergunta: **podemos melhorar o harness na codebase com Jev?**
 >
@@ -56,7 +56,7 @@ afirmação do doc com a realidade do código. Essa comparação é exatamente o
 
 | Camada do harness | Jev se aplica? | Justificativa |
 |-------------------|----------------|---------------|
-| Invariantes P0-x/P1-x (arquivo, regex, linha) | ❌ Não | Fluxo determinístico; Jev adicionaria latência sem melhorar a decisão (mesma regra de [`JEV_SKILLS_INTEGRATION.md`](docs/JEV_SKILLS_INTEGRATION.md:70)) |
+| Invariantes P0-x/P1-x (arquivo, regex, linha) | ❌ Não | Fluxo determinístico; Jev adicionaria latência sem melhorar a decisão (mesma regra da seção 3 deste documento) |
 | **Drift semântico doc ↔ código (novo)** | ✅ **Sim** | `jev_check` compara afirmação × evidência; é a única forma de pegar doc stale sem LLM de síntese |
 | Validação do roteamento do MANIFEST (custo × suficiência) | ⚠️ Marginal | `jev_choice`/`jev_noul` pode auditar se a tabela roteia uma tarefa para o doc mais barato que responde — útil como auditoria periódica, não por task |
 | Contagem de tokens (`bytes/4` do MANIFEST) | ❌ Não | Aritmética determinística |
@@ -126,3 +126,33 @@ só se a auditoria H1 revelar roteamento incorreto recorrente.
 Veredito final: **sim, o harness melhora com Jev — adicionando uma camada de
 drift semântico que hoje não existe, sem tocar nas invariantes determinísticas
 que já funcionam.**
+
+---
+
+## 6. Resultado da primeira auditoria H1 (drift semântico doc ↔ código)
+
+Executada em `fix/gcp-auth-cloud-run-publico` com `jev_check` (MCP `jevcore`)
+sobre 10 pares `(claim, evidence)` extraídos de `.llm/`. Custo total da rodada:
+~US$ 0,00018.
+
+| # | Claim auditada | Veredito | Ação |
+|---|----------------|----------|------|
+| 1 | [`BUSINESS_RULES.md`](.llm/BUSINESS_RULES.md) — `record_query` faz fuzzy-match + canonização LLM | `contradicted` (0.97) | **Drift corrigido**: doc reescrito para refletir `record_query()` no-op |
+| 2 | [`BUSINESS_RULES.md`](.llm/BUSINESS_RULES.md) — retriever ativo é `HybridRetriever` Dense+BM25/RRF | `contradicted` (0.94) | **Drift corrigido**: doc passa a descrever `PineconeHybridSearchRetriever` + `PineconeRerank` |
+| 3 | [`BUSINESS_RULES.md`](.llm/BUSINESS_RULES.md) — roteamento determinístico, sem custo de LLM | `contradicted` (0.95) | **Drift corrigido**: doc passa a descrever Jev/decider no default ambíguo |
+| 4 | [`BUSINESS_RULES.md`](.llm/BUSINESS_RULES.md) — regex de injeção com 11 padrões | `contradicted` (0.95) | **Drift corrigido**: doc passa a descrever ~30 padrões + scanner PID |
+| 5 | [`API_CONTRACT.md`](.llm/API_CONTRACT.md) — `/suggestions` retorna top 8 por contagem | `contradicted` (0.97) | **Drift corrigido**: doc passa a descrever prompts curados aleatórios, `count=0` |
+| 6 | [`BUSINESS_RULES.md`](.llm/BUSINESS_RULES.md) — seeds de 8 sugestões no SQLite (`init_analytics_db`) | `contradicted` (0.92) | **Drift corrigido**: doc remove referência a SQLite/seeds |
+| 7 | [`BUSINESS_RULES.md`](.llm/BUSINESS_RULES.md) — `source_documents[]` + `SourceBadges` clicáveis | `contradicted` (0.74, sufficient 0.29) | **Insufficient** (evidência fraca): manter — campo existe e `SourceBadges.tsx` renderiza; revisar redação do contrato |
+| 8 | [`BUSINESS_RULES.md`](.llm/BUSINESS_RULES.md) — RAGQueryCache TTL/max/chave/eviction | `insufficient` (sufficient 0.63) | **Revisão manual**: eviction é LRU via `cachetools.TTLCache`, não "entry mais antigo" literal |
+| 9 | [`API_CONTRACT.md`](.llm/API_CONTRACT.md) — rate limits 60/30/30 por IP | `supported` (0.73) | Alinhado |
+| 10 | [`BUSINESS_RULES.md`](.llm/BUSINESS_RULES.md) — hierarquia de confiança base interna > web | `supported` (0.97) | Alinhado |
+
+**Correções aplicadas** no mesmo commit (regra 4 do
+[`MANIFEST.md`](.llm/MANIFEST.md:25)): [`BUSINESS_RULES.md`](.llm/BUSINESS_RULES.md)
+(seções Guardrails, Analytics, Roteamento, Retriever) e
+[`API_CONTRACT.md`](.llm/API_CONTRACT.md:20) (`/suggestions`).
+
+**Limiar observado:** `contradicted` com `contradicts >= 0.9` foi confiável para
+disparar fix automático; `contradicted` com `sufficient < 0.5` (claim 7) deve ser
+tratado como evidência fraca → revisão manual, não fix automático.

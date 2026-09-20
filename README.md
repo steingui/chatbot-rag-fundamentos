@@ -4,7 +4,7 @@ Este projeto utiliza inteligência artificial avançada (RAG - *Retrieval-Augmen
 
 ## 🏗️ Arquitetura e Fontes de Dados (Fase 4)
 
-O sistema ingere e processa dados automaticamente usando **GitHub Actions** em 10 pipelines integradas:
+O sistema ingere e processa dados automaticamente usando **GitHub Actions** em 6 pipelines integradas:
 1. **Votações e Proposições da Câmara (Diário/Semanal)**
 2. **Dados do TSE - DivulgaCandContas (Semanal)**
 3. **Planos de Governo e Fact-Checking (Diário/Mensal)**
@@ -19,8 +19,9 @@ A Inteligência Artificial é impulsionada por arquitetura **Multi-Provider (Goo
 O backend (FastAPI) está hospedado no Google Cloud Run, e o frontend no Firebase Hosting. Teste a API via `curl`:
 
 ```bash
-curl -X POST "https://chatbot-rag-api-1043919586992.southamerica-east1.run.app/chat" \
+curl -X POST "https://chatbot-rag-api-1043919586992.southamerica-east1.run.app/api/v1/chat" \
      -H "Content-Type: application/json" \
+     -H "Authorization: Bearer <id_token_firebase>" \
      -d '{"query": "Resuma a PEC 45/2019 e diga se é verdade que ela aumenta imposto sobre cestas básicas."}'
 ```
 

@@ -8,12 +8,12 @@
 
 ### 2.1 Struct & Versionamento de API
 - [x] **[BE-201]** Versionar rotas existentes sob o prefixo `/api/v1` (ex: `/api/v1/chat`, `/api/v1/chat/stream`).
-- [ ] **[BE-202]** Criar suporte a Server-Sent Events (SSE) nativo para streaming de respostas no mobile (`/api/v1/chat/stream`).
+- [x] **[BE-202]** Criar suporte a Server-Sent Events (SSE) nativo para streaming de respostas no mobile (`/api/v1/chat/stream`) `[DONE]` → [`backend/api/main.py`](../backend/api/main.py:247).
 - [ ] **[BE-203]** Implementar endpoint `/api/v1/user/profile` para recuperar preferências e limites do usuário.
 - [ ] **[BE-204]** Implementar endpoint paginado `/api/v1/user/history` para listagem e busca de conversas passadas.
 
 ### 2.2 Persistência de Dados (Firestore / PostgreSQL)
-- [ ] **[BE-205]** Integrar SDK Firestore (GCP Native) para persistência serverless de usuários, conversas e mensagens.
+- [x] **[BE-205]** Integrar SDK Firestore (via `firebase_admin`) para persistência serverless de usuários, conversas e mensagens `[DONE]` → [`backend/api/firestore_db.py`](../backend/api/firestore_db.py:15).
 - [ ] **[BE-206]** Projetar esquema NoSQL: coleções `users`, `conversations`, `messages`, `preferences`, `usage_metrics`.
 - [ ] **[BE-207]** Implementar camada ORM/Repository abstrata preparando suporte futuro para PostgreSQL (Neon/Cloud SQL).
 

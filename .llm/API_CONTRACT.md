@@ -19,15 +19,16 @@ Health check.
 
 ### `GET /api/v1/suggestions`
 
-Retorna as 8 consultas mais populares.
+Retorna 8 sugestões (prompts curados aleatórios de `curated_prompts.json`, sem
+ranking por popularidade — `count` é opcional e hoje sempre `0`).
 Rate limit: **60/min** por IP.
 
 **Response** `200`:
 ```json
 {
   "suggestions": [
-    { "prompt": "Resuma a PEC 45/2019 e a reforma tributária", "count": 25 },
-    { "prompt": "Como os deputados votaram sobre o arcabouço fiscal?", "count": 18 }
+    { "prompt": "Resuma a PEC 45/2019 e a reforma tributária", "count": 0 },
+    { "prompt": "Como os deputados votaram sobre o arcabouço fiscal?", "count": 0 }
   ]
 }
 ```
@@ -40,9 +41,11 @@ Consulta síncrona (resposta completa de uma vez).
 Rate limit: **30/min** por IP.
 
 **Autenticação**:
-- Opcional. Sem `Authorization`, o usuário é tratado como `anonymous`.
-- Com `Authorization: Bearer <id_token>` (Firebase Auth), o backend valida o
-  token e injeta `uid`, `email`, `name` e `privileges` (custom claims) no contexto.
+- **Requerida**. `Authorization: Bearer <id_token>` (Firebase Auth) é obrigatório:
+  o endpoint usa `Depends(get_required_user)`, que valida o token via
+  `firebase_admin` e retorna **401** quando ausente/inválido.
+- Com token válido, o backend injeta `uid`, `email`, `name` e `privileges`
+  (custom claims) no contexto.
 
 **Request Body**:
 ```json
@@ -87,7 +90,7 @@ Consulta com streaming via **Server-Sent Events (SSE)**.
 Rate limit: **30/min** por IP.
 Content-Type da resposta: `text/event-stream`.
 
-**Autenticação**: mesma de `POST /api/v1/chat` (Bearer opcional).
+**Autenticação**: mesma de `POST /api/v1/chat` (Bearer **obrigatório**, `get_required_user`).
 
 **Request Body**: mesmo de `POST /api/v1/chat`.
 

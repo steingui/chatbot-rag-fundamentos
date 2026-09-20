@@ -41,14 +41,14 @@ App.tsx (root)
 ### `ModelSelector.tsx`
 - **Responsabilidade**: Dropdown para selecionar modelo LLM
 - **Store deps**: `selectedModel`, `setSelectedModel`
-- **Dados**: `FREE_MODELS[]` do store (5 modelos free-tier)
+- **Dados**: `FREE_MODELS[]` do store (6 modelos free-tier, objetos `{id, label}`)
 - **Classe CSS**: `.model-select`
 
 ### `SuggestionGrid.tsx`
-- **Responsabilidade**: Grid horizontal de 8 sugestões populares com badge de contagem
+- **Responsabilidade**: Grid horizontal de sugestões populares (sem badge de contagem — `count` é obsoleto)
 - **Store deps**: `suggestions`, `sendMessageStream`, `isLoading`
 - **Comportamento**: Click em sugestão → `sendMessageStream(sug.prompt)`
-- **Classes CSS**: `.suggestions-container`, `.suggestion-card-item`, `.suggestion-card-count`
+- **Classes CSS**: `.suggestions-container`, `.suggestion-card-item`
 
 ### `MessageList.tsx`
 - **Responsabilidade**: Renderizar mensagens com virtualização (TanStack Virtual)
@@ -79,6 +79,13 @@ App.tsx (root)
 | `selectedModel` | `string` | `FREE_MODELS[0].id` |
 | `isLoading` | `boolean` | `false` |
 | `suggestions` | `SuggestionItem[]` | 4 seeds hardcoded |
+| `showSuggestions` | `boolean` | `true` |
+| `isSidebarOpen` | `boolean` | `true` |
+| `fontSize` | `number` | — |
+| `guestId` | `string` | `guest_{uuid}` (SEC-010) |
+| `guestPromptCount` | `number` | `0` ou localStorage |
+| `adLocked` | `boolean` | `isAdLocked(guestPromptCount)` |
+| `abortController` | `AbortController \| null` | `null` |
 
 ### Actions
 
@@ -87,12 +94,21 @@ App.tsx (root)
 | `setInput(s)` | Atualiza campo de input |
 | `setSelectedModel(m)` | Seleciona modelo LLM |
 | `setActiveIdx(i)` | Muda sessão ativa |
+| `toggleSidebar()` | Alterna sidebar |
 | `addSession()` | Cria nova sessão (max 5) |
 | `closeSession(i)` | Remove sessão por índice |
 | `clearActiveSession()` | Reseta mensagens da sessão ativa |
+| `clearAllSessions()` | Remove todas as sessões |
+| `increaseFontSize()` / `decreaseFontSize()` / `resetFontSize()` | Ajusta tamanho de fonte |
 | `setSuggestions(s)` | Atualiza sugestões |
+| `setShowSuggestions(b)` | Mostra/esconde sugestões |
 | `fetchSuggestions()` | Busca sugestões (cache TTL → API fallback) |
 | `sendMessageStream(q)` | Envia query via SSE streaming |
+| `stopStream()` | Aborta stream em andamento |
+| `editLastPrompt()` | Restaura última pergunta para edição |
+| `incrementGuestPrompts()` | Incrementa contador guest + recalcula adLocked |
+| `resetGuestPrompts()` | Zera contador guest |
+| `unlockRewardedAd()` | Destrava lote de prompts (MON-602) |
 
 ### Persistência
 

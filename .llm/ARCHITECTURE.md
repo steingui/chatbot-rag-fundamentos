@@ -28,16 +28,16 @@ Monorepo com 3 camadas: **Backend Python** (FastAPI no GCP Cloud Run), **Fronten
 backend/
 ├── api/
 │   ├── main.py           # FastAPI app, rotas /chat, /chat/stream, /suggestions
-│   ├── analytics.py      # SQLite: registro e canonização de queries populares
+│   ├── analytics.py      # Sugestões curadas (curated_prompts.json); record_query é no-op
 │   ├── guardrails.py     # Validação anti-injection, sanitização, limites
-│   ├── auth.py           # Validação opcional de JWT do Firebase Auth
-│   └── firestore_db.py   # Persistência opcional de histórico de chat no Firestore
+│   ├── auth.py           # Validação obrigatória de JWT do Firebase Auth (get_required_user)
+│   └── firestore_db.py   # Persistência de mensagens/sessões de chat no Firestore
 ├── rag/
 │   ├── chat.py           # MultiSourceAgentChain: orquestra Pinecone + DDGS + LLM
 │   ├── semantic_router.py # RAG-101: classifica intenção (RAG vs Web vs Direct) antes das ferramentas
 │   ├── context_window.py # RAG-109: janela de contexto dinâmica por contagem exata de tokens
-│   ├── retriever.py      # HybridRetriever: Dense (Pinecone) + BM25 com RRF
-│   ├── llm_fallback.py   # DynamicFallbackLLMManager: alternância dinâmica de LLMs
+│   ├── retriever.py      # HybridRetriever: Dense + BM25 local via RRF (dead code, não instanciado)
+│   ├── llm_fallback.py   # DynamicFallbackLLMManager (dead code, não instanciado)
 │   └── cache.py          # RAGQueryCache: cache em memória com TTL e eviction LRU
 └── workers/
     └── ingestion_worker.py  # Worker assíncrono para ingestão batch no Pinecone
@@ -50,14 +50,14 @@ backend/
 3. Se cache miss: `init_components()` lazy → inicializa Pinecone + LLM
 4. `get_rag_chain(session_id, model)` → retorna `MultiSourceAgentChain`
 5. `chain.stream()` → roteia por `SemanticRouter.route(query)` (RAG vs Web vs Direct):
-   a. Rota RAG → `_retriever.invoke(query)` (Pinecone VectorStore) como fonte primária
+   a. Rota RAG → `PineconeHybridSearchRetriever` (top_k=30) + `PineconeRerank` (bge-reranker-v2-m3, top_n=5) + filtro G3 (`RERANK_NOUL_THRESHOLD`) como fonte primária
    b. Rota RAG/Web → `_buscar_noticias_web(query)` (DDGS text + news fallback, região BR)
    c. Rota Direct → LLM direto, sem ferramentas
    d. `_build_synthesis_prompt()` → prompt de síntese hierárquica (histórico recente podado por tokens exatos + base factual interna = primário; web = secundário)
    e. `llm.stream(prompt)` → gera tokens incrementais
 6. SSE events: `{type: "sources", sources: [...]}` → `{type: "token", token: "..."}` → `[DONE]`
 7. `global_rag_cache.set()` — armazena resposta completa
-8. `record_query()` em background — atualiza SQLite analytics
+8. `record_query()` em background — no-op (`pass`); persistência fica no Firestore via `save_chat_message()`
 
 ## Camada Frontend (v2)
 
@@ -87,4 +87,4 @@ frontend/src/
 | Frontend | React + Tailwind CSS v3 | Firebase Hosting (`chatbot-rag-fundamentos`) |
 | CI/CD & Build | Cloud Build | Trigger automático na `main` (`cloudbuild.yaml`) |
 | Vector DB | Pinecone (index: `rag-fundamentos`) | Pinecone Serverless |
-| LLMs | Google AI & OpenRouter | Gemini 3.7 Flash, Gemini 3.6 Flash, Llama 3.3, DeepSeek R1 |
+| LLMs | Google AI & OpenRouter | Gemini (3.7/3.6/2.5 Flash, Flash Latest, 3.5 Flash, Pro Latest), Llama 3.3, DeepSeek R1, Qwen 2.5 Coder |

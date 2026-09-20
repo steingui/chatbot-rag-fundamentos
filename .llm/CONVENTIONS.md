@@ -74,8 +74,9 @@ Scopes: `rag`, `api`, `frontend`, `ui`, `pipeline`, `infra`, `security`, `perf`
 
 ### Backend
 
-- Runner: **pytest** (não instalado no venv local, roda no CI)
+- Runner: **pytest** (instalado no venv local via `requirements.txt`)
 - Localização: `tests/`
+- Execução: `.venv/bin/python -m pytest tests/ -q`
 
 ## Build & Deploy
 
@@ -103,14 +104,14 @@ docker run -p 10000:10000 --env-file .env rag-api
 
 ### Deploy
 
-Push para `main` → Render autodeploy:
-- API: rebuild Docker → `python -m uvicorn backend.api.main:app --host 0.0.0.0 --port 10000`
-- Frontend: `npm install && npm run build` → serve `dist/` como static site
+Push para `main` → Cloud Build (`cloudbuild.yaml`):
+- API: build Docker → deploy GCP Cloud Run → `python -m uvicorn backend.api.main:app --host 0.0.0.0 --port 10000`
+- Frontend: `npm install && npm run build` → deploy Firebase Hosting (`firebase.json`)
 
 ## Segurança
 
 - Nunca commitar `.env` (está no `.gitignore`)
-- Variáveis sensíveis via Render Dashboard (secrets)
+- Variáveis sensíveis via GCP Secret Manager (Cloud Run) — ver `.env.example`
 - Docker roda como `appuser` (non-root)
-- CORS aberto (`*`) pois frontend é static site em domínio diferente
+- CORS restrito a `ALLOWED_ORIGINS` (SEC-001) — não mais `*`
 - Rate limiting via `slowapi` (por IP)

@@ -28,8 +28,8 @@ barata.
 | # | Gap | Tipo Jev | Economia | Qualidade |
 |---|-----|----------|----------|-----------|
 | G1 | Roteamento semântico cego a paráfrases | `choice` | Alta (evita pipeline completo) | Alta (rota correta) | `[DONE]` |
-| G2 | Anti-alucinação só por prompt | `check` | Média (evita geração inútil) | Alta (menos alucinação) |
-| G3 | Rerank sem limiar de relevância | `noul` | Média (menos tokens no prompt) | Alta (menos ruído) |
+| G2 | Anti-alucinação só por prompt | `check` | Média (evita geração inútil) | Alta (menos alucinação) | `[DONE]` |
+| G3 | Rerank sem limiar de relevância | `noul` | Média (menos tokens no prompt) | Alta (menos ruído) | `[DONE]` |
 | G4 | Web search dispara sempre em RAG | `noul` | Alta (corta DDGS+latência) | Neutra/alta |
 | G5 | Conflito interno vs web não verificado | `check` | Baixa | Alta (hierarquia mecânica) |
 | G6 | `record_query` é no-op (analytics morto) | `choice`/`noul` | Baixa | Alta (dados de produto) |
@@ -75,6 +75,11 @@ consultas fora do domínio. É o maior ganho de economia do mapa.
 
 ### G2 — Anti-alucinação apenas por prompt (verificação mecânica ausente) `[DONE]`
 
+**Implementado em:** [`jev_check()`](backend/rag/jev_client.py:233) +
+[`_answerable()`](backend/rag/chat.py:241) (pré-geração) +
+[`_post_check_ok()`](backend/rag/chat.py:269) (pós-geração). Falha do Jev
+(`None`) nunca quebra o pipeline — segue com a geração.
+
 **Local:** [`_build_synthesis_prompt()`](backend/rag/chat.py:213) e regra
 [`BUSINESS_RULES.md` #2](.llm/BUSINESS_RULES.md:24). A instrução "não invente"
 vive só no system prompt.
@@ -95,7 +100,7 @@ requisito central de [`BUSINESS_RULES.md`](.llm/BUSINESS_RULES.md:24).
 
 ---
 
-### G3 — Rerank sem limiar de relevância
+### G3 — Rerank sem limiar de relevância `[DONE]`
 
 **Local:** [`PineconeRerank`](backend/rag/chat.py:65) com `top_n=5` fixo.
 
@@ -111,6 +116,14 @@ Jev lê contexto pequeno e custa ~US$ 0,000012, filtrar 5 docs custa ~US$
 0,00006 — irrisório frente ao custo de token do Gemini.
 
 **Impacto:** prompts enxutos, menos ruído, menos custo por síntese.
+
+**Implementado em:** [`jev_noul()`](backend/rag/jev_client.py:213) +
+[`_filter_relevant_docs()`](backend/rag/chat.py:217) com limiar
+`RERANK_NOUL_THRESHOLD = 0.5`. O filtro roda no
+[`MultiSourceAgentChain.invoke()`](backend/rag/chat.py:305) **antes** de montar
+o prompt; `None`/falha do Jev mantém o documento (o pipeline nunca quebra por
+indisponibilidade do Jev). Testes em
+[`tests/test_jev_g3_rerank.py`](tests/test_jev_g3_rerank.py).
 
 ---
 
@@ -207,7 +220,9 @@ executada aqui — modo horse-architect edita apenas `.md`):
    [`backend/rag/semantic_router.py`](backend/rag/semantic_router.py:126).
 2. **G4** — gate de web search com `noul` (1 chamada, corte de latência).
 3. **G2** — gate de answerability pré-geração com `jev_check`.
-4. **G3** — filtro de relevância pós-rerank com `noul`.
+4. **G3** — filtro de relevância pós-rerank com `noul` `[DONE]`. Entregue em
+   [`jev_noul()`](backend/rag/jev_client.py:213) +
+   [`_filter_relevant_docs()`](backend/rag/chat.py:217).
 5. **G6** — reativar `record_query` com canonização Jev.
 6. **G5** — checagem de conflito interno vs web.
 7. **G7** — dedup semântico (comparar com embedding local antes).

@@ -6,25 +6,30 @@
 
 | Pacote | Versão | Uso |
 |--------|--------|-----|
-| `fastapi` | latest | Framework HTTP async |
-| `uvicorn` | latest | ASGI server |
-| `langchain` | latest | Core chains/prompts |
-| `langchain-classic` | latest | Compatibilidade LangChain |
-| `langchain-community` | latest | Retrievers comunitários |
-| `langchain-pinecone` | latest | PineconeVectorStore |
-| `pinecone-client` | latest | SDK Pinecone |
-| `langchain-openai` | latest | ChatOpenAI (OpenRouter) |
-| `langchain-huggingface` | latest | HuggingFaceEndpointEmbeddings |
-| `pypdf` | latest | Extração de texto de PDFs |
-| `python-dotenv` | latest | Carrega .env |
-| `requests` | latest | HTTP client (scrapers) |
-| `duckduckgo-search` | latest | Busca web (import ddgs) |
-| `ddgs` | latest | Wrapper DDGS alternativo |
-| `slowapi` | latest | Rate limiting por IP |
-| `rank-bm25` | latest | BM25Okapi para retrieval lexical |
-| `pytest-asyncio` | latest | Suporte a suítes de testes assíncronos no pytest |
-| `firebase-admin` | latest | SDK Admin do Firebase para autenticação e Firestore |
-| `google-cloud-firestore` | latest | Cliente GCP Firestore para dados no NoSQL |
+| `fastapi` | 0.141.1 | Framework HTTP async |
+| `uvicorn` | 0.52.3 | ASGI server |
+| `langchain` | 1.3.15 | Core chains/prompts |
+| `langchain-classic` | 1.0.8 | `ContextualCompressionRetriever` |
+| `langchain-community` | 0.4.2 | `PineconeHybridSearchRetriever` |
+| `langchain-pinecone` | 0.2.13 | `PineconeVectorStore`, `PineconeRerank` |
+| `pinecone` | — | SDK Pinecone |
+| `langchain-openai` | 1.5.1 | `ChatOpenAI` (OpenRouter) |
+| `langchain-huggingface` | 1.2.2 | `HuggingFaceEndpointEmbeddings` |
+| `pypdf` | 6.16.1 | Extração de texto de PDFs |
+| `python-dotenv` | 1.2.3 | Carrega .env |
+| `requests` | 2.34.2 | HTTP client (scrapers) |
+| `duckduckgo-search` / `ddgs` | 9.15.0 | Busca web (DDGS) |
+| `slowapi` | 0.1.10 | Rate limiting por IP |
+| `rank-bm25` | — | BM25Okapi (retriever legado) |
+| `pinecone-text` | 0.9.0 | Sparse encoder |
+| `mmh3` | — | Hash para sparse encoding |
+| `firebase-admin` | — | Firebase Auth (JWT) |
+| `langchain-google-genai` | — | `ChatGoogleGenerativeAI` (fallback) |
+| `prompt-injection-detector` | — | Scanner PID (guardrails) |
+| `cachetools` | — | `TTLCache` (RAGQueryCache) |
+| `tenacity` | — | Retry |
+| `httpx` | — | Cliente HTTP (jev_client) |
+| `pytest-asyncio` | — | Testes assíncronos no pytest |
 
 ### Grafo de Imports Internos
 
@@ -32,18 +37,23 @@
 backend/api/main.py
 ├── backend.rag.chat          → init_components, get_rag_chain
 ├── backend.rag.cache         → global_rag_cache
-├── backend.rag.llm_fallback  → get_fallback_manager
 ├── backend.api.analytics     → get_top_suggestions, record_query
 ├── backend.api.guardrails    → validate_and_sanitize_query
-├── backend.api.auth          → get_optional_current_user
-└── backend.api.firestore_db  → save_chat_turn, get_chat_history
+├── backend.api.auth          → get_required_user
+└── backend.api.firestore_db  → save_chat_message, get_session_messages
 
 backend/rag/chat.py
-├── langchain_pinecone        → PineconeVectorStore
+├── langchain_pinecone        → PineconeVectorStore, PineconeRerank
+├── langchain_community.retrievers → PineconeHybridSearchRetriever
+├── langchain_classic.retrievers   → ContextualCompressionRetriever
 ├── langchain_huggingface     → HuggingFaceEndpointEmbeddings
 ├── langchain_openai          → ChatOpenAI
+├── langchain_google_genai    → ChatGoogleGenerativeAI (fallback)
 ├── langchain_core.documents  → Document
 ├── backend.rag.context_window → build_context_window, count_tokens, format_history, max_input_tokens_for_model
+├── backend.rag.semantic_router → SemanticRouter, Route
+├── backend.rag.sparse_encoder → FastBM25Encoder
+├── backend.rag.jev_client    → jev_check, jev_noul, CHECK_*
 └── ddgs                      → DDGS (busca web)
 
 backend/rag/context_window.py
@@ -57,12 +67,11 @@ backend/rag/llm_fallback.py
 └── langchain_google_genai / langchain_openai → ChatGoogleGenerativeAI, ChatOpenAI
 
 backend/rag/cache.py
-└── (sem dependências externas, apenas stdlib)
+└── cachetools → TTLCache
 
 backend/api/analytics.py
-├── sqlite3
-├── difflib                   → SequenceMatcher (fuzzy match)
-└── langchain_openai          → ChatOpenAI (canonização via LLM)
+├── os, random, logging, typing (stdlib)
+└── curated_prompts.json      → prompts curados (não usa SQLite nem LLM)
 
 backend/api/guardrails.py
 └── fastapi                   → HTTPException
