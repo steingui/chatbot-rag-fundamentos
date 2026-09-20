@@ -42,6 +42,8 @@ def test_loop_multiturn_coerencia_e_fontes(monkeypatch):
     monkeypatch.setattr(semantic_router, "_jev_choice", lambda **kw: ("RAG", 1.0))
     monkeypatch.setattr(chat, "_retriever", MagicMock(invoke=_fake_retriever))
     monkeypatch.setattr(chat, "_buscar_noticias_web", _fake_web)
+    # Gate G2 (answerability) fora do escopo deste loop: mantém determinístico/offline.
+    monkeypatch.setattr(chat, "jev_check", lambda **kw: "supported")
 
     chain, llm = _make_chain()
     history = []
