@@ -8,6 +8,7 @@
 
 ### 1.1 Roteamento Semântico & Fallbacks (Multi-LLM)
 - [x] **[RAG-101]** Implementar roteamento semântico (`SemanticRouter`) para classificar a intenção do usuário antes de acionar ferramentas (RAG vs Web vs Direct LLM).
+- [x] **[RAG-113]** Gate Jev no default ambíguo do roteamento com guardrail de 90% de confiança — regex soberano, Jev arbitra só com `confidence >= 0.9`, abaixo disso decider LLM decide e fallback RAG `[DONE]` → [`backend/rag/jev_client.py`](../backend/rag/jev_client.py) + [`backend/rag/semantic_router.py`](../backend/rag/semantic_router.py:126).
 - [ ] **[RAG-102]** Migrar fallback de OpenRouter Free para Google AI Studio (`gemini-3.7-flash`) como LLM primária.
 - [ ] **[RAG-103]** Integrar Groq (`llama-3.3-70b`) como LLM Fallback 1 para absorção de rate-limits (HTTP 429).
 - [ ] **[RAG-104]** Integrar DeepSeek V4 Flash via API direta como Fallback 2 de baixíssimo custo.

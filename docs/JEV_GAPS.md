@@ -27,7 +27,7 @@ barata.
 
 | # | Gap | Tipo Jev | Economia | Qualidade |
 |---|-----|----------|----------|-----------|
-| G1 | Roteamento semântico cego a paráfrases | `choice` | Alta (evita pipeline completo) | Alta (rota correta) |
+| G1 | Roteamento semântico cego a paráfrases | `choice` | Alta (evita pipeline completo) | Alta (rota correta) | `[DONE]` |
 | G2 | Anti-alucinação só por prompt | `check` | Média (evita geração inútil) | Alta (menos alucinação) |
 | G3 | Rerank sem limiar de relevância | `noul` | Média (menos tokens no prompt) | Alta (menos ruído) |
 | G4 | Web search dispara sempre em RAG | `noul` | Alta (corta DDGS+latência) | Neutra/alta |
@@ -39,17 +39,20 @@ barata.
 
 ## 2. Gaps detalhados
 
-### G1 — Roteamento semântico cego a paráfrases (prioridade máxima)
+### G1 — Roteamento semântico cego a paráfrases (prioridade máxima) `[DONE]`
 
-**Local:** [`SemanticRouter.route()`](backend/rag/semantic_router.py:61),
-padrões [`_WEB_RE`](backend/rag/semantic_router.py:27),
-[`_DOMAIN_RE`](backend/rag/semantic_router.py:33),
-[`_DIRECT_RE`](backend/rag/semantic_router.py:43).
+**Implementado em:** [`backend/rag/jev_client.py`](backend/rag/jev_client.py)
+(cliente fino `jev_choice`) + [`SemanticRouter.route()`](backend/rag/semantic_router.py:126)
+com decider LLM [`_llm_decide()`](backend/rag/semantic_router.py:84).
 
-**Comportamento atual:** classificação determinística por regex sobre texto
-normalizado. O `default` é [`return Route.RAG`](backend/rag/semantic_router.py:69).
-Toda consulta que não casa nenhum padrão cai em RAG e dispara o pipeline
-completo: Pinecone + DDGS + síntese Gemini.
+**Local:** [`SemanticRouter.route()`](backend/rag/semantic_router.py:126),
+padrões [`_WEB_RE`](backend/rag/semantic_router.py:40),
+[`_DOMAIN_RE`](backend/rag/semantic_router.py:46),
+[`_DIRECT_RE`](backend/rag/semantic_router.py:56).
+
+**Comportamento anterior:** classificação determinística por regex sobre texto
+normalizado. O `default` era `return Route.RAG` para qualquer paráfrase sem
+keyword, disparando o pipeline completo (Pinecone + DDGS + síntese Gemini).
 
 **Problema:** paráfrases sem keyword do domínio ("quanto custa um deputado?",
 "o que mudou na lei da transparência?") ou conversa casual que não casa
@@ -198,8 +201,10 @@ executada aqui — modo horse-architect edita apenas `.md`):
 ## 4. Roadmap de implementação (ordem por ROI)
 
 1. **G1** — roteamento Jev só no default ambíguo (menor mudança, maior
-   economia). Regex continua soberano; Jev decide apenas com
+   economia) `[DONE]`. Regex continua soberano; Jev decide apenas com
    `confidence >= 0.9`; abaixo disso, decider LLM decide; fallback RAG.
+   Entregue em [`backend/rag/jev_client.py`](backend/rag/jev_client.py) +
+   [`backend/rag/semantic_router.py`](backend/rag/semantic_router.py:126).
 2. **G4** — gate de web search com `noul` (1 chamada, corte de latência).
 3. **G2** — gate de answerability pré-geração com `jev_check`.
 4. **G3** — filtro de relevância pós-rerank com `noul`.
