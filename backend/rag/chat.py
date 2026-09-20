@@ -17,7 +17,7 @@ from backend.rag.context_window import (
 from backend.rag.semantic_router import Route, SemanticRouter
 from backend.rag.jev_client import CHECK_CONTRADICTED, CHECK_INSUFFICIENT, CHECK_SUPPORTED, jev_check, jev_noul
 
-logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
+logger = logging.getLogger(__name__)
 load_dotenv()
 
 EMBEDDING_MODEL = "sentence-transformers/all-MiniLM-L6-v2"
@@ -35,7 +35,7 @@ def init_components():
     if not os.environ.get("PINECONE_API_KEY"):
         raise ValueError("PINECONE_API_KEY não configurada no .env!")
 
-    logging.info(f"Conectando ao Pinecone (Index: {INDEX_NAME}) e ao LLM com resiliência a 429...")
+    logger.info(f"Conectando ao Pinecone (Index: {INDEX_NAME}) e ao LLM com resiliência a 429...")
     
     from pinecone import Pinecone
     from langchain_community.retrievers import PineconeHybridSearchRetriever
@@ -95,7 +95,7 @@ def init_components():
                 except Exception:
                     pass
         except Exception as e:
-            logging.warning(f"Falha ao criar fallbacks Gemini: {e}")
+            logger.warning(f"Falha ao criar fallbacks Gemini: {e}")
 
     if api_key:
         fallbacks.extend([
@@ -121,7 +121,7 @@ def init_components():
             rest_fallbacks = fallbacks[1:]
             _llm = primary_llm.with_fallbacks(rest_fallbacks) if rest_fallbacks else primary_llm
         except Exception as e:
-            logging.warning(f"Falha ao carregar Gemini nativo: {e}")
+            logger.warning(f"Falha ao carregar Gemini nativo: {e}")
             _llm = fallbacks[0] if fallbacks else None
     elif fallbacks:
         _llm = fallbacks[0].with_fallbacks(fallbacks[1:]) if len(fallbacks) > 1 else fallbacks[0]
@@ -148,14 +148,14 @@ def _buscar_noticias_web(query: str, session_id: str = "default") -> tuple[str, 
             try:
                 results = list(ddgs.text(query, region="br-pt", max_results=5))
             except Exception as txt_err:
-                logging.debug(f"Falha no modo texto DDGS, tentando aba notícias: {txt_err}")
+                logger.debug(f"Falha no modo texto DDGS, tentando aba notícias: {txt_err}")
                 
             # Estratégia 2: Fallback para Notícias se a busca textual não trouxer resultados
             if not results:
                 try:
                     results = list(ddgs.news(query, region="br-pt", max_results=5))
                 except Exception as news_err:
-                    logging.debug(f"Falha no modo notícias DDGS: {news_err}")
+                    logger.debug(f"Falha no modo notícias DDGS: {news_err}")
 
             # Processamento e deduplicação
             seen_urls = set()
@@ -173,7 +173,7 @@ def _buscar_noticias_web(query: str, session_id: str = "default") -> tuple[str, 
         return results_str, sources
 
     except Exception as e:
-        logging.warning(f"Aviso na busca Web (DDGS): {e}")
+        logger.warning(f"Aviso na busca Web (DDGS): {e}")
         return "Notícias recentes da web indisponíveis no momento.", []
 
 
@@ -251,6 +251,7 @@ def _needs_web_search(question: str) -> bool:
     noul = jev_noul(
         instructions="Does this question require recent information or news?",
         state={"pergunta": question},
+        routine="r2_web_gate",
     )
     return noul is None or noul >= WEB_GATE_NOUL_THRESHOLD
 
@@ -299,6 +300,7 @@ def _web_conflicts_with_base(pinecone_context: str, web_context: str, question: 
         claim="A fonte web contradiz a base interna.",
         evidence=evidence,
         state={"pergunta": question},
+        routine="r5_web_conflict",
     )
     return verdict == CHECK_SUPPORTED
 
@@ -386,7 +388,7 @@ class MultiSourceAgentChain:
                         formatted.append(f"[Fonte Base: {src}]\n{doc.page_content}")
                     pinecone_context = "\n\n".join(formatted) if formatted else "Nenhum documento encontrado na base interna."
             except Exception as e:
-                logging.error(f"Erro ao consultar Pinecone: {e}")
+                logger.error(f"Erro ao consultar Pinecone: {e}", exc_info=True)
                 pinecone_context = "Falha ao consultar a base interna."
 
         # 2. Rota WEB (explícita) sempre aciona DDGS; rota RAG só aciona quando o
@@ -411,7 +413,7 @@ class MultiSourceAgentChain:
             raw_content = res.content if hasattr(res, 'content') else str(res)
             answer = _extract_text(raw_content)
         except Exception as e:
-            logging.error(f"Erro ao chamar LLM: {e}")
+            logger.error(f"Erro ao chamar LLM: {e}", exc_info=True)
             answer = "Não foi possível gerar a resposta no momento devido a instabilidade temporária no serviço de LLM."
 
         # 6. Pós-geração: verificação mecânica da resposta contra a evidência
@@ -456,7 +458,7 @@ class MultiSourceAgentChain:
                 if text:
                     yield {"type": "token", "token": text}
         except Exception as e:
-            logging.error(f"Erro no streaming LLM: {e}")
+            logger.error(f"Erro no streaming LLM: {e}", exc_info=True)
             yield {"type": "token", "token": "\n\n[Resposta interrompida por instabilidade temporária. Tente novamente.]"}
 
 
@@ -485,7 +487,7 @@ def get_rag_chain(session_id: str = "default", model_name: str = None):
                 custom_llm = primary_custom.with_fallbacks(fallback_list)
                 return MultiSourceAgentChain(custom_llm, session_id, model_name)
             except Exception as e:
-                logging.warning(f"Falha ao instanciar Gemini {model_name} nativo: {e}")
+                logger.warning(f"Falha ao instanciar Gemini {model_name} nativo: {e}")
 
         api_key = os.environ.get("OPENROUTER_API_KEY", "")
         openrouter_model = f"google/{model_name}" if (model_name.startswith("gemini") and "/" not in model_name) else model_name

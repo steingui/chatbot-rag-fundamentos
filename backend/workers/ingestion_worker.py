@@ -3,6 +3,9 @@ import logging
 import uuid
 from typing import Dict, Any, Optional
 
+logger = logging.getLogger(__name__)
+
+
 class AsyncIngestionWorker:
     """Worker assíncrono para processar lote de ingestão de documentos sem bloquear a API principal."""
 
@@ -14,7 +17,7 @@ class AsyncIngestionWorker:
     def start(self):
         if not self._worker_task or self._worker_task.done():
             self._worker_task = asyncio.create_task(self._process_queue())
-            logging.info("Worker assíncrono de ingestão iniciado.")
+            logger.info("Worker assíncrono de ingestão iniciado.")
 
     async def enqueue_job(self, doc_data: Dict[str, Any]) -> str:
         job_id = str(uuid.uuid4())
@@ -26,7 +29,7 @@ class AsyncIngestionWorker:
         }
         self.jobs[job_id] = job_info
         await self.queue.put(job_id)
-        logging.info(f"Job {job_id} enfileirado para ingestão assíncrona.")
+        logger.info(f"Job {job_id} enfileirado para ingestão assíncrona.")
         return job_id
 
     async def _process_queue(self):
@@ -39,15 +42,15 @@ class AsyncIngestionWorker:
 
             try:
                 job["status"] = "processing"
-                logging.info(f"Processando job de ingestão {job_id}...")
+                logger.info(f"Processando job de ingestão {job_id}...")
                 
                 # Simula etapa de extração, chunking e vetorização assíncrona
                 await asyncio.sleep(0.5)
                 
                 job["status"] = "completed"
-                logging.info(f"Job de ingestão {job_id} concluído com sucesso.")
+                logger.info(f"Job de ingestão {job_id} concluído com sucesso.")
             except Exception as e:
-                logging.error(f"Erro ao processar job {job_id}: {e}")
+                logger.error(f"Erro ao processar job {job_id}: {e}", exc_info=True)
                 job["status"] = "failed"
                 job["error"] = str(e)
             finally:

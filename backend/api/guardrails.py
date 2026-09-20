@@ -6,6 +6,8 @@ from functools import lru_cache
 
 from fastapi import HTTPException
 
+logger = logging.getLogger(__name__)
+
 try:
     from sklearn.exceptions import InconsistentVersionWarning
 except Exception:  # pragma: no cover - scikit-learn opcional
@@ -95,7 +97,7 @@ def validate_and_sanitize_query(query: str) -> str:
 
     # Camada 1: Regex e heurísticas locais
     if COMPILED_INJECTION_REGEX.search(normalized_query):
-        logging.warning(f"SEC-011: Prompt Injection bloqueado por Regex (hash: {query_hash})")
+        logger.warning(f"SEC-011: Prompt Injection bloqueado por Regex (hash: {query_hash})")
         raise HTTPException(
             status_code=400,
             detail="Consulta bloqueada pelas diretrizes de segurança anti-prompt injection."
@@ -109,7 +111,7 @@ def validate_and_sanitize_query(query: str) -> str:
                 warnings.simplefilter("ignore", InconsistentVersionWarning)
                 scan_res = _pid_scanner.scan(normalized_query)
             if scan_res.decision == "reject" or scan_res.risk_score >= 0.85:
-                logging.warning(f"SEC-011: Prompt Injection bloqueado por PID Scanner (score: {scan_res.risk_score:.2f}, hash: {query_hash})")
+                logger.warning(f"SEC-011: Prompt Injection bloqueado por PID Scanner (score: {scan_res.risk_score:.2f}, hash: {query_hash})")
                 raise HTTPException(
                     status_code=400,
                     detail="Consulta bloqueada pelas diretrizes de segurança anti-prompt injection."
@@ -117,7 +119,7 @@ def validate_and_sanitize_query(query: str) -> str:
         except HTTPException:
             raise
         except Exception as e:
-            logging.debug(f"Falha ao rodar PID scanner: {e}")
+            logger.debug(f"Falha ao rodar PID scanner: {e}")
 
     return cleaned_query
 

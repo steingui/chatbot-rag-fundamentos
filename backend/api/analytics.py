@@ -4,7 +4,9 @@ import hashlib
 import logging
 from typing import List, Dict, Optional
 
-from backend.rag.jev_client import JEV_MIN_CONFIDENCE, jev_choice
+from backend.rag.jev_client import JEV_MIN_CONFIDENCE, jev_choice, log_low_confidence
+
+logger = logging.getLogger(__name__)
 
 # Fase 1/2: Prompts provocativos elaborados manualmente ou gerados por LLM
 PROMPTS_PATH = os.path.join(os.path.dirname(__file__), "curated_prompts.json")
@@ -30,7 +32,7 @@ def load_prompts() -> List[str]:
         with open(PROMPTS_PATH, "r", encoding="utf-8") as f:
             return json.load(f)
     except Exception as e:
-        logging.error(f"Erro ao carregar curated_prompts.json: {e}")
+        logger.error(f"Erro ao carregar curated_prompts.json: {e}", exc_info=True)
         return ["Qual é a correlação entre as empresas que mais doaram no TSE e os maiores contratos no Portal da Transparência?"]
 
 
@@ -55,6 +57,7 @@ def _classify_query_theme(query: str) -> str:
             instructions="Classifique o tema da pergunta do usuário.",
             criteria=QUERY_THEMES,
             state={"pergunta": query},
+            routine="r6_analytics",
         )
     except Exception:
         return UNKNOWN_THEME
@@ -63,6 +66,8 @@ def _classify_query_theme(query: str) -> str:
     choice, confidence = result
     if choice in QUERY_THEMES and confidence >= JEV_MIN_CONFIDENCE:
         return choice
+    if confidence < JEV_MIN_CONFIDENCE:
+        log_low_confidence("r6_analytics")
     return UNKNOWN_THEME
 
 
@@ -77,7 +82,7 @@ def record_query(query: str) -> Optional[str]:
         theme = _classify_query_theme(query)
     except Exception:
         theme = UNKNOWN_THEME
-    logging.info(
+    logger.info(
         "query_recorded theme=%s query_hash=%s",
         theme,
         hashlib.sha256(query.encode("utf-8")).hexdigest()[:16],

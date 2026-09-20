@@ -1,12 +1,20 @@
+import hashlib
 import logging
 from typing import Any, Optional
 from cachetools import TTLCache
 
 from backend.rag.jev_client import jev_noul
 
+logger = logging.getLogger(__name__)
+
 # G7 — Limiar de equivalência semântica: reusa cache quando o Jev julga que a
 # nova query é a mesma pergunta de uma chave recente do mesmo modelo.
 SEMANTIC_DEDUP_THRESHOLD = 0.9
+
+
+def _hash(query: str) -> str:
+    """Hash curto da query para log sem expor PII (regra de segurança do AGENTS.md)."""
+    return hashlib.sha256(query.encode("utf-8")).hexdigest()[:16]
 
 
 class RAGQueryCache:
@@ -37,9 +45,10 @@ class RAGQueryCache:
             noul = jev_noul(
                 instructions="Does this question mean the same as the cached question?",
                 state={"pergunta": clean, "cache": cached_query},
+                routine="r7_cache",
             )
             if noul is not None and noul >= SEMANTIC_DEDUP_THRESHOLD:
-                logging.info(f"Cache HIT semântico para consulta: '{query[:40]}...'")
+                logger.info("Cache HIT semântico query_hash=%s", _hash(query))
                 return data
         return None
 
@@ -47,14 +56,14 @@ class RAGQueryCache:
         key = self._normalize_key(query, model_name)
         data = self._cache.get(key)
         if data is not None:
-            logging.info(f"Cache HIT para consulta: '{query[:40]}...'")
+            logger.info("Cache HIT query_hash=%s", _hash(query))
             return data
         return self._semantic_hit(query, model_name or "default")
 
     def set(self, query: str, data: Any, model_name: Optional[str] = None) -> None:
         key = self._normalize_key(query, model_name)
         self._cache[key] = data
-        logging.info(f"Cache SET para consulta: '{query[:40]}...'")
+        logger.info("Cache SET query_hash=%s", _hash(query))
 
     def clear(self) -> None:
         self._cache.clear()

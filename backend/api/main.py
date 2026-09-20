@@ -13,18 +13,22 @@ from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
 from fastapi import Request, Depends
 from backend.rag.chat import init_components, get_rag_chain
+from backend.observability import setup_logging, set_session_id, reset_session_id
 from backend.rag.cache import global_rag_cache
 from backend.api.analytics import get_top_suggestions, record_query
 from backend.api.guardrails import validate_and_sanitize_query
 from backend.api.auth import get_required_user
 from backend.api.firestore_db import get_session_messages, save_chat_message
 
+setup_logging()
+logger = logging.getLogger(__name__)
+
 limiter = Limiter(key_func=get_remote_address)
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Inicialização lazy — não bloqueia o healthcheck do Render
-    logging.info("API iniciada. RAG será carregado na primeira requisição.")
+    logger.info("API iniciada. RAG será carregado na primeira requisição.")
     yield
 
 app = FastAPI(title="Chatbot RAG API", version="1.0.0", lifespan=lifespan)
@@ -109,7 +113,7 @@ _rag_initialized = False
 def ensure_initialized():
     global _rag_initialized
     if not _rag_initialized:
-        logging.info("Inicializando componentes do RAG na primeira requisição...")
+        logger.info("Inicializando componentes do RAG na primeira requisição...")
         init_components()
         _rag_initialized = True
 
@@ -194,6 +198,7 @@ def parse_source_name(raw_source: str) -> SourceObject:
 @app.post("/api/v1/chat", response_model=ChatResponse)
 @limiter.limit("30/minute")
 async def chat(request: Request, body: ChatRequest, background_tasks: BackgroundTasks, current_user: dict = Depends(get_required_user)):
+    session_token = set_session_id(body.session_id)
     try:
         query = validate_and_sanitize_query(body.query)
         if body.model and body.model not in ALLOWED_MODELS:
@@ -237,8 +242,10 @@ async def chat(request: Request, body: ChatRequest, background_tasks: Background
     except HTTPException:
         raise
     except Exception as e:
-        logging.error(f"Erro no chat: {e}", exc_info=True)
+        logger.error(f"Erro no chat: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail="Erro interno do servidor. Tente novamente.")
+    finally:
+        reset_session_id(session_token)
 
 
 import json
@@ -247,6 +254,7 @@ from fastapi.responses import StreamingResponse
 @app.post("/api/v1/chat/stream")
 @limiter.limit("30/minute")
 async def chat_stream(request: Request, body: ChatRequest, background_tasks: BackgroundTasks, current_user: dict = Depends(get_required_user)):
+    session_token = set_session_id(body.session_id)
     try:
         query = validate_and_sanitize_query(body.query)
         if body.model and body.model not in ALLOWED_MODELS:
@@ -302,7 +310,7 @@ async def chat_stream(request: Request, body: ChatRequest, background_tasks: Bac
                 save_chat_message(user_id, body.session_id, "assistant", final_answer, cached_sources)
                 yield "data: [DONE]\n\n"
             except Exception as stream_err:
-                logging.error(f"Erro no event_generator: {stream_err}")
+                logger.error(f"Erro no event_generator: {stream_err}", exc_info=True)
                 err_payload = {"type": "token", "token": f"\n[Erro no processamento: {stream_err}]"}
                 yield f"data: {json.dumps(err_payload, ensure_ascii=False)}\n\n"
                 yield "data: [DONE]\n\n"
@@ -311,5 +319,7 @@ async def chat_stream(request: Request, body: ChatRequest, background_tasks: Bac
     except HTTPException:
         raise
     except Exception as e:
-        logging.error(f"Erro no chat_stream: {e}", exc_info=True)
+        logger.error(f"Erro no chat_stream: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail="Erro interno do servidor. Tente novamente.")
+    finally:
+        reset_session_id(session_token)
