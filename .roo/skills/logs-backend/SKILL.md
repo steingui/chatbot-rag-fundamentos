@@ -1,6 +1,6 @@
 ---
 name: logs-backend
-description: Busca logs de produção do backend (Cloud Run) dos últimos N minutos (default 30), ancorados no último deploy.
+description: Busca logs de produção do backend (Cloud Run) dos últimos N minutos (default 30), ancorados no último deploy, e prioriza as anomalias com gate Jev.
 ---
 
 # Logs do Backend (Cloud Run)
@@ -16,4 +16,9 @@ description: Busca logs de produção do backend (Cloud Run) dos últimos N minu
    - `severity` `ERROR`/`CRITICAL` ou `WARNING` com mensagem relevante.
    - Requisições HTTP com status >= 400 (`404`, `405`, `500`, etc.).
    - Tracebacks, timeouts ou reinícios por crash (não `DEPLOYMENT_ROLLOUT`).
-4. Resuma em bullets: timestamp, severidade, rota/endpoint e causa provável. Sem anomalias → reporte pipeline saudável.
+4. **Priorização com Jev (MCP `jevcore`):** Se houver 2+ anomalias, chame `jev_rank` com:
+   - `query`: `"Qual anomalia é mais crítica para a saúde do backend?"`
+   - `candidates`: cada anomalia como `"<timestamp> | <severidade> | <rota/endpoint> | <causa provável>"`.
+   - Apresente o resumo na ordem retornada pelo ranking.
+   - **Fallback:** Jev indisponível (`None`, erro ou timeout) ⇒ listar por severidade (ERROR/CRITICAL primeiro) e, em empate, por timestamp. O Jev nunca bloqueia a análise.
+5. Resuma em bullets: timestamp, severidade, rota/endpoint e causa provável. Sem anomalias → reporte pipeline saudável.

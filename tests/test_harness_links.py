@@ -129,6 +129,21 @@ def test_agents_md_routes_via_manifest() -> None:
     )
 
 
+def test_validate_commits_has_semantic_drift_audit() -> None:
+    """H1: o harness ganha uma camada de drift semântico doc ↔ código.
+
+    O skill validate-commits deve auditar regras/contratos de `.llm/` com
+    `jev_check`, interpretando `contradicted`/`insufficient`/`supported`.
+    """
+    skill = ROOT / ".roo/skills/validate-commits/SKILL.md"
+    content = _read(skill).lower()
+    for token in ("drift", "jev_check", "contradicted", "insufficient", "supported"):
+        assert token in content, (
+            f".roo/skills/validate-commits/SKILL.md não implementa a auditoria "
+            f"de drift semântico H1 (token ausente: '{token}')."
+        )
+
+
 def test_provider_adapters_are_pointer_only() -> None:
     """Adapter de provider não pode duplicar governança.
 
