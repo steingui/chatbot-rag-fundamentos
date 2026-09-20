@@ -20,6 +20,7 @@
 - [x] **[RAG-108]** Ajustar prompt de síntese hierárquica isolando contexto factual interno de resultados web secundários.
 - [x] **[RAG-109]** Implementar janela de contexto dinâmico baseada em contagem exata de tokens para evitar perda de histórico recente.
 - [x] **[RAG-115]** Filtro de relevância pós-rerank (G3): `jev_noul` por documento top-k com limiar `RERANK_NOUL_THRESHOLD = 0.5`, mantendo só os trechos relevantes antes do prompt de síntese `[DONE]` → [`backend/rag/jev_client.py`](../backend/rag/jev_client.py:213) + [`backend/rag/chat.py`](../backend/rag/chat.py:217) + [`tests/test_jev_g3_rerank.py`](../tests/test_jev_g3_rerank.py).
+- [x] **[RAG-116]** Gate de web search (G4): `_needs_web_search()` com `jev_noul` ("esta pergunta exige informação recente?") só aciona DDGS na rota RAG quando `noul >= WEB_GATE_NOUL_THRESHOLD`; rota WEB explícita sempre aciona; falha do Jev mantém web `[DONE]` → [`backend/rag/chat.py`](../backend/rag/chat.py:241) + [`tests/test_jev_g4_web_gate.py`](../tests/test_jev_g4_web_gate.py).
 
 ### 1.3 Avaliação & Benchmark
 - [x] **[RAG-110]** Criar script de benchmark `eval_merge.py` com conjunto de teste de perguntas complexas para medir taxa de alucinação.

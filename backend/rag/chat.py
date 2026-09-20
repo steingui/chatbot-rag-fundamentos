@@ -216,6 +216,9 @@ NOT_FOUND_ANSWER = "Não encontrei informação suficiente na base interna para 
 # G3 — Limiar de relevância no rerank: mantém apenas trechos com noul >= limiar.
 RERANK_NOUL_THRESHOLD = 0.5
 
+# G4 — Limiar do gate de web search: pergunta exige informação recente/web?
+WEB_GATE_NOUL_THRESHOLD = 0.5
+
 
 def _filter_relevant_docs(question: str, docs: list[Document]) -> list[Document]:
     """Filtra documentos rerankeados por relevância mecânica (noul por trecho).
@@ -236,6 +239,21 @@ def _filter_relevant_docs(question: str, docs: list[Document]) -> list[Document]
         if noul is None or noul >= RERANK_NOUL_THRESHOLD:
             kept.append(doc)
     return kept
+
+
+def _needs_web_search(question: str) -> bool:
+    """Gate mecânico de web search (G4): a pergunta exige informação recente?
+
+    ``noul`` baixo ("esta pergunta exige informação recente/notícias?") ⇒
+    ``False`` — pula DDGS e vai só de Pinecone. ``None``/falha do Jev ⇒
+    ``True`` (comportamento atual: web dispara sempre). O pipeline nunca perde
+    recência por indisponibilidade do Jev.
+    """
+    noul = jev_noul(
+        instructions="Does this question require recent information or news?",
+        state={"pergunta": question},
+    )
+    return noul is None or noul >= WEB_GATE_NOUL_THRESHOLD
 
 
 def _answerable(pinecone_context: str, question: str) -> bool:
@@ -340,8 +358,9 @@ class MultiSourceAgentChain:
                 logging.error(f"Erro ao consultar Pinecone: {e}")
                 pinecone_context = "Falha ao consultar a base interna."
 
-        # 2. Rota RAG ou WEB: recupera fatos recentes da Web (DDGS BR com fallback).
-        if route in (Route.RAG, Route.WEB):
+        # 2. Rota WEB (explícita) sempre aciona DDGS; rota RAG só aciona quando o
+        #    gate mecânico (G4) julga que a pergunta exige informação recente.
+        if route == Route.WEB or (route == Route.RAG and _needs_web_search(question)):
             web_context, web_sources = _buscar_noticias_web(question, self.session_id)
             sources.extend(web_sources)
 
@@ -380,7 +399,11 @@ class MultiSourceAgentChain:
         pinecone_context = "\n\n".join([d.page_content for d in pinecone_docs]) if pinecone_docs else "Nenhum documento interno relevante encontrado."
         sources = list(pinecone_docs)
 
-        web_context, web_sources = _buscar_noticias_web(question, self.session_id) if route in (Route.RAG, Route.WEB) else ("", [])
+        web_context, web_sources = (
+            _buscar_noticias_web(question, self.session_id)
+            if route == Route.WEB or (route == Route.RAG and _needs_web_search(question))
+            else ("", [])
+        )
         sources.extend(web_sources)
 
         # Gate mecânico anti-alucinação (G2/R3): base insuficiente ⇒ não gera.

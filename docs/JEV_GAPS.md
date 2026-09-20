@@ -30,7 +30,7 @@ barata.
 | G1 | Roteamento semântico cego a paráfrases | `choice` | Alta (evita pipeline completo) | Alta (rota correta) | `[DONE]` |
 | G2 | Anti-alucinação só por prompt | `check` | Média (evita geração inútil) | Alta (menos alucinação) | `[DONE]` |
 | G3 | Rerank sem limiar de relevância | `noul` | Média (menos tokens no prompt) | Alta (menos ruído) | `[DONE]` |
-| G4 | Web search dispara sempre em RAG | `noul` | Alta (corta DDGS+latência) | Neutra/alta |
+| G4 | Web search dispara sempre em RAG | `noul` | Alta (corta DDGS+latência) | Neutra/alta | `[DONE]` |
 | G5 | Conflito interno vs web não verificado | `check` | Baixa | Alta (hierarquia mecânica) |
 | G6 | `record_query` é no-op (analytics morto) | `choice`/`noul` | Baixa | Alta (dados de produto) |
 | G7 | Cache por string exata (sem dedup semântico) | `noul` | Alta (hit rate) | Neutra |
@@ -127,7 +127,15 @@ indisponibilidade do Jev). Testes em
 
 ---
 
-### G4 — Web search dispara em toda rota RAG
+### G4 — Web search dispara em toda rota RAG `[DONE]`
+
+**Implementado em:** [`_needs_web_search()`](backend/rag/chat.py:241) +
+gate nas rotas RAG/WEB de [`MultiSourceAgentChain.invoke()`](backend/rag/chat.py:361)
+e [`.stream()`](backend/rag/chat.py:401), com limiar
+`WEB_GATE_NOUL_THRESHOLD = 0.5`. Rota `WEB` explícita continua sempre acionando
+DDGS; rota `RAG` só aciona quando o `noul` julga que a pergunta exige
+informação recente. `None`/falha do Jev mantém o comportamento atual (web
+dispara). Testes em [`tests/test_jev_g4_web_gate.py`](tests/test_jev_g4_web_gate.py).
 
 **Local:** [`MultiSourceAgentChain.invoke()`](backend/rag/chat.py:275) e
 [`.stream()`](backend/rag/chat.py:305) chamam
