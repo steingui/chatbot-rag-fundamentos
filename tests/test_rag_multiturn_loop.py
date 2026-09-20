@@ -44,6 +44,8 @@ def test_loop_multiturn_coerencia_e_fontes(monkeypatch):
     monkeypatch.setattr(chat, "_buscar_noticias_web", _fake_web)
     # Gate G2 (answerability) fora do escopo deste loop: mantém determinístico/offline.
     monkeypatch.setattr(chat, "jev_check", lambda **kw: "supported")
+    # G3: rerank por noul fica neutro (mantém os docs) para isolar o loop de contexto.
+    monkeypatch.setattr(chat, "jev_noul", lambda **kw: None)
 
     chain, llm = _make_chain()
     history = []

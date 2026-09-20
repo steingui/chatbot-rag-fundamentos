@@ -67,6 +67,8 @@ def _fresh_breaker(monkeypatch):
 def _stub_check(monkeypatch, verdict):
     calls = []
     monkeypatch.setattr(chat, "jev_check", lambda **kw: calls.append(kw) or verdict)
+    # G3: rerank por noul fica neutro (mantém os docs) para isolar o contrato G2.
+    monkeypatch.setattr(chat, "jev_noul", lambda **kw: None)
     return calls
 
 
@@ -183,6 +185,7 @@ def test_invoke_pos_check_verifica_base_e_web_combinadas(monkeypatch):
 
     calls = []
     monkeypatch.setattr(chat, "jev_check", lambda **kw: calls.append(kw) or "supported")
+    monkeypatch.setattr(chat, "jev_noul", lambda **kw: None)
 
     llm = MagicMock()
     llm.invoke.return_value = MagicMock(content="resposta ok")
@@ -205,6 +208,7 @@ def test_invoke_pos_check_contradito_substitui(monkeypatch):
 
     verdicts = iter(["supported", "contradicted"])
     monkeypatch.setattr(chat, "jev_check", lambda **kw: next(verdicts))
+    monkeypatch.setattr(chat, "jev_noul", lambda **kw: None)
 
     llm = MagicMock()
     llm.invoke.return_value = MagicMock(content="resposta inventada")

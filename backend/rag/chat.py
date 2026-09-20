@@ -15,7 +15,7 @@ from backend.rag.context_window import (
     max_input_tokens_for_model,
 )
 from backend.rag.semantic_router import Route, SemanticRouter
-from backend.rag.jev_client import CHECK_CONTRADICTED, CHECK_INSUFFICIENT, jev_check
+from backend.rag.jev_client import CHECK_CONTRADICTED, CHECK_INSUFFICIENT, jev_check, jev_noul
 
 logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
 load_dotenv()
@@ -213,6 +213,30 @@ REGRAS CRÍTICAS:
 
 NOT_FOUND_ANSWER = "Não encontrei informação suficiente na base interna para responder com segurança."
 
+# G3 — Limiar de relevância no rerank: mantém apenas trechos com noul >= limiar.
+RERANK_NOUL_THRESHOLD = 0.5
+
+
+def _filter_relevant_docs(question: str, docs: list[Document]) -> list[Document]:
+    """Filtra documentos rerankeados por relevância mecânica (noul por trecho).
+
+    Cada documento é julgado individualmente ("este trecho responde à
+    pergunta?"). ``None``/falha do Jev ⇒ mantém o documento (o pipeline nunca
+    quebra por indisponibilidade do Jev).
+    """
+    kept: list[Document] = []
+    for doc in docs:
+        trecho = (doc.page_content or "").strip()
+        if not trecho:
+            continue
+        noul = jev_noul(
+            instructions="Does this passage answer the user's question?",
+            state={"pergunta": question, "trecho": trecho},
+        )
+        if noul is None or noul >= RERANK_NOUL_THRESHOLD:
+            kept.append(doc)
+    return kept
+
 
 def _answerable(pinecone_context: str, question: str) -> bool:
     """Gate mecânico anti-alucinação (G2): a base interna sustenta a pergunta?
@@ -305,7 +329,7 @@ class MultiSourceAgentChain:
         if route == Route.RAG:
             try:
                 if _retriever is not None:
-                    docs = _retriever.invoke(question)
+                    docs = _filter_relevant_docs(question, _retriever.invoke(question))
                     formatted = []
                     for doc in docs:
                         sources.append(doc)

@@ -210,6 +210,26 @@ def _read_noul(answers: dict, key: str) -> float | None:
     return None
 
 
+def jev_noul(instructions: str, state: dict) -> float | None:
+    """Devolve o ``noul`` calibrado (0..1) para uma única pergunta.
+
+    Usado no rerank (G3) para julgar, documento a documento, se o trecho
+    responde à pergunta. ``None`` em falha (fallback do chamador: mantém o
+    documento — o pipeline nunca quebra por indisponibilidade do Jev).
+    """
+    data = _system_one(
+        {"relevance": {"type": "noul", "instructions": instructions}},
+        state,
+    )
+    if not data:
+        return None
+    noul = _read_noul(data.get("answers", {}), "relevance")
+    if noul is None:
+        _breaker.record_failure()
+        _log("error", "resposta sem noul válido", 0)
+    return noul
+
+
 def jev_check(claim: str, evidence: str, state: dict | None = None) -> str | None:
     """Verifica se ``evidence`` sustenta ``claim`` (veredito calibrado).
 
