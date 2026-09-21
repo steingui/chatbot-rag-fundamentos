@@ -18,6 +18,20 @@ export const promptsRemainingInBatch = (count: number): number => {
   return PROMPTS_PER_BATCH - (count % PROMPTS_PER_BATCH);
 };
 
+// Etapa corrente do stream SSE (finding 2): feedback granular de progresso.
+export type StreamStage = 'retrieving' | 'generating' | 'done' | null;
+
+export const stageLabel = (stage: StreamStage | string): string => {
+  switch (stage) {
+    case 'retrieving':
+      return 'Buscando nas bases legislativas…';
+    case 'generating':
+      return 'Gerando resposta…';
+    default:
+      return 'Consultando fontes oficiais…';
+  }
+};
+
 export const FREE_MODELS = [
   { id: 'gemini-3.7-flash', label: 'gemini-3.7-flash · google' },
   { id: 'gemini-3.6-flash', label: 'gemini-3.6-flash · google' },
@@ -126,6 +140,7 @@ interface ChatState {
   guestId: string;
   guestPromptCount: number;
   adLocked: boolean;
+  streamStage: StreamStage;
   
   abortController: AbortController | null;
 
@@ -198,6 +213,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
   guestId: getOrCreateGuestId(),
   guestPromptCount: getPersistedGuestPrompts(),
   adLocked: isAdLocked(getPersistedGuestPrompts()),
+  streamStage: null,
   suggestions: [
     { prompt: 'Quais doadores do TSE possuem contratos milionários com a União?' },
     { prompt: 'Quais parlamentares mais mudaram de voto em pautas ambientais?' },
@@ -519,6 +535,8 @@ export const useChatStore = create<ChatState>((set, get) => ({
             const eventData = JSON.parse(dataStr);
             if (eventData.type === 'sources') {
               accumulatedSources = eventData.sources || [];
+            } else if (eventData.type === 'stage') {
+              set({ streamStage: eventData.stage || null });
             } else if (eventData.type === 'token') {
               accumulatedContent += eventData.token || '';
             }
@@ -549,7 +567,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
       set({ sessions: updatedSessions });
       savePersistedSessions(updatedSessions);
     } finally {
-      set({ isLoading: false, abortController: null });
+      set({ isLoading: false, abortController: null, streamStage: null });
       fetchSuggestions();
     }
   }

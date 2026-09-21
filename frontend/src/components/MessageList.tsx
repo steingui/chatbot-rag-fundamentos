@@ -1,11 +1,11 @@
 import React, { useRef, useEffect } from 'react';
 import { useVirtualizer } from '@tanstack/react-virtual';
 import { Loader2, User, Sparkles } from 'lucide-react';
-import { useChatStore, formatMarkdown, formatTime } from '../store/useChatStore';
+import { useChatStore, formatMarkdown, formatTime, stageLabel } from '../store/useChatStore';
 import { SourceBadges } from './SourceBadges';
 
 export const MessageList: React.FC = () => {
-  const { sessions, activeIdx, isLoading, selectedModel, setShowSuggestions } = useChatStore();
+  const { sessions, activeIdx, isLoading, selectedModel, setShowSuggestions, streamStage } = useChatStore();
   const currentSession = sessions[activeIdx];
   const messages = currentSession?.messages || [];
 
@@ -129,7 +129,7 @@ export const MessageList: React.FC = () => {
                   {!msg.content && isLoading ? (
                     <div className="flex items-center gap-2.5 text-xs font-bold text-neutral-600 py-3">
                       <Loader2 size={16} className="animate-spin text-emerald-600" />
-                      <span>Consultando bases legislativas e gerando resposta...</span>
+                      <span>{stageLabel(streamStage)}</span>
                     </div>
                   ) : (
                     <div
