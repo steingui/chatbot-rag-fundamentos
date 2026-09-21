@@ -285,7 +285,10 @@ async def chat_stream(request: Request, body: ChatRequest, background_tasks: Bac
                 full_tokens = []
                 cached_sources = []
                 for item in rag_chain.stream({"question": query, "history": history}):
-                    if item.get("type") == "sources":
+                    if item.get("type") == "stage":
+                        payload = {"type": "stage", "stage": item.get("stage", "")}
+                        yield f"data: {json.dumps(payload, ensure_ascii=False)}\n\n"
+                    elif item.get("type") == "sources":
                         seen_keys = set()
                         structured_sources = []
                         for doc in item.get("source_documents", []):

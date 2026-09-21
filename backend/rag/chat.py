@@ -1,6 +1,7 @@
 import os
 import logging
 import re
+from concurrent.futures import ThreadPoolExecutor
 from dotenv import load_dotenv
 
 from langchain_pinecone import PineconeVectorStore
@@ -426,30 +427,57 @@ class MultiSourceAgentChain:
             "source_documents": sources
         }
 
+    def _fetch_sources_parallel(self, question: str, route: Route):
+        """Recupera Pinecone (base interna) e web (DDGS) em paralelo.
+
+        A web só dispara quando a rota exige (WEB) ou o gate G4 julga que a
+        pergunta pede informação recente. O custo dominante é I/O — sobrepor as
+        duas chamadas reduz a latência da primeira resposta (finding 1, #14).
+        """
+        with ThreadPoolExecutor(max_workers=2) as pool:
+            pinecone_future = pool.submit(
+                _retriever.invoke, question
+            ) if (_retriever is not None and route == Route.RAG) else None
+
+            web_future = (
+                pool.submit(_buscar_noticias_web, question, self.session_id)
+                if route == Route.WEB or (route == Route.RAG and _needs_web_search(question))
+                else None
+            )
+
+            pinecone_docs = pinecone_future.result() if pinecone_future else []
+            if web_future:
+                web_context, web_sources = web_future.result()
+            else:
+                web_context, web_sources = "", []
+
+        return pinecone_docs, (web_context, web_sources)
+
     def stream(self, inputs: dict):
         question = inputs.get("question", "")
         route = _router.route(question)
-        pinecone_docs = _retriever.invoke(question) if (_retriever and route == Route.RAG) else []
-        pinecone_context = "\n\n".join([d.page_content for d in pinecone_docs]) if pinecone_docs else "Nenhum documento interno relevante encontrado."
-        sources = list(pinecone_docs)
 
-        web_context, web_sources = (
-            _buscar_noticias_web(question, self.session_id)
-            if route == Route.WEB or (route == Route.RAG and _needs_web_search(question))
-            else ("", [])
-        )
-        sources.extend(web_sources)
+        # Feedback de progresso (finding 2): etapa de busca vs. geração.
+        yield {"type": "stage", "stage": "retrieving"}
+
+        # Finding 1 (issue #14): recuperação Pinecone e busca web DDGS em paralelo
+        # (overlap de I/O) para reduzir a latência da primeira resposta.
+        pinecone_docs, (web_context, web_sources) = self._fetch_sources_parallel(question, route)
+        pinecone_context = "\n\n".join([d.page_content for d in pinecone_docs]) if pinecone_docs else "Nenhum documento interno relevante encontrado."
+        sources = list(pinecone_docs) + web_sources
 
         # Gate mecânico anti-alucinação (G2/R3): base insuficiente ⇒ não gera.
         if route == Route.RAG and not _answerable(pinecone_context, question):
             yield {"type": "sources", "source_documents": sources}
             yield {"type": "token", "token": NOT_FOUND_ANSWER}
+            yield {"type": "stage", "stage": "done"}
             return
 
         history_text = self._build_history_block(question, inputs)
         prompt_text = _build_synthesis_prompt(pinecone_context, web_context, question, history_text)
 
         yield {"type": "sources", "source_documents": sources}
+        yield {"type": "stage", "stage": "generating"}
 
         try:
             for chunk in self.llm.stream(prompt_text):
@@ -460,6 +488,8 @@ class MultiSourceAgentChain:
         except Exception as e:
             logger.error(f"Erro no streaming LLM: {e}", exc_info=True)
             yield {"type": "token", "token": "\n\n[Resposta interrompida por instabilidade temporária. Tente novamente.]"}
+        finally:
+            yield {"type": "stage", "stage": "done"}
 
 
 
