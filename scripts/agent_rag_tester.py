@@ -38,6 +38,15 @@ EXPECTATION_BY_SLUG = {
     "pesquisador_academico": "no_truncation",
 }
 
+# Severidade canônica por expectativa de persona (padrão de issues).
+# blocked/valid → HIGH (falha de guardrail ou resposta vazia), sources/no_truncation → MEDIUM.
+SEVERITY_BY_EXPECTATION = {
+    "blocked": "HIGH",
+    "valid": "HIGH",
+    "sources": "MEDIUM",
+    "no_truncation": "MEDIUM",
+}
+
 
 def _extract_prompts(text: str) -> List[str]:
     """Extrai TODOS os prompts típicos das linhas de citação após o cabeçalho
@@ -187,6 +196,58 @@ def run_persona(slug: str, personas_dir: str = DEFAULT_PERSONAS_DIR) -> Dict:
     }
 
 
+def build_qa_issue(fail: Dict) -> tuple:
+    """Constrói título e corpo da issue de QA no padrão canônico de issues:
+    `[QA Failure] Persona <slug> - N findings (X critical, Y high, Z medium, W low)`
+    com seções `## Audit Summary`, `## Findings` e `## Próximos passos recomendados`."""
+    slug = fail["persona"]
+    expectation = fail["expectation"]
+    iterations = fail["iterations"]
+    status = fail["status"]
+    errors = fail["errors"]
+    severity = SEVERITY_BY_EXPECTATION.get(expectation, "HIGH")
+    emoji = {"CRITICAL": "🔴", "HIGH": "🔴", "MEDIUM": "🟡", "LOW": "🟢"}
+
+    counts = {"CRITICAL": 0, "HIGH": 0, "MEDIUM": 0, "LOW": 0}
+    for _ in errors:
+        counts[severity] += 1
+    n = len(errors)
+
+    title = (
+        f"[QA Failure] Persona {slug} - {n} findings "
+        f"({counts['CRITICAL']} critical, {counts['HIGH']} high, "
+        f"{counts['MEDIUM']} medium, {counts['LOW']} low)"
+    )
+
+    findings = []
+    for idx, err in enumerate(errors, 1):
+        findings.append(
+            f"### {idx}. {emoji[severity]} {severity} — {err}\n"
+            f"**O quê:** Falha no critério de aceitação da persona `{slug}` ({expectation}).\n"
+            f"**Por que importa:** Garante que guardrail e contrato de resposta atendem à expectativa da persona.\n"
+            f"**Causa raiz:** `{err}`\n"
+            f"**Como corrigir:** Verificar o fluxo guardrails → parse_source_name → contrato da resposta para esta persona.\n"
+            f"**Evidência:** iteração associada ao erro acima."
+        )
+
+    body = (
+        "## Audit Summary\n"
+        "| Campo | Valor |\n|---|---|\n"
+        f"| Persona | `{slug}` |\n"
+        f"| Expectativa | `{expectation}` |\n"
+        f"| Iterações | `{iterations}` |\n"
+        f"| Status HTTP | `{status}` |\n"
+        f"| Resultado do fluxo | ❌ Falhou ({n} erro(s)) |\n\n"
+        "## Findings\n"
+        + "\n\n---\n\n".join(findings)
+        + "\n\n## Próximos passos recomendados\n"
+        "1. Corrigir a causa raiz apontada em cada finding.\n"
+        "2. Reexecutar o pipeline de QA para a persona afetada.\n"
+        "3. Revisar guardrail e contrato de resposta se o erro persistir."
+    )
+    return title, body
+
+
 def open_qa_issue(title: str, body: str, dry_run: bool = False):
     """Abre issue no GitHub para cada falha detectada se não for dry_run."""
     if dry_run:
@@ -231,17 +292,8 @@ def main():
 
     print(f"\n⚠️ {len(failures)} persona(s) com falha. Processando abertura de issues...")
     for fail in failures:
-        open_qa_issue(
-            f"[QA Failure] Persona {fail['persona']} ({fail['expectation']})",
-            (
-                f"**Persona**: `{fail['persona']}`\n"
-                f"**Expectativa**: `{fail['expectation']}`\n"
-                f"**Iterações**: `{fail['iterations']}`\n"
-                f"**Status HTTP**: `{fail['status']}`\n"
-                f"**Erros**: {'; '.join(fail['errors'])}"
-            ),
-            dry_run=args.dry_run,
-        )
+        title, body = build_qa_issue(fail)
+        open_qa_issue(title, body, dry_run=args.dry_run)
     sys.exit(1)
 
 
