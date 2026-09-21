@@ -9,7 +9,20 @@
       name="description"
       content="Consulte e entenda a legislação eleitoral brasileira com respostas em linguagem simples, baseadas em fontes oficiais."
     />
+    <meta name="robots" content="index,follow" />
     <link rel="canonical" href="https://rag-eleicoes.web.app/" />
+
+    <!-- Fontes: preconnect + carregamento não-bloqueante (finding 1). -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap"
+      media="print"
+      onload="this.media='all'"
+    />
+
+    <!-- Open Graph / Twitter Cards (findings 3 e 7). -->
     <meta property="og:title" content="RAG Político — Consulta Legislativa com IA" />
     <meta
       property="og:description"
@@ -19,12 +32,37 @@
     <meta property="og:url" content="https://rag-eleicoes.web.app/" />
     <meta property="og:site_name" content="RAG Político" />
     <meta property="og:locale" content="pt_BR" />
-    <meta name="twitter:card" content="summary" />
+    <meta property="og:image" content="https://rag-eleicoes.web.app/og-image.svg" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="RAG Político — Consulta Legislativa com IA" />
+    <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content="RAG Político — Consulta Legislativa com IA" />
     <meta
       name="twitter:description"
       content="Consulte e entenda a legislação eleitoral brasileira com respostas em linguagem simples, baseadas em fontes oficiais."
     />
+    <meta name="twitter:image" content="https://rag-eleicoes.web.app/og-image.svg" />
+
+    <!-- JSON-LD WebSite + SearchAction (finding 5). -->
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "WebSite",
+        "name": "RAG Político",
+        "url": "https://rag-eleicoes.web.app/",
+        "description": "Consulta legislativa com IA baseada em fontes oficiais da Câmara, Senado, TSE e CGU.",
+        "inLanguage": "pt-BR",
+        "potentialAction": {
+          "@type": "SearchAction",
+          "target": {
+            "@type": "EntryPoint",
+            "urlTemplate": "https://rag-eleicoes.web.app/?q={search_term_string}"
+          },
+          "query-input": "required name=search_term_string"
+        }
+      }
+    </script>
   </head>
   <body>
     <div id="root"></div>

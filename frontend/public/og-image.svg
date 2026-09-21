@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630">
+  <rect width="1200" height="630" fill="#10B981"/>
+  <rect x="40" y="40" width="1120" height="550" rx="28" fill="#022C22"/>
+  <circle cx="1040" cy="140" r="180" fill="#059669" opacity="0.35"/>
+  <circle cx="180" cy="500" r="120" fill="#059669" opacity="0.25"/>
+  <text x="80" y="170" font-family="'Plus Jakarta Sans', system-ui, sans-serif" font-size="56" font-weight="800" fill="#10B981">RAG Político</text>
+  <text x="80" y="260" font-family="system-ui, sans-serif" font-size="34" font-weight="600" fill="#F2F2F7">Consulta Legislativa com IA</text>
+  <text x="80" y="360" font-family="system-ui, sans-serif" font-size="26" fill="#9CA3AF">Respostas em linguagem simples, baseadas em fontes oficiais.</text>
+  <text x="80" y="420" font-family="system-ui, sans-serif" font-size="22" fill="#6B7280">Câmara · Senado · TSE · CGU · Checagens</text>
+</svg>
