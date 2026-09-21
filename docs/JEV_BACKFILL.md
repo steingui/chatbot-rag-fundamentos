@@ -35,8 +35,8 @@ Pontos conhecidos do código:
 - Embedding: [`sentence-transformers/all-MiniLM-L6-v2`](pipelines/ingestion/pinecone_ingestor.py:21),
   **384 dims, não multilíngue** — confirmado em
   [`eval_embedding_migration.py`](scripts/eval_embedding_migration.py:20).
-- `data/docs/` contém apenas [`pipeline_health_report.md`](data/docs/pipeline_health_report.md:1)
-  e um subdiretório `docs/docs/` — ou seja, **o diretório local de ingestão
+- `data/docs/` contém apenas um subdiretório `docs/docs/` — ou seja, **o
+  diretório local de ingestão
   está praticamente vazio**. O índice em produção foi populado por pipelines
   (GitHub Actions) e scrapers, não por esse diretório.
 - Metadados enriquecidos por [`enrich_metadata()`](pipelines/ingestion/pinecone_ingestor.py:69)
@@ -44,15 +44,8 @@ Pontos conhecidos do código:
   essa função ter sido introduzida**. Chunks antigos podem não ter `doc_type`.
 
 **O que falta saber (auditoria):** contagem real de vetores, dimensão e
-cobertura de metadados. Rodar antes de decidir:
-
-```bash
-python pipelines/ingestion/monitor_and_heal.py
-```
-
-A função [`audit_pinecone_health()`](pipelines/ingestion/monitor_and_heal.py:63)
-retorna `total_vectors` e `dimension`. Complementar com contagem por `doc_type`
-via filtro de metadados no console do Pinecone.
+cobertura de metadados. Verificar `total_vectors` e `dimension` no console do
+Pinecone e complementar com contagem por `doc_type` via filtro de metadados.
 
 ---
 
@@ -106,8 +99,8 @@ Só na v2 e **fora do escopo do Jev**. Requer recriar o índice com dimensão 10
 
 ## 6. Recomendação final
 
-1. **Rodar a auditoria** ([`monitor_and_heal.py`](pipelines/ingestion/monitor_and_heal.py:21))
-   antes de qualquer backfill.
+1. **Auditar o índice no console do Pinecone** (contagem de vetores, dimensão e
+   cobertura de `doc_type`) antes de qualquer backfill.
 2. **Backfill por causa do Jev: não fazer.**
 3. **Se a auditoria revelar falta de `doc_type`** em chunks antigos, executar o
    **metadata-only** (procedimento A) — é o único backfill com ROI claro para

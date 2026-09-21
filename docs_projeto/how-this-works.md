@@ -26,9 +26,8 @@ Objetivo: Processar documentos e sincronizar vetores no Pinecone com busca híbr
 
 ---
 
-## 3. Monitoramento Autônomo, Auto-Cura e QA Multi-Agente (CI/CD)
+## 3. Monitoramento, QA Multi-Agente e Auto-Cura (CI/CD)
 Objetivo: Garantir resiliência, sanitizar dados, validar regras de negócio e auto-corrigir falhas de CI/CD.
-- **Auditoria de Dados (`monitor_and_heal.py`)**: Detecta e purga arquivos truncados em `data/docs/` e avalia execuções via GitHub REST API.
 - **Diagnóstico Autônomo (Google Gemini)**: Analisa stack traces e aplica patches automáticos (`[LLM-COMMIT-AND-HEAL]`).
 - **Pipeline de QA Multi-Agente (`autonomous_qa_pipeline.yml`)**:
   - **Pytest**: Suíte unitária e de regras de negócio.
@@ -57,12 +56,10 @@ graph TD
         Ingestor --> Pinecone[("Pinecone Vector DB<br>Serverless")]
     end
 
-    subgraph AutoCura["2. Auditoria, Auto-Cura & QA Multi-Agente"]
+    subgraph AutoCura["2. Auto-Cura & QA Multi-Agente"]
         QA["Autonomous QA Pipeline<br>(Pytest + RAG-AI Tester)"] --> Triage["Agentes Triage, Pool & Reviewer"]
-        Monitor["Monitor & Heal Script<br>(monitor_and_heal.py)"] --> API_GH["GitHub REST API"]
-        Monitor & Triage --> Gemini["Google Gemini<br>(Análise de Erros & Codebase)"]
+        Triage --> Gemini["Google Gemini<br>(Análise de Erros & Codebase)"]
         Gemini -->|Auto-Commit| GitBot["[LLM-COMMIT-AND-HEAL] / PRs"]
-        Monitor --> Report["Health Report<br>(pipeline_health_report.md)"]
     end
 
     subgraph Producao["3. Aplicação em Produção (GCP & Firebase)"]
