@@ -72,14 +72,17 @@ Achados comuns para procurar:
 
 ### 5. Create a GitHub Issue (GitHub MCP)
 - Use o MCP github para chamar create_issue no repositório alvo.
-- Formato do título: [Perf/SEO Audit] URL - N findings (X critical, Y high)
-- Corpo da issue em markdown, contendo:
-  - Audit Summary (URL, data, framework, fluxo exercitado).
-  - Tabela de Core Web Vitals (LCP, CLS, INP com medido, alvo e status).
-  - Findings numerados, cada um com: O quê, Por que importa, Como corrigir, Evidência (screenshot, valor medido, arquivos afetados, evidência de console/network).
-  - Attachments (screenshots, HAR, snapshot do DOM).
-  - Próximos passos recomendados.
-- Anexe os screenshots capturados na etapa 2 à issue.
+- **Título (formato canônico, sempre):** `[Perf/SEO Audit] <domain> - N findings (X critical, Y high, Z medium, W low)`
+  - `<domain>` é o domínio **sem** `https://` (ex: `rag-eleicoes.web.app`).
+  - `N` = total de findings = X + Y + Z + W. Listar **todas** as severidades, mesmo as zeradas.
+- **Corpo da issue em markdown**, com as seções EXATAS nesta ordem. Não adicionar seções extras como "Arquivos afetados" ou "Anexos"; screenshots/arquivos entram em `**Evidência:**` ou `**Causa raiz:**`:
+  1. `## Audit Summary` — tabela `| Campo | Valor |` com: `URL`, `Data`, `Framework`, `Fluxo exercitado`, `Resultado do fluxo`.
+  2. `## Core Web Vitals` — tabela `| Métrica | Medido | Alvo | Status |` (TTFB, FCP, LCP, CLS, INP, transferência), seguida de nota `>` opcional.
+  3. `## Findings` — um heading por achado no formato `### N. <emoji> <SEVERIDADE> — Título`, onde:
+     - `🔴 CRITICAL` · `🔴 HIGH` · `🟡 MEDIUM` · `🟢 LOW`.
+     - Cada finding usa labels em negrito nesta ordem: `**O quê:**`, `**Por que importa:**`, `**Causa raiz:**` (quando aplicável), `**Como corrigir:**`, `**Evidência:**`.
+     - Separar findings com `---`.
+  4. `## Próximos passos recomendados` — lista numerada, referenciando o número de cada finding.
 
 ### 6. Report back to the user
 - Imprima a URL da issue do GitHub.
