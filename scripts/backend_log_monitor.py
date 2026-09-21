@@ -26,6 +26,7 @@ DEFAULT_SERVICE = "chatbot-rag-api"
 ISSUE_LABEL = "backend-logs"
 ERROR_SEVERITIES = {"ERROR", "CRITICAL", "ALERT", "EMERGENCY"}
 HTTP_5XX_RE = re.compile(r"\bHTTP/\d\.\d\"?\s+5\d\d\b|\b5\d\d\b.*(?:Internal Server Error|Bad Gateway|Service Unavailable|Gateway Timeout)", re.IGNORECASE)
+OUTBOUND_REQUEST_RE = re.compile(r"\bHTTP Request:\s+(?:GET|POST|PUT|PATCH|DELETE)\s+https?://", re.IGNORECASE)
 MAX_ENTRIES_PER_GROUP = 5
 
 
@@ -100,6 +101,9 @@ def is_error(entry: dict) -> bool:
     if sev in ERROR_SEVERITIES:
         return True
     message = extract_message(entry)
+    # Request outbound do cliente HTTP (ex.: Gemini) logado como INFO não é erro do backend.
+    if sev == "INFO" and OUTBOUND_REQUEST_RE.search(message):
+        return False
     return bool(HTTP_5XX_RE.search(message)) or "Traceback (most recent call last)" in message
 
 
@@ -119,6 +123,9 @@ def error_severity(entry: dict) -> str:
     if sev in ERROR_SEVERITIES:
         return sev
     message = extract_message(entry)
+    # Request outbound do cliente HTTP (ex.: Gemini) logado como INFO não é erro do backend.
+    if sev == "INFO" and OUTBOUND_REQUEST_RE.search(message):
+        return sev
     if HTTP_5XX_RE.search(message) or "Traceback (most recent call last)" in message:
         return "ERROR"
     return sev
