@@ -14,6 +14,7 @@ Este diretório contém o backlog modularizado e segmentado por domínio técnic
 | **4. Infra & GCP** | [`04-infra-gcp.md`](./04-infra-gcp.md) | GCP Cloud Run, Secret Manager, Cloud Build CI/CD, domínio customizado | 🟡 Em Progresso |
 | **5. Auth & Segurança** | [`05-auth-security.md`](./05-auth-security.md) | Firebase Auth, JWT validation middleware, LGPD compliance, guardrails | 🔴 Planejado |
 | **6. Monetização & Lojas** | [`06-monetization-store.md`](./06-monetization-store.md) | Ads web (AdSense/GPT) + Paywall Freemium/Pro (Stripe) | 🔴 Planejado |
+| **7. Perf/SEO Audit** | [`07-perf-seo-audit.md`](./07-perf-seo-audit.md) | Fontes, SSE progress, social cards, JSON-LD, ad-gate UX (issue #13) | 🟢 Concluído |
 
 ---
 
