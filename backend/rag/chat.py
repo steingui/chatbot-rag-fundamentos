@@ -1,6 +1,7 @@
 import os
 import logging
 import re
+import time
 from concurrent.futures import ThreadPoolExecutor
 from dotenv import load_dotenv
 
@@ -456,6 +457,9 @@ class MultiSourceAgentChain:
     def stream(self, inputs: dict):
         question = inputs.get("question", "")
         route = _router.route(question)
+        stream_start = time.perf_counter()
+        retrieval_ms = 0.0
+        ttfb_ms = 0.0
 
         # Feedback de progresso (finding 2): etapa de busca vs. geração.
         yield {"type": "stage", "stage": "retrieving"}
@@ -463,6 +467,7 @@ class MultiSourceAgentChain:
         # Finding 1 (issue #14): recuperação Pinecone e busca web DDGS em paralelo
         # (overlap de I/O) para reduzir a latência da primeira resposta.
         pinecone_docs, (web_context, web_sources) = self._fetch_sources_parallel(question, route)
+        retrieval_ms = (time.perf_counter() - stream_start) * 1000
         pinecone_context = "\n\n".join([d.page_content for d in pinecone_docs]) if pinecone_docs else "Nenhum documento interno relevante encontrado."
         sources = list(pinecone_docs) + web_sources
 
@@ -470,6 +475,7 @@ class MultiSourceAgentChain:
         if route == Route.RAG and not _answerable(pinecone_context, question):
             yield {"type": "sources", "source_documents": sources}
             yield {"type": "token", "token": NOT_FOUND_ANSWER}
+            logger.info("chat_stream_latency retrieval_ms=%.1f ttfb_ms=%.1f total_ms=%.1f", retrieval_ms, ttfb_ms, (time.perf_counter() - stream_start) * 1000)
             yield {"type": "stage", "stage": "done"}
             return
 
@@ -479,17 +485,59 @@ class MultiSourceAgentChain:
         yield {"type": "sources", "source_documents": sources}
         yield {"type": "stage", "stage": "generating"}
 
+        accumulated = []
+        emitted_tokens = 0
+        stream_error = False
         try:
             for chunk in self.llm.stream(prompt_text):
                 raw_chunk = chunk.content if hasattr(chunk, 'content') else str(chunk)
                 text = _extract_text(raw_chunk)
                 if text:
+                    if emitted_tokens == 0:
+                        ttfb_ms = (time.perf_counter() - stream_start) * 1000
+                    emitted_tokens += 1
+                    accumulated.append(text)
                     yield {"type": "token", "token": text}
         except Exception as e:
+            stream_error = True
             logger.error(f"Erro no streaming LLM: {e}", exc_info=True)
+
+        # Fallback (issue #15/#16): Gemini pode falhar no streamGenerateContent —
+        # antes do 1º token OU no meio da geração. Tenta o invoke síncrono (que
+        # usa with_fallbacks, trocando de modelo) e emite a continuação sem
+        # duplicar o que já foi transmitido.
+        if emitted_tokens == 0 or stream_error:
+            try:
+                res = self.llm.invoke(prompt_text)
+                raw_content = res.content if hasattr(res, 'content') else str(res)
+                fallback_text = _extract_text(raw_content)
+                continuation = self._continuation(fallback_text, "".join(accumulated))
+                if continuation:
+                    yield {"type": "token", "token": continuation}
+                    logger.info("chat_stream_latency retrieval_ms=%.1f ttfb_ms=%.1f total_ms=%.1f", retrieval_ms, ttfb_ms, (time.perf_counter() - stream_start) * 1000)
+                    yield {"type": "stage", "stage": "done"}
+                    return
+            except Exception as e:
+                logger.error(f"Erro no fallback invoke do LLM: {e}", exc_info=True)
+            stream_error = True
+
+        if stream_error:
             yield {"type": "token", "token": "\n\n[Resposta interrompida por instabilidade temporária. Tente novamente.]"}
-        finally:
-            yield {"type": "stage", "stage": "done"}
+        logger.info("chat_stream_latency retrieval_ms=%.1f ttfb_ms=%.1f total_ms=%.1f", retrieval_ms, ttfb_ms, (time.perf_counter() - stream_start) * 1000)
+        yield {"type": "stage", "stage": "done"}
+
+    @staticmethod
+    def _continuation(fallback_text: str, emitted_text: str) -> str:
+        """Devolve o trecho do fallback ainda não transmitido (sem duplicar tokens).
+
+        Se o modelo de fallback regenerou a resposta completa, descarta o prefixo
+        já emitido; caso contrário, devolve o texto integral.
+        """
+        if not fallback_text:
+            return ""
+        if emitted_text and fallback_text.startswith(emitted_text):
+            return fallback_text[len(emitted_text):]
+        return fallback_text
 
 
 

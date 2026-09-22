@@ -59,6 +59,9 @@ def test_stream_erro_separa_mensagem_de_erro(monkeypatch):
         raise RuntimeError("boom")
 
     llm.stream = _boom
+    # Issue #16: falha no meio do stream tenta continuar via invoke. Aqui o
+    # fallback também falha — só então o aviso de instabilidade é emitido.
+    llm.invoke.side_effect = RuntimeError("fallback falhou")
     chain = chat.MultiSourceAgentChain(llm, "sess")
 
     tokens = [e["token"] for e in chain.stream({"question": "fale mais"}) if e.get("type") == "token"]

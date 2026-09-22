@@ -6,6 +6,7 @@ import {
   ChatHeader,
   MessageList,
   SuggestionGrid,
+  DashboardCards,
   IntroModal,
   RewardedAdModal
 } from './components';
@@ -22,7 +23,8 @@ export default function App() {
     fetchSuggestions,
     sendMessageStream,
     stopStream,
-    editLastPrompt
+    editLastPrompt,
+    toggleSidebar
   } = useChatStore();
 
   const inputRef = useRef<HTMLInputElement>(null);
@@ -45,29 +47,37 @@ export default function App() {
   };
 
   return (
-    <div className="flex h-screen w-screen bg-surface text-ink font-sans overflow-hidden">
+    <div className="flex h-screen w-screen bg-gray-50 text-gray-900 font-sans overflow-hidden">
       <IntroModal />
       <RewardedAdModal />
+
+      {isSidebarOpen && (
+        <div
+          className="fixed inset-0 z-20 bg-black/20 lg:hidden"
+          onClick={toggleSidebar}
+          aria-hidden="true"
+        />
+      )}
       {isSidebarOpen && <SessionSidebar />}
 
-      <main className="flex-1 flex flex-col h-full bg-canvas overflow-hidden min-w-0">
+      <main className="flex-1 flex flex-col h-full overflow-hidden min-w-0">
         <ChatHeader />
         <SuggestionGrid />
-        <MessageList />
+        {hasMessages ? <MessageList /> : <DashboardCards />}
 
-        <footer className="p-4 sm:p-5 bg-transparent flex flex-col items-center gap-2 shrink-0">
+        <footer className="p-4 sm:p-5 flex flex-col items-center gap-2 shrink-0">
           <form
             onSubmit={handleSubmit}
-            className="apple-dock focus-within:border-emerald-500/80 focus-within:ring-4 focus-within:ring-emerald-500/20 rounded-3xl p-2 sm:p-2.5 flex items-center gap-3 w-full max-w-4xl apple-spring"
+            className="w-full max-w-4xl rounded-2xl bg-white border border-gray-200 shadow-sm p-2 sm:p-2.5 flex items-center gap-3 focus-within:border-emerald-500 focus-within:ring-4 focus-within:ring-emerald-500/20"
           >
-            <div className="flex items-center justify-center pl-3 text-neutral-500">
+            <div className="flex items-center justify-center pl-3 text-gray-400">
               <Command size={18} />
             </div>
-            
+
             <input
               ref={inputRef}
               type="text"
-              className="flex-1 bg-transparent text-sm font-semibold text-neutral-950 placeholder:text-neutral-500 focus:outline-none py-2 tracking-tight"
+              className="flex-1 bg-transparent text-sm font-medium text-gray-900 placeholder:text-gray-400 focus:outline-none py-2 tracking-tight"
               placeholder="Pergunte sobre PECs, projetos de lei, votações, TSE ou checagens de fatos..."
               value={input}
               onChange={(e) => setInput(e.target.value)}
@@ -81,7 +91,7 @@ export default function App() {
                   editLastPrompt();
                   inputRef.current?.focus();
                 }}
-                className="p-2.5 rounded-2xl text-neutral-700 hover:text-neutral-950 hover:bg-white/80 apple-spring cursor-pointer border border-black/[0.08] flex items-center gap-1.5 text-xs font-bold shrink-0 active:scale-95 shadow-2xs"
+                className="p-2.5 rounded-xl text-gray-600 hover:text-gray-900 hover:bg-gray-100 cursor-pointer border border-gray-200 flex items-center gap-1.5 text-xs font-semibold shrink-0"
                 title="Editar e refazer o último prompt"
               >
                 <RotateCcw size={14} />
@@ -93,7 +103,7 @@ export default function App() {
               <button
                 type="button"
                 onClick={stopStream}
-                className="bg-rose-600 hover:bg-rose-700 text-white font-extrabold p-3 rounded-2xl apple-spring shadow-md flex items-center justify-center cursor-pointer shrink-0 animate-pulse active:scale-95"
+                className="bg-rose-600 hover:bg-rose-700 text-white font-bold p-3 rounded-xl flex items-center justify-center cursor-pointer shrink-0 animate-pulse"
                 title="Pausar / Interromper resposta"
               >
                 <Square size={16} fill="currentColor" />
@@ -102,10 +112,10 @@ export default function App() {
               <button
                 type="submit"
                 disabled={!input.trim()}
-                className="bg-gradient-to-tr from-emerald-600 to-emerald-400 hover:brightness-105 disabled:opacity-40 text-neutral-950 font-black p-3 rounded-2xl apple-spring shadow-md flex items-center justify-center cursor-pointer shrink-0 active:scale-95"
+                className="bg-emerald-500 hover:bg-emerald-600 disabled:opacity-40 text-white font-bold p-3 rounded-xl flex items-center justify-center cursor-pointer shrink-0"
                 title="Enviar pergunta"
               >
-                <Send size={16} className="stroke-[2.5]" />
+                <Send size={16} />
               </button>
             )}
           </form>
