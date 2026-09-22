@@ -479,17 +479,38 @@ class MultiSourceAgentChain:
         yield {"type": "sources", "source_documents": sources}
         yield {"type": "stage", "stage": "generating"}
 
+        emitted_tokens = 0
+        stream_error = False
         try:
             for chunk in self.llm.stream(prompt_text):
                 raw_chunk = chunk.content if hasattr(chunk, 'content') else str(chunk)
                 text = _extract_text(raw_chunk)
                 if text:
+                    emitted_tokens += 1
                     yield {"type": "token", "token": text}
         except Exception as e:
+            stream_error = True
             logger.error(f"Erro no streaming LLM: {e}", exc_info=True)
+
+        # Fallback (issue #15): Gemini pode retornar 503 no streamGenerateContent
+        # antes do 1º token. Sem nenhum token emitido, tenta o invoke síncrono
+        # (que também usa with_fallbacks) para não deixar o usuário sem resposta.
+        if emitted_tokens == 0:
+            try:
+                res = self.llm.invoke(prompt_text)
+                raw_content = res.content if hasattr(res, 'content') else str(res)
+                fallback_text = _extract_text(raw_content).strip()
+                if fallback_text:
+                    yield {"type": "token", "token": fallback_text}
+                    yield {"type": "stage", "stage": "done"}
+                    return
+            except Exception as e:
+                logger.error(f"Erro no fallback invoke do LLM: {e}", exc_info=True)
+            stream_error = True
+
+        if stream_error:
             yield {"type": "token", "token": "\n\n[Resposta interrompida por instabilidade temporária. Tente novamente.]"}
-        finally:
-            yield {"type": "stage", "stage": "done"}
+        yield {"type": "stage", "stage": "done"}
 
 
 
