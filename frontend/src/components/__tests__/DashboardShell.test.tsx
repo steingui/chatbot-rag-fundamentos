@@ -1,9 +1,9 @@
-import { describe, it, expect, beforeEach } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { render, screen, fireEvent } from '@testing-library/react';
 import { SessionSidebar } from '../SessionSidebar';
 import { ChatHeader } from '../ChatHeader';
 import { DashboardCards } from '../DashboardCards';
-import { useChatStore, makeSession } from '../../store/useChatStore';
+import { useChatStore, makeSession, SUMMARY_PROMPT } from '../../store/useChatStore';
 
 describe('Dashboard Shell — layout limpo e minimalista (UI refactor)', () => {
   beforeEach(() => {
@@ -33,6 +33,57 @@ describe('Dashboard Shell — layout limpo e minimalista (UI refactor)', () => {
 
     expect(screen.getByRole('heading', { name: /Olá, Visitante/i })).toBeTruthy();
     expect(screen.getByText(/Boas-vindas à RAG Político/i)).toBeTruthy();
+  });
+
+  it('renderiza as ações de contexto na sidebar', () => {
+    render(<SessionSidebar />);
+
+    expect(screen.getByText(/Resumir chat/i)).toBeTruthy();
+    expect(screen.getByText(/Limpar contexto/i)).toBeTruthy();
+    expect(screen.getByText(/Limpar tudo/i)).toBeTruthy();
+  });
+
+  it('desabilita as ações de contexto quando não há histórico do usuário', () => {
+    render(<SessionSidebar />);
+
+    expect((screen.getByText(/Resumir chat/i).closest('button') as HTMLButtonElement).disabled).toBe(true);
+    expect((screen.getByText(/Limpar contexto/i).closest('button') as HTMLButtonElement).disabled).toBe(true);
+  });
+
+  it('Resumir chat envia o prompt canônico de resumo via stream', () => {
+    const sendMessageStream = vi.fn().mockResolvedValue(undefined);
+    const session = makeSession(0);
+    session.messages.push({
+      id: 'u1',
+      role: 'user',
+      content: 'Quais emendas foram pagas?',
+      timestamp: new Date()
+    });
+    useChatStore.setState({ sessions: [session], activeIdx: 0, sendMessageStream });
+
+    render(<SessionSidebar />);
+    fireEvent.click(screen.getByText(/Resumir chat/i));
+
+    expect(sendMessageStream).toHaveBeenCalledWith(SUMMARY_PROMPT);
+  });
+
+  it('Limpar contexto reinicia a sessão ativa mantendo a sessão viva', () => {
+    const session = makeSession(0);
+    session.messages.push({
+      id: 'u1',
+      role: 'user',
+      content: 'Quais emendas foram pagas?',
+      timestamp: new Date()
+    });
+    useChatStore.setState({ sessions: [session], activeIdx: 0 });
+
+    render(<SessionSidebar />);
+    fireEvent.click(screen.getByText(/Limpar contexto/i));
+
+    const { sessions } = useChatStore.getState();
+    expect(sessions).toHaveLength(1);
+    expect(sessions[0].messages.some(m => m.role === 'user')).toBe(false);
+    expect(sessions[0].messages[0].content).toMatch(/reiniciada/i);
   });
 
   it('renderiza os cards superiores e a seção de configuração', () => {

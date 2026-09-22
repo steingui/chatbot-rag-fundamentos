@@ -9,6 +9,10 @@ export const SUGGESTION_API_URL = API_URL.replace(/\/chat$/, '/suggestions');
 export const MAX_SESSIONS = 5;
 export const PROMPTS_PER_BATCH = 3;
 
+// Prompt canônico do resumo de contexto (1 tweet / 280 chars)
+export const SUMMARY_PROMPT =
+  'Resuma nossa conversa em no máximo 1 tweet (280 caracteres).';
+
 // MON-602: trava após consumir o lote (ex.: 3, 6, 9 prompts)
 export const isAdLocked = (count: number): boolean =>
   count > 0 && count % PROMPTS_PER_BATCH === 0;
@@ -153,6 +157,7 @@ interface ChatState {
   closeSession: (idx: number) => void;
   clearActiveSession: () => void;
   clearAllSessions: () => void;
+  summarizeConversation: () => void;
   increaseFontSize: () => void;
   decreaseFontSize: () => void;
   resetFontSize: () => void;
@@ -301,6 +306,14 @@ export const useChatStore = create<ChatState>((set, get) => ({
     }
     set({ sessions: newSessions, activeIdx: newActive });
     savePersistedSessions(newSessions);
+  },
+
+  summarizeConversation: () => {
+    const { activeIdx, sessions, isLoading } = get();
+    if (isLoading) return;
+    const hasHistory = sessions[activeIdx]?.messages.some(m => m.role === 'user');
+    if (!hasHistory) return;
+    void get().sendMessageStream(SUMMARY_PROMPT);
   },
 
   clearActiveSession: () => {

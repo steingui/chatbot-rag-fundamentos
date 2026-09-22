@@ -14,6 +14,7 @@
 - [x] **[SEO-02] [DONE]** JSON-LD `WebSite` com `potentialAction SearchAction` em [`frontend/index.html`](../frontend/index.html:49). *(finding 5 — MEDIUM)*
 - [x] **[SEO-03] [DONE]** `twitter:card=summary_large_image` + `<meta name="robots" content="index,follow">`. *(finding 7 — LOW)*
 - [x] **[MON-604] [DONE]** Ad-gate menos intrusivo: [`RewardedAdModal.tsx`](../frontend/src/components/RewardedAdModal.tsx:10) troca o modal interruptivo por banner inline e antecipa os prompts restantes do lote via [`promptsRemainingInBatch()`](../frontend/src/store/useChatStore.ts:16). *(finding 4 — MEDIUM)*
+- [x] **[UX-01] [DONE]** Restaurou as ações de contexto no novo layout: painel "Ações de contexto" em [`SessionSidebar.tsx`](../frontend/src/components/SessionSidebar.tsx:105) com **Resumir chat** ([`summarizeConversation()`](../frontend/src/store/useChatStore.ts:311), prompt canônico [`SUMMARY_PROMPT`](../frontend/src/store/useChatStore.ts:13)), **Limpar contexto** ([`clearActiveSession()`](../frontend/src/store/useChatStore.ts:319)) e **Limpar tudo** ([`clearAllSessions()`](../frontend/src/store/useChatStore.ts:338)). Cobertura em [`DashboardShell.test.tsx`](../frontend/src/components/__tests__/DashboardShell.test.tsx:38).
 
 ## ⏳ Follow-ups pendentes
 

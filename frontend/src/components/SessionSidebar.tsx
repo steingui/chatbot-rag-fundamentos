@@ -1,5 +1,5 @@
 import React from 'react';
-import { Plus, Clock, Database, Settings } from 'lucide-react';
+import { Plus, Clock, Database, Settings, FileText, Eraser, Trash2 } from 'lucide-react';
 import { useChatStore, MAX_SESSIONS } from '../store/useChatStore';
 
 const NAV_ITEMS = [
@@ -10,7 +10,19 @@ const NAV_ITEMS = [
 ] as const;
 
 export const SessionSidebar: React.FC = () => {
-  const { sessions, activeIdx, setActiveIdx, addSession, closeSession, isLoading } = useChatStore();
+  const {
+    sessions,
+    activeIdx,
+    setActiveIdx,
+    addSession,
+    closeSession,
+    clearActiveSession,
+    clearAllSessions,
+    summarizeConversation,
+    isLoading
+  } = useChatStore();
+
+  const hasHistory = Boolean(sessions[activeIdx]?.messages?.some(m => m.role === 'user'));
 
   return (
     <aside className="fixed inset-y-0 left-0 z-30 flex h-full w-72 flex-col bg-white border-r border-gray-100 lg:static lg:z-auto shrink-0 select-none">
@@ -88,6 +100,39 @@ export const SessionSidebar: React.FC = () => {
             );
           })}
         </div>
+      </div>
+
+      {/* Ações de contexto */}
+      <div className="px-3 py-3 border-t border-gray-100 space-y-1">
+        <button
+          onClick={summarizeConversation}
+          disabled={isLoading || !hasHistory}
+          className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-emerald-800 bg-emerald-50 hover:bg-emerald-100 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer transition-colors"
+          title="Resumir o histórico da sessão em 1 tweet (280 caracteres)"
+        >
+          <FileText size={16} className="shrink-0" />
+          <span className="truncate">Resumir chat</span>
+        </button>
+
+        <button
+          onClick={clearActiveSession}
+          disabled={isLoading || !hasHistory}
+          className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer transition-colors"
+          title="Limpar o contexto desta sessão (mantém uma única sessão ativa)"
+        >
+          <Eraser size={16} className="shrink-0" />
+          <span className="truncate">Limpar contexto</span>
+        </button>
+
+        <button
+          onClick={clearAllSessions}
+          disabled={isLoading}
+          className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-xs font-semibold uppercase tracking-wider text-rose-600 hover:bg-rose-50 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer transition-colors"
+          title="Limpar todas as sessões, cookies e dados locais"
+        >
+          <Trash2 size={14} className="shrink-0" />
+          <span className="truncate">Limpar tudo</span>
+        </button>
       </div>
 
       {/* Perfil do usuário */}
