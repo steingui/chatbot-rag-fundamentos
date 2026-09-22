@@ -91,10 +91,10 @@ describe('MON-602 contador de prompts / rewarded ads', () => {
     expect(useChatStore.getState().adLocked).toBe(false);
   });
 
-  it('bloqueia envio de novo prompt enquanto adLocked (MON-603 guard)', async () => {
+  it('não bloqueia envio de prompt quando adLocked (paywall removido)', async () => {
     useChatStore.setState({ guestPromptCount: 3, adLocked: true, isLoading: false });
-    await useChatStore.getState().sendMessageStream('bloqueado?');
-    expect(useChatStore.getState().guestPromptCount).toBe(3);
+    await useChatStore.getState().sendMessageStream('permitido?');
+    expect(useChatStore.getState().guestPromptCount).toBe(4);
   });
 });
 

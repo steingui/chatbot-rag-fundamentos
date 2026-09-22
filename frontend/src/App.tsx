@@ -7,8 +7,7 @@ import {
   MessageList,
   SuggestionGrid,
   DashboardCards,
-  IntroModal,
-  RewardedAdModal
+  IntroModal
 } from './components';
 
 export default function App() {
@@ -49,7 +48,6 @@ export default function App() {
   return (
     <div className="flex h-screen w-screen bg-gray-50 text-gray-900 font-sans overflow-hidden">
       <IntroModal />
-      <RewardedAdModal />
 
       {isSidebarOpen && (
         <div

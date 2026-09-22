@@ -24,21 +24,26 @@ export const SessionSidebar: React.FC = () => {
 
       {/* Menu de navegação */}
       <nav className="px-3 space-y-1">
-        {NAV_ITEMS.map(({ icon: Icon, label }) => (
-          <button
-            key={label}
-            onClick={label === 'Novo Chat' ? addSession : undefined}
-            disabled={label === 'Novo Chat' && (sessions.length >= MAX_SESSIONS || isLoading)}
-            className={`flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm cursor-pointer transition-colors ${
-              label === 'Novo Chat'
-                ? 'bg-gray-100 text-gray-900 font-medium'
-                : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900 font-medium'
-            }`}
-          >
-            <Icon size={18} className={label === 'Novo Chat' ? 'text-gray-900' : 'text-gray-500'} />
-            <span>{label}</span>
-          </button>
-        ))}
+        {NAV_ITEMS.map(({ icon: Icon, label }) => {
+          const isNewChat = label === 'Novo Chat';
+          const disabled = !isNewChat;
+
+          return (
+            <button
+              key={label}
+              onClick={isNewChat ? addSession : undefined}
+              disabled={isNewChat ? sessions.length >= MAX_SESSIONS || isLoading : disabled}
+              className={`flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors ${
+                isNewChat
+                  ? 'bg-gray-100 text-gray-900 font-medium cursor-pointer'
+                  : 'text-gray-400 font-medium cursor-not-allowed opacity-60'
+              }`}
+            >
+              <Icon size={18} className={isNewChat ? 'text-gray-900' : 'text-gray-400'} />
+              <span>{label}</span>
+            </button>
+          );
+        })}
       </nav>
 
       {/* Sessões recentes */}

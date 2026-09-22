@@ -425,10 +425,10 @@ export const useChatStore = create<ChatState>((set, get) => ({
 
   sendMessageStream: async (queryText: string) => {
     const query = queryText.trim();
-    const { isLoading, adLocked, activeIdx, sessions, selectedModel, fetchSuggestions, incrementGuestPrompts } = get();
+    const { isLoading, activeIdx, sessions, selectedModel, fetchSuggestions, incrementGuestPrompts } = get();
 
-    // Proteção Anti-Spam, Trava Concorrente Estrita & Trava de Anúncio (MON-603)
-    if (!query || isLoading || adLocked) return;
+    // Proteção Anti-Spam & Trava Concorrente Estrita
+    if (!query || isLoading) return;
 
     // Incrementar estatística Guest-First
     incrementGuestPrompts();
