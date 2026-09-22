@@ -36,6 +36,11 @@ def test_invoke_e_stream_usam_prompt_hierarquico(monkeypatch):
     monkeypatch.setattr(
         chat, "_buscar_noticias_web", lambda q, sid="default": ("WEB_CTX", [])
     )
+    # Este teste valida o contrato do prompt hierárquico — não a disponibilidade
+    # dos gates Jev/OpenRouter no CI. Isola os gates mecânicos para manter o
+    # teste determinístico e offline (mesmo padrão de test_context_window.py).
+    monkeypatch.setattr(chat, "_answerable", lambda *a, **k: True)
+    monkeypatch.setattr(chat, "_needs_web_search", lambda q: True)
 
     llm = MagicMock()
     llm.invoke.return_value = MagicMock(content="resposta")

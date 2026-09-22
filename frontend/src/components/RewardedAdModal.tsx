@@ -1,34 +1,16 @@
 import { useState } from 'react';
 import { PlayCircle, AlertTriangle, CheckCircle2 } from 'lucide-react';
-import { useChatStore, promptsRemainingInBatch } from '../store/useChatStore';
+import { useChatStore } from '../store/useChatStore';
 import { showRewardedAd, resolveAdProvider } from '../lib/rewardedAds';
 
-// MON-603: aviso de lote menos intrusivo (finding 4). Em vez de um modal que
-// interrompe o fluxo, exibe um banner inline — antecipando quantos prompts
-// restam e, ao travar, oferecendo o desbloqueio via Rewarded Ad.
+// MON-603: modal de desbloqueio via Rewarded Ad, exibido somente quando o
+// contador trava o lote (adLocked). Banner de antecipação removido (paywall
+// de "1 prompt restante" desativado temporariamente).
 export function RewardedAdModal() {
   const { adLocked, guestPromptCount, unlockRewardedAd } = useChatStore();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [grace, setGrace] = useState(false);
-
-  const remaining = promptsRemainingInBatch(guestPromptCount);
-
-  // Antecipação (não intrusiva): comunica quantos prompts restam antes de travar.
-  if (!adLocked && remaining > 0 && remaining <= 2) {
-    return (
-      <div className="w-full max-w-4xl mx-auto px-4 sm:px-6">
-        <div className="bg-emerald-50/90 border border-emerald-200 text-emerald-900 text-xs font-bold rounded-2xl px-4 py-2.5 flex items-center gap-2 shadow-2xs">
-          <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse shrink-0" />
-          <span>
-            {remaining === 1
-              ? '1 prompt restante no lote gratuito antes do próximo anúncio.'
-              : `${remaining} prompts restantes no lote gratuito.`}
-          </span>
-        </div>
-      </div>
-    );
-  }
 
   if (!adLocked) return null;
 
