@@ -1,4 +1,5 @@
 export { ChatHeader } from './ChatHeader';
+export { DashboardCards } from './DashboardCards';
 export { IntroModal } from './IntroModal';
 export { MessageList } from './MessageList';
 export { ModelSelector } from './ModelSelector';
