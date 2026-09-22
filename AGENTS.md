@@ -87,6 +87,11 @@ codegraph sync .
 3. **Carregue documentação sob demanda** via [`.llm/MANIFEST.md`](.llm/MANIFEST.md) — leia
    somente o documento relevante à tarefa. Tarefa trivial (typo, README) → nenhum `.llm/`.
 4. **Rode testes antes e depois** de alterações para validar regressão.
+5. **Suíte verde → commit + push automático**: quando os testes escritos seguindo
+   SDD (vermelho → verde) passarem e a suíte completa do projeto estiver verde,
+   **pode** executar a skill `cp` (análise do diff, commits agrupados por contexto
+   lógico em Conventional Commits e `git push` final) sem pedir confirmação.
+   Nunca commitar com suíte vermelha, testes ignorados ou `lint` com erros.
 
 ### Princípios de edição
 
