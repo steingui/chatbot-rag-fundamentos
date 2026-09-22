@@ -64,6 +64,7 @@
 - [ ] **[MON-604]** Otimização de eCPM/layout web: posicionamento de slots acima da dobra, lazy load e viewability para eCPM saudável em tráfego brasileiro.
 - [x] **[MON-605]** Ad Fill Rate & Fallback Engine: Garantir fallback gracioso (Rewarded → Display/Vignette → Free Grace) caso não haja anúncio disponível na região.
 - [ ] **[MON-606]** Proteção Anti-Bypass Backend: Validar tokens de conclusão de ad (Ad Server Verification callbacks) no backend FastAPI antes de liberar o saldo de prompts.
+- [ ] **[MON-607]** Reativar o banner de antecipação de lote ("1 prompt restante no lote gratuito") em [`RewardedAdModal.tsx`](../../frontend/src/components/RewardedAdModal.tsx) — removido temporariamente até a rede de anúncios real (QW-201) estar ativa; a trava `adLocked` e o modal de desbloqueio permanecem funcionais.
 
 ### 6.2 Paywall Freemium/Pro (Stripe)
 - [ ] **[PAY-601]** Criar produtos e preços no Stripe (plano **Pro** mensal e anual).
