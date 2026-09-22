@@ -66,7 +66,7 @@ def test_stream_que_emite_token_nao_chama_invoke(monkeypatch):
     llm.invoke.assert_not_called()
 
 
-def test_stream_falha_apos_token_mantem_aviso_e_nao_invoca(monkeypatch):
+def test_stream_falha_apos_token_invoca_continuacao_sem_duplicar(monkeypatch):
     llm = MagicMock()
 
     def _boom(prompt):
@@ -74,7 +74,7 @@ def test_stream_falha_apos_token_mantem_aviso_e_nao_invoca(monkeypatch):
         raise RuntimeError("503 Service Unavailable")
 
     llm.stream = _boom
-    llm.invoke.return_value = MagicMock(content="nao-deve-aparecer")
+    llm.invoke.return_value = MagicMock(content="texto parcial... resposta completada")
 
     class _FakeRouter:
         def route(self, query: str) -> Route:
@@ -87,6 +87,8 @@ def test_stream_falha_apos_token_mantem_aviso_e_nao_invoca(monkeypatch):
     tokens = [e["token"] for e in chain.stream({"question": "fale mais"}) if e.get("type") == "token"]
     full = "".join(tokens)
 
-    assert "texto parcial..." in full
-    assert "Resposta interrompida" in full
-    llm.invoke.assert_not_called()
+    llm.invoke.assert_called_once()
+    assert full.startswith("texto parcial...")
+    assert full.count("texto parcial...") == 1
+    assert " resposta completada" in full
+    assert "Resposta interrompida" not in full
