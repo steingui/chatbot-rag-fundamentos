@@ -18,7 +18,8 @@ name: Actions Budget Guard
 # Sem esse secret a checagem e PULADA (fail-open) com ::warning, para que as
 # pipelines nunca fiquem presas por falta de credencial de billing.
 # Minutos restantes = included_minutes - total_minutes_used. A var opcional
-# ACTIONS_MINUTES_RESERVE exige uma margem de seguranca (para antes de esgotar).
+# ACTIONS_MINUTES_RESERVE exige uma margem de seguranca (para antes de esgotar) e
+# a var ACTIONS_BUDGET_DISABLED=true funciona como kill-switch manual.
 on:
   workflow_call:
     secrets:
@@ -49,6 +50,7 @@ jobs:
           OWNER: ${{ github.repository_owner }}
           BILLING_TOKEN: ${{ secrets.ACTIONS_BILLING_TOKEN }}
           RESERVE_MINUTES: ${{ vars.ACTIONS_MINUTES_RESERVE || '0' }}
+          BUDGET_DISABLED: ${{ vars.ACTIONS_BUDGET_DISABLED || 'false' }}
         run: |
           python3 - <<'PY'
           import json, os, urllib.error, urllib.request
@@ -66,6 +68,12 @@ jobs:
               reserve = float(os.environ.get("RESERVE_MINUTES") or 0)
           except ValueError:
               reserve = 0.0
+
+          disabled = (os.environ.get("BUDGET_DISABLED") or "").strip().lower() in ("1", "true", "yes", "on")
+          if disabled:
+              print("::notice title=actions-budget::ACTIONS_BUDGET_DISABLED ativa; pipelines PARADAS (kill-switch manual).")
+              emit(False, -1)
+              raise SystemExit(0)
 
           if not token:
               print("::warning title=actions-budget::ACTIONS_BILLING_TOKEN ausente; gate de minutos INATIVO (fail-open).")
