@@ -1,0 +1,104 @@
+name: Actions Budget Guard
+
+# Guard reutilizavel: verifica se ha minutos de GitHub Actions disponiveis ANTES
+# de a pipeline consumir runner. Cada workflow declara:
+#
+#   jobs:
+#     budget:
+#       uses: ./.github/workflows/_actions-budget.yml
+#       secrets:
+#         ACTIONS_BILLING_TOKEN: ${{ secrets.ACTIONS_BILLING_TOKEN }}
+#     <job>:
+#       needs: budget
+#       if: needs.budget.outputs.has_budget == 'true'
+#
+# O GitHub NAO possui condicao nativa de "so roda se houver minutos"; por isso a
+# cota e lida via API de billing (GET /users/{owner}/settings/billing/actions).
+# Requer um classic PAT com escopo `user` no secret ACTIONS_BILLING_TOKEN.
+# Sem esse secret a checagem e PULADA (fail-open) com ::warning, para que as
+# pipelines nunca fiquem presas por falta de credencial de billing.
+# Minutos restantes = included_minutes - total_minutes_used. A var opcional
+# ACTIONS_MINUTES_RESERVE exige uma margem de seguranca (para antes de esgotar).
+on:
+  workflow_call:
+    secrets:
+      ACTIONS_BILLING_TOKEN:
+        required: false
+    outputs:
+      has_budget:
+        description: "true se houver minutos disponiveis (ou indeterminado)"
+        value: ${{ jobs.check.outputs.has_budget }}
+      remaining_minutes:
+        description: "Minutos restantes (-1 se indeterminado)"
+        value: ${{ jobs.check.outputs.remaining_minutes }}
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      has_budget: ${{ steps.billing.outputs.has_budget }}
+      remaining_minutes: ${{ steps.billing.outputs.remaining_minutes }}
+    steps:
+      - name: avaliar cota de minutos do GitHub Actions
+        id: billing
+        env:
+          OWNER: ${{ github.repository_owner }}
+          BILLING_TOKEN: ${{ secrets.ACTIONS_BILLING_TOKEN }}
+          RESERVE_MINUTES: ${{ vars.ACTIONS_MINUTES_RESERVE || '0' }}
+        run: |
+          python3 - <<'PY'
+          import json, os, urllib.error, urllib.request
+
+
+          def emit(has_budget: bool, remaining: int) -> None:
+              with open(os.environ["GITHUB_OUTPUT"], "a", encoding="utf-8") as fh:
+                  fh.write(f"has_budget={'true' if has_budget else 'false'}\n")
+                  fh.write(f"remaining_minutes={remaining}\n")
+
+
+          owner = os.environ.get("OWNER", "")
+          token = (os.environ.get("BILLING_TOKEN") or "").strip()
+          try:
+              reserve = float(os.environ.get("RESERVE_MINUTES") or 0)
+          except ValueError:
+              reserve = 0.0
+
+          if not token:
+              print("::warning title=actions-budget::ACTIONS_BILLING_TOKEN ausente; gate de minutos INATIVO (fail-open).")
+              emit(True, -1)
+              raise SystemExit(0)
+
+          req = urllib.request.Request(
+              f"https://api.github.com/users/{owner}/settings/billing/actions",
+              headers={
+                  "Authorization": f"Bearer {token}",
+                  "Accept": "application/vnd.github+json",
+                  "User-Agent": "actions-budget-guard",
+              },
+          )
+          try:
+              with urllib.request.urlopen(req, timeout=20) as resp:
+                  data = json.load(resp)
+          except urllib.error.HTTPError as exc:
+              print(f"::warning title=actions-budget::billing HTTP {exc.code}; gate INATIVO (fail-open).")
+              emit(True, -1)
+              raise SystemExit(0)
+          except Exception as exc:  # noqa: BLE001
+              print(f"::warning title=actions-budget::billing indisponivel ({exc}); gate INATIVO (fail-open).")
+              emit(True, -1)
+              raise SystemExit(0)
+
+          included = int(data.get("included_minutes") or 0)
+          used = int(data.get("total_minutes_used") or 0)
+          remaining = included - used
+          has_budget = remaining > reserve
+          print(
+              f"::notice title=actions-budget::minutos restantes={remaining} "
+              f"(inclusos={included} usados={used}) reserva={reserve:g} -> has_budget={has_budget}"
+          )
+          emit(has_budget, remaining)
+          PY

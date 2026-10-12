@@ -17,7 +17,13 @@ env:
   GCP_SERVICE: chatbot-rag-api
 
 jobs:
+  budget:
+    uses: ./.github/workflows/_actions-budget.yml
+    secrets:
+      ACTIONS_BILLING_TOKEN: ${{ secrets.ACTIONS_BILLING_TOKEN }}
   monitor:
+    needs: budget
+    if: needs.budget.outputs.has_budget == 'true'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout

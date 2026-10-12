@@ -10,7 +10,13 @@ env:
   NODE_OPTIONS: "--no-warnings"
 
 jobs:
+  budget:
+    uses: ./.github/workflows/_actions-budget.yml
+    secrets:
+      ACTIONS_BILLING_TOKEN: ${{ secrets.ACTIONS_BILLING_TOKEN }}
   ingest-factchecking:
+    needs: budget
+    if: needs.budget.outputs.has_budget == 'true'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Repository

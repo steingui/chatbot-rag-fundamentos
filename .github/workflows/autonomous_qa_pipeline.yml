@@ -10,7 +10,13 @@ permissions:
   contents: read
 
 jobs:
+  budget:
+    uses: ./.github/workflows/_actions-budget.yml
+    secrets:
+      ACTIONS_BILLING_TOKEN: ${{ secrets.ACTIONS_BILLING_TOKEN }}
   unit-tests:
+    needs: budget
+    if: needs.budget.outputs.has_budget == 'true'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Repository
@@ -34,7 +40,8 @@ jobs:
           PYTHONPATH=. pytest tests/ -q
 
   test-persona:
-    needs: unit-tests
+    needs: [unit-tests, budget]
+    if: needs.budget.outputs.has_budget == 'true'
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -65,7 +72,8 @@ jobs:
           PYTHONPATH=. python3 scripts/agent_rag_tester.py --persona ${{ matrix.persona }}
 
   triage:
-    needs: test-persona
+    needs: [test-persona, budget]
+    if: needs.budget.outputs.has_budget == 'true'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Repository

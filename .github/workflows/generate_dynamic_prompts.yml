@@ -6,7 +6,13 @@ on:
   workflow_dispatch: # Permite execução manual
 
 jobs:
+  budget:
+    uses: ./.github/workflows/_actions-budget.yml
+    secrets:
+      ACTIONS_BILLING_TOKEN: ${{ secrets.ACTIONS_BILLING_TOKEN }}
   generate-prompts:
+    needs: budget
+    if: needs.budget.outputs.has_budget == 'true'
     runs-on: ubuntu-latest
     permissions:
       contents: write
