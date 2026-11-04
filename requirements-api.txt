@@ -1,7 +1,7 @@
-fastapi
-uvicorn
-langchain
-langchain-core
+fastapi>=9d34ad0ee8a0dfbbcce06f76c2d5d851085024fc
+uvicorn>=0.11.7
+langchain>=0.2.19
+langchain-core>=1.2.5
 langchain-classic
 langchain-pinecone
 pinecone-client
@@ -10,4 +10,4 @@ langchain-huggingface
 python-dotenv
 duckduckgo-search
 ddgs
-langchain-community
+langchain-community>=0.2.9
