@@ -21,4 +21,4 @@ prompt-injection-detector
 cachetools
 tenacity
 pytest-asyncio
-httpx
+httpx>=0.23.0
