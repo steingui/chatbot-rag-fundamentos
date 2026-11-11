@@ -7,7 +7,7 @@ langchain-pinecone==0.2.13
 langchain-huggingface==1.2.2
 langchain-openai==1.5.1
 pinecone
-pypdf==6.16.1
+pypdf==7.0.1
 python-dotenv==1.2.3
 requests==2.34.2
 duckduckgo-search
